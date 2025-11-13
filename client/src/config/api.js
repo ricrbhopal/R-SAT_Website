@@ -1,0 +1,26 @@
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:3000', // Adjust the base URL as needed
+});
+
+
+ export const setAuthToken = (token) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
+
+
+export const AuthAPI = {
+  sendOTP: (data) => api.post('/auth/send-otp', data),
+  register: (data) => api.post('/auth/register', data),
+    sendCredentials: (data) => api.post('/auth/send-credentials', data),
+    login: (data) => api.post('/auth/login', data),
+    logout: () => api.post('/auth/logout'),
+    // refreshData: () => api.get('/auth/refresh'),
+};
+
+export default api;
