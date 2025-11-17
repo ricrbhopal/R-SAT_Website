@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
+import path from "path";
 
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, html, attachments = []) => {
   const transporter = nodemailer.createTransport({
     service: "Gmail",
     auth: {
@@ -13,7 +14,8 @@ const sendEmail = async (to, subject, text) => {
     from: process.env.GMAIL_USER,
     to,
     subject,
-    html: text,
+    html,
+    attachments,
   };
 
   try {
@@ -26,7 +28,7 @@ const sendEmail = async (to, subject, text) => {
 };
 
 export const sendOTPEmail = async (to, otp) => {
-  const subject = "Your Nav Kalpana OTP Code ";
+  const subject = "Your R-SAT OTP Code ";
   const text = `
         <!DOCTYPE html>
         <html>
@@ -59,37 +61,437 @@ export const sendOTPEmail = async (to, otp) => {
 };
 
 export const sendCredentialsEmail = async (to, credentials) => {
-  const subject = "Your Nav Kalpana Login Credentials";
-  const email = to;
-  const text = `
-    
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Your Nav Kalpana Login Credentials</title>
-                <style>
-                    body { font-family: Arial, sans-serif; background: #f9f9f9; color: #222; }
-                    .container { max-width: 400px; margin: 40px auto; background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);}
-                    .footer { font-size: 0.9em; color: #888; margin-top: 32px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h2>Your Nav Kalpana Login Credentials</h2>
-                    <p>Hello,</p>
-                    <p>Your login credentials are as follows:</p>
-                    <p>Team Code: ${credentials}</p>
-                    <p>Email: ${email}</p>
-               
-                    <p>Please keep this information safe and do not share it with anyone.</p>
-                    <div class="footer">
-                        If you did not request this, please ignore this email.<br>
-                        &copy; ${new Date().getFullYear()} Nav Kalpana
+  const subject = "R-SAT Enrollment Confirmation — RICR";
+
+  // Accept either a credentials string (rsat id) or an object with detailed fields
+  let name = "";
+  let rsatId = "";
+  let testDate = "19th Jan 2026";
+  let venue =
+    "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)";
+  const mapsLink = "https://maps.app.goo.gl/81ntQ3GwTYrRTdT8A";
+  const whatsappLink = "https://chat.whatsapp.com/LOyIK8KUHXg6opbiIN6VnF";
+
+  if (credentials && typeof credentials === "object") {
+    name = credentials.name || "";
+    rsatId =
+      credentials.rsatId || credentials.student_ID || credentials.id || "";
+    testDate = credentials.testDate || testDate;
+    venue = credentials.venue || venue;
+  } else {
+    rsatId = credentials || "";
+  }
+
+  const html = `
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R-SAT Enrollment Confirmation</title>
+    <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .email-container {
+            max-width: 700px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        /* Header section */
+        .header {
+            background: linear-gradient(135deg, #2d7ff9 0%, #1e56a0 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-icon {
+            margin-right: 10px;
+            font-size: 32px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin: 15px 0 5px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        /* Content section */
+        .content {
+            padding: 40px;
+        }
+        
+        .congrats-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .congrats-section h2 {
+            color: #2d7ff9;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .congrats-section p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        /* Card sections */
+        .card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid #2d7ff9;
+        }
+        
+        .card h3 {
+            color: #1e56a0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h3 i {
+            margin-right: 10px;
+            color: #2d7ff9;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .detail-item {
+            margin-bottom: 12px;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: #2d7ff9;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 6px rgba(45, 127, 249, 0.2);
+        }
+        
+        .btn:hover {
+            background: #1e56a0;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(45, 127, 249, 0.3);
+        }
+        
+        /* List styles */
+        .info-list {
+            list-style-type: none;
+        }
+        
+        .info-list li {
+            margin-bottom: 12px;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .info-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #2d7ff9;
+            font-weight: bold;
+        }
+        
+        /* Scholarship table */
+        .scholarship-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .scholarship-table th {
+            background: #e8f0fe;
+            padding: 12px 15px;
+            text-align: left;
+            color: #1e56a0;
+            font-weight: 600;
+        }
+        
+        .scholarship-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .scholarship-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Contact section */
+        .contact-section {
+            background: #f0f7ff;
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .contact-section h3 {
+            color: #1e56a0;
+            margin-bottom: 15px;
+        }
+        
+        .contact-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .contact-link {
+            display: flex;
+            align-items: center;
+            color: #2d7ff9;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .contact-link i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #1e3a5f;
+            color: white;
+            padding: 25px 40px;
+            text-align: center;
+        }
+        
+        .footer p {
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        
+        .social-links {
+            margin-top: 15px;
+        }
+        
+        .social-link {
+            display: inline-block;
+            color: white;
+            margin: 0 10px;
+            font-size: 18px;
+        }
+        
+        .copyright {
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .header, .content, .footer {
+                padding: 25px 20px;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .contact-links {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-graduation-cap logo-icon"></i>
+                RICR
+            </div>
+            <h1>R-SAT Enrollment Confirmed!</h1>
+            <p>RICR Scholarship Admission Test</p>
+        </div>
+        
+        <!-- Content Section -->
+        <div class="content">
+            <!-- Congratulations Section -->
+            <div class="congrats-section">
+                <h2>Congratulations${name ? " " + name : ""}!</h2>
+                <p>You have successfully enrolled for the R-SAT (RICR Scholarship Admission Test).</p>
+            </div>
+            
+            <!-- Your Details Card -->
+            <div class="card">
+                <h3><i class="fas fa-user-circle"></i> Your Details</h3>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">RSAT ID</span>
+                        <div class="detail-value">${rsatId}</div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Test Date</span>
+                        <div class="detail-value">${testDate}</div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Venue</span>
+                        <div class="detail-value">${venue}</div>
                     </div>
                 </div>
-            </body>
-        </html>
-    `;
-  return sendEmail(to, subject, text);
+                <a href="${mapsLink}" class="btn">
+                    <i class="fas fa-map-marker-alt"></i> Open Venue in Maps
+                </a>
+            </div>
+            
+            <!-- Important Information Card -->
+            <div class="card">
+                <h3><i class="fas fa-info-circle"></i> Important Information</h3>
+                <ul class="info-list">
+                    <li>You will receive your Admit Card and other exam instructions approximately one week before the exam date.</li>
+                    <li>Ensure you carry a valid photo ID for verification.</li>
+                    <li>Syllabus and sample paper for R-SAT are attached as a PDF.</li>
+                </ul>
+            </div>
+            
+            <!-- Scholarship Criteria Card -->
+            <div class="card">
+                <h3><i class="fas fa-award"></i> Scholarship Criteria</h3>
+                <table class="scholarship-table">
+                    <thead>
+                        <tr>
+                            <th>Score</th>
+                            <th>Scholarship</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>95% and above</td>
+                            <td>100% scholarship (with preliminary interview)</td>
+                        </tr>
+                        <tr>
+                            <td>85% - 94%</td>
+                            <td>50% scholarship</td>
+                        </tr>
+                        <tr>
+                            <td>75% - 84%</td>
+                            <td>25% scholarship</td>
+                        </tr>
+                        <tr>
+                            <td>60% - 74%</td>
+                            <td>10% scholarship</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Contact Section -->
+            <div class="contact-section">
+                <h3>Need Assistance?</h3>
+                <p>We're here to help you with any questions about the R-SAT.</p>
+                <div class="contact-links">
+                    <a href="${whatsappLink}" class="contact-link">
+                        <i class="fab fa-whatsapp"></i> Join Community
+                    </a>
+                    <a href="mailto:contact@ricr.in" class="contact-link">
+                        <i class="fas fa-envelope"></i> contact@ricr.in
+                    </a>
+                    <a href="tel:+919907096014" class="contact-link">
+                        <i class="fas fa-phone"></i> +91-9907096014
+                    </a>
+                    <a href="tel:+918889991736" class="contact-link">
+                        <i class="fas fa-phone"></i> +91-8889991736
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Section -->
+        <div class="footer">
+            <p>Best regards,</p>
+            <p><strong>Team RICR</strong></p>
+            <div class="social-links">
+                <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+            <div class="copyright">
+                &copy; ${new Date().getFullYear()} RICR. All rights reserved.
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+
+  // Attach RSAT.pdf from the repository assets
+  const pdfPath = path.resolve(process.cwd(), "src", "assests", "RSAT.pdf");
+  const attachments = [
+    {
+      filename: "RSAT.pdf",
+      path: pdfPath,
+      contentType: "application/pdf",
+    },
+  ];
+
+  return sendEmail(to, subject, html, attachments);
 };
