@@ -145,10 +145,10 @@ const AuthRegister = () => {
       <div className="max-w-3xl mx-auto w-full">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-5xl font-bold bg-[#125785] bg-clip-text text-transparent mb-4">
             R-SAT
           </h1>
-          <p className="text-xl text-gray-600 font-light">
+          <p className="text-xl text-[#125785] font-light">
             Registration Portal
           </p>
           <div className="w-24 h-1 bg-[#125785] mx-auto mt-4 rounded-full"></div>

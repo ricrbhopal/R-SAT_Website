@@ -6,13 +6,7 @@ import { sendOTPPhone } from '../utils/phoneService.js';
 import Otp from '../models/otpModel.js';
 import { generateAuthToken } from '../utils/genAuthToken.js'; // adjust if signature differs
 
-// Helper: generate random password if user didn't provide one
-const genRandomPassword = (len = 8) => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!';
-  let pw = '';
-  for (let i = 0; i < len; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-  return pw;
-};
+
 
 // Send OTPs to email and phoneNo
 export const SendOTP = async (req, res, next) => {
@@ -235,22 +229,28 @@ export const Logout = (req, res, next) => {
   }
 };
 
-// refreshData: return latest student data (requires auth middleware to set req.user)
-// export const refreshData = async (req, res, next) => {
-//   try {
-//     const user = req.user; // ensure auth middleware attaches student doc to req.user
-//     if (!user) {
-//       const error = new Error('User not found');
-//       error.statusCode = 404;
-//       return next(error);
-//     }
 
-//     const student = await Student.findById(user._id).select('-__v').lean();
-//     res.status(200).json({
-//       message: 'Data refreshed successfully',
-//       student,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+
+// fetch student profile
+
+export const getStudentProfile = async (req, res, next) => {
+  try {
+    const user = req.user; // ensure auth middleware attaches student doc to req.user
+    if (!user) {
+      const error = new Error('User not found');
+      error.statusCode = 404;
+      return next(error);
+    }
+    const student = await Student.findById(user._id).select('-__v').lean();
+    res.status(200).json({
+      message: 'Profile fetched successfully',
+      student,
+    });
+  }
+  catch (error) {
+    next(error);
+  }
+}
+
+
+

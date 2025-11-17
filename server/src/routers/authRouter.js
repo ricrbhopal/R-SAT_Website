@@ -6,7 +6,8 @@ import {
   SendCredentials,
   Login,
   Logout,
-//   refreshData
+  getStudentProfile
+
 } from '../controller/authjController.js';
 
 import { protect } from '../middleware/authMiddleware.js';
@@ -29,8 +30,8 @@ router.post('/login', Login);
 // POST /api/students/logout
 router.post('/logout', Logout);
 
-// Protected route - requires auth
-// GET /api/students/refresh
-// router.get('/refresh', protect, refreshData);
+//get student profile
+router.get('/profile', protect, getStudentProfile);
+
 
 export default router;

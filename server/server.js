@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import ConnectDB from "./src/config/db.js";
 import Auth from "./src/routers/authRouter.js";
+// import Demo from "./src/routers/soltRouter.js";
 
 dotenv.config();
 const app = express();
@@ -24,6 +25,8 @@ app.get("/", (req, res) => {
 
 // Use Auth router
 app.use("/auth", Auth);
+// Use Demo router
+// app.use("/solt", Demo);
 
 // Port setup
 const PORT = process.env.PORT || 5000;

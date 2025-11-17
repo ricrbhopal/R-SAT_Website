@@ -16,7 +16,7 @@ const Navbar = () => {
             </a>
 
             <ul className="hidden md:flex items-center gap-8 text-gray-900 text-lg font-semibold">
-              <Link to="https://new.ricr.in/" className="cursor-pointer hover:text-[#125785]">Home</Link>
+              <Link to="/" className="cursor-pointer hover:text-[#125785]">Home</Link>
               <Link to={""} className="cursor-pointer hover:text-[#125785]">About</Link>
                 <Link to={""} className="cursor-pointer hover:text-[#125785]">Courses</Link>
               {/* <li className="cursor-pointer hover:text-[#125785]">R-Sat</li> */}
@@ -30,7 +30,7 @@ const Navbar = () => {
               <span className="text-sm font-semibold">+91 8889991736</span>
             </a>
 
-            <Link to="/RegisterationForm" className="hidden md:inline-flex items-center px-5 py-2 bg-[#125785] hover:bg-[#0f4668] text-white rounded-lg shadow-md font-medium transition">
+            <Link to="/RegistrationForm" className="hidden md:inline-flex items-center px-5 py-2 bg-[#125785] hover:bg-[#0f4668] text-white rounded-lg shadow-md font-medium transition">
               Student Register
             </Link>
 
