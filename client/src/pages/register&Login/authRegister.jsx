@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { AuthAPI, setAuthToken } from "../../config/api";
+import { useNavigate } from "react-router-dom";
 
 const AuthRegister = () => {
   const [tab, setTab] = useState("register");
@@ -25,6 +26,7 @@ const AuthRegister = () => {
   // Login state
   const [loginForm, setLoginForm] = useState({ student_ID: "", dob: "" });
   const [loggingIn, setLoggingIn] = useState(false);
+  const navigate = useNavigate();
 
   // Dropdown options
   const streamOptions = [
@@ -129,10 +131,17 @@ const AuthRegister = () => {
       const res = await AuthAPI.login(loginForm);
       const token = res?.data?.token;
       if (token) {
-        localStorage.setItem("token", token);
+        // store token in sessionStorage for this session
+        sessionStorage.setItem("token", token);
         setAuthToken(token);
+        navigate("/candidate/dashboard");
+      } else if (res?.status === 200) {
+        // server may set httpOnly cookie instead of returning token in body
+        // navigate on success so client can fetch profile using cookie-based auth
+        navigate("/candidate/dashboard");
       }
       setMessage(res?.data?.message || "Login successful");
+ 
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Login failed");
     } finally {
@@ -664,7 +673,7 @@ const AuthRegister = () => {
         {/* Footer */}
         <div className="text-center mt-8 sm:mt-10 lg:mt-12 px-2">
           <p className="text-gray-500 text-xs sm:text-sm">
-            © 2024 R-SAT Registration Portal. All rights reserved.
+            © 2026 R-SAT Registration Portal. All rights reserved.
           </p>
         </div>
       </div>

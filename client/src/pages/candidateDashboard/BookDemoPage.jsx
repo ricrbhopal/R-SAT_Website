@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { DemoAPI } from "../config/api.js";
+import { DemoAPI } from "../../config/api.js";
 
 export default function DemoSlotBooking() {
   const [step, setStep] = useState(1); // 1 = collect contact, 2 = verify OTP, 3 = booked
@@ -96,20 +96,21 @@ export default function DemoSlotBooking() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8 mt-18 ">
-      <div className="max-w-2xl mx-auto">
+    <div className=" bg-gradient-to-br  py-1 px-4 sm:px-6 lg:px-8 ">
+      <div className="max-w-4xl mx-auto">
         {/* Main Form Card */}
-        <div className="bg-gray-50 rounded-2xl mt-20 shadow-xl overflow-hidden">
+        <div className=" rounded-2xl mt-20 overflow-hidden">
           {/* Header Card */}
           <div className="  text p-5 rounded-2xl   ">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-3 text-[#125785]">
                 Book Your Demo Session
               </h1>
+              
             </div>
           </div>
           {/* Progress Bar */}
-          <div className="bg-gray-50 px-8 py-6 ">
+          <div className=" px-8 py-6 ">
             <div className="flex items-center justify-between max-w-md mx-auto">
               {[1, 2, 3].map((stepNumber) => (
                 <div key={stepNumber} className="flex items-center">
@@ -332,21 +333,11 @@ export default function DemoSlotBooking() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                     >
                       <option value="">Select a preferred slot</option>
-                      <option value="2025-12-01 11:00 AM">
-                        17-11-2025 11:00 AM
-                      </option>
-                      <option value="2025-12-01 02:00 PM">
-                        18-11-2025 02:00 PM
-                      </option>
-                      <option value="2025-12-02 11:00 AM">
-                        19-11-2025 11:00 AM
-                      </option>
-                      <option value="2025-12-02 02:00 PM">
-                        20-11-2025 02:00 PM
-                      </option>
-                      <option value="2025-12-03 11:00 AM">
-                        21-11-2025 11:00 AM
-                      </option>
+                      <option value="2025-12-01 11:00 AM">17-11-2025 11:00 AM</option>
+                      <option value="2025-12-01 02:00 PM">18-11-2025 02:00 PM</option>
+                      <option value="2025-12-02 11:00 AM">19-11-2025 11:00 AM</option>
+                      <option value="2025-12-02 02:00 PM">20-11-2025 02:00 PM</option>
+                      <option value="2025-12-03 11:00 AM">21-11-2025 11:00 AM</option>
                     </select>
                   </div>
 

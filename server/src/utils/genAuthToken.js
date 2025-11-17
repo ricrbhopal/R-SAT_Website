@@ -2,11 +2,14 @@
 import jwt from 'jsonwebtoken';
 
 export const generateAuthToken = (user, team, res) => {
-  const token = jwt.sign(
-    { user_id: user._id, team_id: team._id, role: user.role || 'Leader' },
-    process.env.JWT_SECRET,
-    { expiresIn: '2h' }
-  );
+  const payload = {
+    user_id: user._id,
+    role: user.role || 'Leader',
+  };
+  // include team_id only when team is provided
+  if (team && team._id) payload.team_id = team._id;
+
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
   // Set cookie (httpOnly)
   res.cookie('token', token, {

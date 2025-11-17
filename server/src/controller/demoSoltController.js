@@ -1,5 +1,5 @@
 import Demo from "../models/demoModel.js"; 
-import bcrypt from 'bcrypt'; 
+import bcrypt from 'bcryptjs';
 import { sendOTPEmail } from '../utils/emailService.js';
 import { sendOTPPhone } from '../utils/phoneService.js';
 import Otp from '../models/otpModel.js';
