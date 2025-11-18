@@ -6,6 +6,8 @@ import AuthRegister from "./pages/register&Login/authRegister.jsx";
 import CandidateDashboard from "./pages/candidateDashboard/CandidateDashboard.jsx";
 import BookDemo from "./pages/candidateDashboard/BookDemoPage.jsx";
 import Profile from "../src/pages/candidateDashboard/ProfilePage.jsx";
+import ReferredPage from "./pages/candidateDashboard/RefferedPage.jsx";
+import ReferredRegistrationPage from "./pages/candidateDashboard/RefferedRegisterationPage.jsx";
 import "./App.css";
 
 function App() {
@@ -18,6 +20,11 @@ function App() {
         <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
         <Route path="/demo" element={<BookDemo />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/candidateDashboard/referred" element={<ReferredPage />} />
+        <Route
+          path="/candidateDashboard/RefferedRegisterationPage"
+          element={<ReferredRegistrationPage />}
+        />
       </Routes>
       <Footer />
     </BrowserRouter>

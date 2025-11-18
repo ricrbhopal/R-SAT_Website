@@ -77,11 +77,11 @@ const ScholarshipPage = () => {
 		</section>
 
 		{/* Centered registration closed banner */}
-		<div className="flex justify-center px-4 sm:px-6">
+		{/* <div className="flex justify-center px-4 sm:px-6">
 			<div className="py-6 sm:py-8 lg:py-10 text-xl sm:text-2xl lg:text-3xl xl:text-[35px] font-bold bg-[#EAF8FF] px-4 sm:px-6 rounded-lg text-center w-full max-w-2xl lg:max-w-3xl mx-4">
 				Registrations has been closed
 			</div>
-		</div>
+		</div> */}
         </>
 	)
 }

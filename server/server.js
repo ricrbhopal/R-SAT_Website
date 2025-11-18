@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import ConnectDB from "./src/config/db.js";
 import Auth from "./src/routers/authRouter.js";
 import Demo from "./src/routers/soltRouter.js"
+import Support from "./src/routers/supportRouter.js"
+import Reffered from "./src/routers/refferedRouter.js"
 
 dotenv.config();
 const app = express();
@@ -30,6 +32,13 @@ app.get("/", (req, res) => {
 app.use("/auth", Auth);
 // Use Demo router
 app.use("/solt", Demo);
+// Use Support router
+app.use("/support", Support);
+// Use Reffered router
+app.use("/reffered", Reffered);
+
+
+
 
 // Centralized error handler (should be last middleware)
 app.use((err, req, res, next) => {

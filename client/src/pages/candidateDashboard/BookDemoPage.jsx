@@ -40,7 +40,7 @@ export default function DemoSlotBooking() {
       );
       setStep(2);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTPs");
+      toast.error(err?.response?.data?.message || "Failed to send OTPs");
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export default function DemoSlotBooking() {
       toast.success("🎉 Demo slot booked successfully!");
       setStep(3);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Booking failed");
+      toast.error(err?.response?.data?.message || "Booking failed");
     } finally {
       setLoading(false);
     }
@@ -96,28 +96,27 @@ export default function DemoSlotBooking() {
   };
 
   return (
-    <div className=" bg-gradient-to-br  py-1 px-4 sm:px-6 lg:px-8 ">
+    <div className=" bg-gradient-to-br py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Main Form Card */}
-        <div className=" rounded-2xl mt-20 overflow-hidden">
+        <div className="rounded-2xl mt-12 overflow-hidden">
           {/* Header Card */}
-          <div className="  text p-5 rounded-2xl   ">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold mb-3 text-[#125785]">
-                Book Your Demo Session
-              </h1>
-              
-            </div>
+          <div className="text-center p-6 sm:p-8 rounded-2xl">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-[#125785]">
+              Book Your Demo Session
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600">Choose a convenient slot — fast and secure</p>
           </div>
+
           {/* Progress Bar */}
-          <div className=" px-8 py-6 ">
-            <div className="flex items-center justify-between max-w-md mx-auto">
+          <div className="px-4 sm:px-8 py-4">
+            <div className="hidden sm:flex items-center justify-between max-w-md mx-auto">
               {[1, 2, 3].map((stepNumber) => (
                 <div key={stepNumber} className="flex items-center">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-semibold transition-all duration-300 ${
                       step >= stepNumber
-                        ? "bg-[#125785] border-[#125785] text-white shadow-lg transform scale-110"
+                        ? "bg-[#125785] border-[#125785] text-white shadow-lg scale-110"
                         : "bg-white border-gray-300 text-gray-400"
                     }`}
                   >
@@ -133,186 +132,89 @@ export default function DemoSlotBooking() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between max-w-md mx-auto mt-3 text-sm">
-              <span
-                className={`font-medium ${
-                  step >= 1 ? "text-[#125785]" : "text-gray-400"
-                }`}
-              >
-                Contact Info
-              </span>
-              <span
-                className={`font-medium ${
-                  step >= 2 ? "text-[#125785]" : "text-gray-400"
-                }`}
-              >
-                Verify & Details
-              </span>
-              <span
-                className={`font-medium ${
-                  step >= 3 ? "text-[#125785]" : "text-gray-400"
-                }`}
-              >
-                Confirmed
-              </span>
+
+            {/* Mobile compact stepper */}
+            <div className="sm:hidden flex items-center justify-between px-4">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className="flex-1 text-center">
+                  <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${step >= s ? "bg-[#125785] text-white" : "bg-white text-gray-400 border border-gray-200"}`}>
+                    {s}
+                  </div>
+                  <div className={`text-xs mt-1 ${step >= s ? "text-[#125785]" : "text-gray-400"}`}>{s === 1 ? "Contact" : s === 2 ? "Verify" : "Done"}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between max-w-md mx-auto mt-3 text-sm hidden sm:flex">
+              <span className={`font-medium ${step >= 1 ? "text-[#125785]" : "text-gray-400"}`}>Contact Info</span>
+              <span className={`font-medium ${step >= 2 ? "text-[#125785]" : "text-gray-400"}`}>Verify & Details</span>
+              <span className={`font-medium ${step >= 3 ? "text-[#125785]" : "text-gray-400"}`}>Confirmed</span>
             </div>
           </div>
 
-          <div className="p-8">
-            {/* Alerts */}
-            {/* Step 1: Contact Information */}
+          <div className="p-6 sm:p-8">
+            {/* Step 1 */}
             {step === 1 && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Student Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.studentName}
-                      onChange={(e) => update("studentName", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                      placeholder="Enter your full name"
-                    />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700">Student Name <span className="text-red-500">*</span></label>
+                    <input value={form.studentName} onChange={(e) => update("studentName", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Enter your full name" />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.email}
-                      onChange={(e) => update("email", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                      placeholder="your.email@example.com"
-                      type="email"
-                    />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></label>
+                    <input value={form.email} onChange={(e) => update("email", e.target.value)} type="email" className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="your.email@example.com" />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Phone Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.phone}
-                      onChange={(e) => update("phone", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                      placeholder="10 digit mobile number"
-                      type="tel"
-                    />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700">Phone Number <span className="text-red-500">*</span></label>
+                    <input value={form.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="10 digit mobile number" />
                   </div>
 
                   <div className="flex items-end">
-                    <button
-                      onClick={sendOTPs}
-                      disabled={loading}
-                      className="w-full bg-[#125785] text-white cursor-pointer py-3 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-800 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:transform-none shadow-lg"
-                    >
-                      {loading ? (
-                        <span className="flex items-center justify-center">
-                          <svg
-                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Sending OTPs...
-                        </span>
-                      ) : (
-                        "Send Verification Codes"
-                      )}
+                    <button onClick={sendOTPs} disabled={loading} className="w-full bg-[#125785] text-white py-3 px-6 rounded-xl font-semibold hover:opacity-95 transition">
+                      {loading ? "Sending..." : "Send Verification Codes"}
                     </button>
                   </div>
                 </div>
+
+                <p className="text-sm text-gray-500">By requesting codes you agree to receive SMS and Email for verification purposes.</p>
               </div>
             )}
 
-            {/* Step 2: Verification & Details */}
+            {/* Step 2 */}
             {step === 2 && (
               <div className="space-y-6">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    Almost There!
-                  </h2>
-                  <p className="text-gray-600 mt-2">
-                    Verify your identity and complete your booking
-                  </p>
+                <div className="text-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800">Almost There!</h2>
+                  <p className="text-sm text-gray-500">Verify your identity and complete your booking</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Personal Details */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Student Name
-                    </label>
-                    <input
-                      value={form.studentName}
-                      onChange={(e) => update("studentName", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"
-                      readOnly
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Student Name</label>
+                    <input value={form.studentName} readOnly className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50" />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Email
-                    </label>
-                    <input
-                      value={form.email}
-                      onChange={(e) => update("email", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"
-                      readOnly
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <input value={form.email} readOnly className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50" />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Phone
-                    </label>
-                    <input
-                      value={form.phone}
-                      onChange={(e) => update("phone", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"
-                      readOnly
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input value={form.phone} readOnly className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50" />
                   </div>
 
-                  {/* Additional Details */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      College/University <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.collegeName}
-                      onChange={(e) => update("collegeName", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                      placeholder="Your institution name"
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">College/University <span className="text-red-500">*</span></label>
+                    <input value={form.collegeName} onChange={(e) => update("collegeName", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Your institution name" />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Academic Year <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={form.year}
-                      onChange={(e) => update("year", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                    >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Academic Year <span className="text-red-500">*</span></label>
+                    <select value={form.year} onChange={(e) => update("year", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
                       <option value="">Select your year</option>
                       <option>1st Year</option>
                       <option>2nd Year</option>
@@ -322,182 +224,82 @@ export default function DemoSlotBooking() {
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Preferred Demo Slot{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={form.demoSolt}
-                      onChange={(e) => update("demoSolt", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                    >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Preferred Demo Slot <span className="text-red-500">*</span></label>
+                    <select value={form.demoSolt} onChange={(e) => update("demoSolt", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
                       <option value="">Select a preferred slot</option>
-                      <option value="2025-12-01 11:00 AM">17-11-2025 11:00 AM</option>
-                      <option value="2025-12-01 02:00 PM">18-11-2025 02:00 PM</option>
-                      <option value="2025-12-02 11:00 AM">19-11-2025 11:00 AM</option>
-                      <option value="2025-12-02 02:00 PM">20-11-2025 02:00 PM</option>
-                      <option value="2025-12-03 11:00 AM">21-11-2025 11:00 AM</option>
+                      <option value="2025-11-17 11:00 AM">17-11-2025 11:00 AM</option>
+                      <option value="2025-11-18 02:00 PM">18-11-2025 02:00 PM</option>
+                      <option value="2025-11-19 11:00 AM">19-11-2025 11:00 AM</option>
+                      <option value="2025-11-20 02:00 PM">20-11-2025 02:00 PM</option>
+                      <option value="2025-11-21 11:00 AM">21-11-2025 11:00 AM</option>
                     </select>
                   </div>
 
-                  {/* OTP Fields */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Email Verification Code{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.emailOTP}
-                      onChange={(e) => update("emailOTP", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center font-mono text-lg"
-                      placeholder="000000"
-                      maxLength="6"
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email Verification Code <span className="text-red-500">*</span></label>
+                    <input value={form.emailOTP} onChange={(e) => update("emailOTP", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl text-center font-mono text-lg" placeholder="000000" maxLength={6} />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Phone Verification Code{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.phoneOTP}
-                      onChange={(e) => update("phoneOTP", e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center font-mono text-lg"
-                      placeholder="000000"
-                      maxLength="6"
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone Verification Code <span className="text-red-500">*</span></label>
+                    <input value={form.phoneOTP} onChange={(e) => update("phoneOTP", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl text-center font-mono text-lg" placeholder="000000" maxLength={6} />
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <button
-                    onClick={bookSlot}
-                    disabled={loading}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-green-700 hover:to-blue-700 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:transform-none shadow-lg"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Processing...
-                      </span>
-                    ) : (
-                      "Verify & Confirm Booking"
-                    )}
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                  <button onClick={bookSlot} disabled={loading} className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:opacity-95 transition">
+                    {loading ? "Processing..." : "Verify & Confirm Booking"}
                   </button>
-
-                  <button
-                    onClick={resendOTP}
-                    disabled={loading}
-                    className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-blue-500 hover:text-blue-600 transition-all duration-200 disabled:opacity-50"
-                  >
+                  <button onClick={resendOTP} disabled={loading} className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-xl hover:border-blue-500 transition">
                     Resend Codes
                   </button>
                 </div>
 
-                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => setStep(1)}
-                    className="text-blue-600 hover:text-blue-800 font-medium flex items-center transition-colors duration-200"
-                  >
-                    ← Back to Contact Info
-                  </button>
-                  <button
-                    onClick={resetForm}
-                    className="text-red-600 hover:text-red-800 font-medium transition-colors duration-200"
-                  >
-                    Start Over
-                  </button>
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <button onClick={() => setStep(1)} className="text-blue-600 hover:underline">← Back to Contact Info</button>
+                  <button onClick={resetForm} className="text-red-600 hover:underline">Start Over</button>
                 </div>
               </div>
             )}
 
             {/* Step 3: Confirmation */}
             {step === 3 && (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg
-                    className="w-10 h-10 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M5 13l4 4L19 7"
-                    ></path>
-                  </svg>
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
                 </div>
 
-                <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                  Booking Confirmed! 🎉
-                </h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Booking Confirmed! 🎉</h2>
+                <p className="text-gray-600 mb-4">Your demo session has been successfully scheduled. Confirmation details have been sent to your email and phone.</p>
 
-                <p className="text-gray-600 text-lg max-w-md mx-auto mb-2">
-                  Your demo session has been successfully scheduled.
-                </p>
-                <p className="text-gray-500 mb-8">
-                  Confirmation details have been sent to your email and phone.
-                </p>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 max-w-md mx-auto mb-8">
-                  <h3 className="font-semibold text-blue-800 mb-3">
-                    Booking Summary
-                  </h3>
-                  <div className="text-left space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Name:</span>
-                      <span className="font-medium">{form.studentName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Demo Slot:</span>
-                      <span className="font-medium">{form.demoSolt}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Institution:</span>
-                      <span className="font-medium">{form.collegeName}</span>
-                    </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-md mx-auto mb-4 text-left">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm">Name:</span>
+                    <span className="font-medium">{form.studentName}</span>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-gray-600 text-sm">Demo Slot:</span>
+                    <span className="font-medium">{form.demoSolt}</span>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-gray-600 text-sm">Institution:</span>
+                    <span className="font-medium">{form.collegeName}</span>
                   </div>
                 </div>
 
-                <button
-                  onClick={resetForm}
-                  className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-3 px-8 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-800 transform hover:-translate-y-0.5 transition-all duration-200 shadow-lg"
-                >
-                  Book Another Session
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button onClick={resetForm} className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-2 px-4 rounded-xl font-semibold">Book Another Session</button>
+                  <button onClick={() => window.location.reload()} className="mt-2 sm:mt-0 text-gray-700">Go to Dashboard</button>
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Footer Note */}
-        <div className="text-center mt-6   text-sm text-gray-500">
-          Secure demo booking system • Your information is protected
-        </div>
+        <div className="text-center mt-6 text-sm text-gray-500">Secure demo booking system • Your information is protected</div>
       </div>
     </div>
   );
