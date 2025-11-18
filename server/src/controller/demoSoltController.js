@@ -43,8 +43,8 @@ export const SendDemoOTP = async (req, res, next) => {
 // Book demo slot after verifying both OTPs
 export const BookDemoSlot = async (req, res, next) => {
   try {
-    const { studentName, email, phone, collegeName, year, demoSolt, emailOTP, phoneOTP } = req.body;
-    if (!studentName || !email || !phone || !collegeName || !year || !demoSolt || !emailOTP || !phoneOTP) {
+    const { studentName, email, phone, collegeName, year, demoSlot, emailOTP, phoneOTP, type } = req.body;
+    if (!studentName || !email || !phone || !type || !collegeName || !year || !demoSlot || !emailOTP || !phoneOTP) {
       const error = new Error('All fields are required for booking demo slot');
       error.statusCode = 400;
       return next(error);
@@ -84,8 +84,9 @@ export const BookDemoSlot = async (req, res, next) => {
       phone,
       collegeName,
       year,
-      demoSolt,
-    });
+      demoSlot,
+      type,
+    }); 
 
     // Remove used OTPs after successful booking
     await Otp.deleteMany({ otpfor: email, type: 'email' });
@@ -105,5 +106,4 @@ export const GetDemoSlots = async (req, res, next) => {
     next(error);
   }
 };
-
 

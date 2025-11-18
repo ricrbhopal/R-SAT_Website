@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4500";
 
 const api = axios.create({
   baseURL: BASE_URL, // Adjust the base URL as needed
@@ -28,9 +28,9 @@ export const AuthAPI = {
 };
 
 export const DemoAPI = {
-  sendDemoOTP: (data) => api.post("/solt/send-otp", data),
-  bookDemoSlot: (data) => api.post("/solt/registerSolt", data),
-  getAllDemoSlots: () => api.get("/solt/getAllSolts"),
+  sendDemoOTP: (data) => api.post("/slot/send-otp", data),
+  bookDemoSlot: (data) => api.post("/slot/registerSlot", data),
+  getAllDemoSlots: () => api.get("/slot/getAllSlots"),
 };
 
 export const SupportAPI = {

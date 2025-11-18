@@ -26,6 +26,11 @@ const demoSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  type:{
+    enum: ['online', 'offline'],
+    type: String,
+    default: 'offline',
+  }
 });
 
 const Demo = mongoose.model("Demo", demoSchema);

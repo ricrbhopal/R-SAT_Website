@@ -16,7 +16,7 @@ export const generateAuthToken = (user, team, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // set true in production
     sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // if cross-site, use 'None' + secure:true
-    maxAge: 2 * 60 * 60 * 1000 // 2 hours
+    maxAge: 48 * 60 * 60 * 1000 // 48 hours
   });
 
   // return token for body as well (frontend may use it)

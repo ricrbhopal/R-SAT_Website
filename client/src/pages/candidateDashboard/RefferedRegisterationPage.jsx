@@ -227,7 +227,7 @@ export default function ReferredPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-6 mt-20 ">
+    <div className=" flex items-start justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-6 mt-20 ">
       <div className="w-full max-w-3xl mt-6">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="p-6 bg-gradient-to-r from-sky-600 to-indigo-600 text-white">
