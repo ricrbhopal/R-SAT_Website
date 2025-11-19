@@ -112,7 +112,7 @@ export default function CandidateDashboard() {
                 key={action.id}
                 onClick={() => setSelectedId(action.id)}
                 aria-pressed={selectedId === action.id}
-                className={`shrink-0 min-w-40 text-left p-4 rounded-2xl border shadow-sm transition-transform duration-150 flex items-center gap-3
+                className={`shrink-0 min-w-40 text-left p-4 cursor-pointer rounded-2xl border shadow-sm transition-transform duration-150 flex items-center gap-3
                     ${
                       selectedId === action.id
                         ? "bg-blue-50 border-blue-300 shadow"
