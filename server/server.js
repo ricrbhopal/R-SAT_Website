@@ -7,6 +7,7 @@ import Auth from "./src/routers/authRouter.js";
 import Demo from "./src/routers/soltRouter.js"
 import Support from "./src/routers/supportRouter.js"
 import Reffered from "./src/routers/refferedRouter.js"
+import Admin from "./src/routers/adminRouter.js"
 
 dotenv.config();
 const app = express();
@@ -36,7 +37,8 @@ app.use("/slot", Demo);
 app.use("/support", Support);
 // Use Reffered router
 app.use("/reffered", Reffered);
-
+// Use Admin router
+app.use("/admin", Admin);
 
 
 

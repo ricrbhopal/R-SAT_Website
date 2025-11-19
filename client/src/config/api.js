@@ -37,15 +37,26 @@ export const SupportAPI = {
   SubmitSupportQuery: (payload) => api.post("/support/submit-query", payload),
   GetStudentSupportQueries: () => api.get("/support/student-queries"),
   GetAllSupportQueries: () => api.get("/support/all-queries"),
-  UpdateSupportQueryStatus: (queryId, status) => api.put(`/support/update-status/${queryId}`, { status }),
-  AddSupportQueryResponse: (queryId, responder, message) => api.put(`/support/add-response/${queryId}`, { responder, message }),
+  UpdateSupportQueryStatus: (queryId, status) =>
+    api.put(`/support/update-status/${queryId}`, { status }),
+  AddSupportQueryResponse: (queryId, responder, message) =>
+    api.put(`/support/add-response/${queryId}`, { responder, message }),
 };
-
 
 export const ReferralAPI = {
   createReferral: (data) => api.post("/reffered/create", data),
   getReferralInfo: (code) => api.get(`/reffered/info/${code}`),
-  registerWithReferral: (ref, data) => api.post(`/reffered/register?ref=${ref}`, data),
+  registerWithReferral: (ref, data) =>
+    api.post(`/reffered/register?ref=${ref}`, data),
+};
+
+export const AdminAPI = {
+  getAllStudents: () => api.get("/admin/users"),
+  getStudentById: (studentId) => api.get(`/admin/user/${studentId}`),
+  updateStudent: (studentId, studentData) =>
+    api.put(`/admin/user/${studentId}`, studentData),
+
+  deleteStudent: (studentId) => api.delete(`/admin/user/${studentId}`)
 };
 
 export default api;

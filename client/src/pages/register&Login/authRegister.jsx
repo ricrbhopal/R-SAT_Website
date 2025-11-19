@@ -104,7 +104,7 @@ const AuthRegister = () => {
         college: form.college,
         branch: form.branch,
         year: form.year,
-        dob: form.dob,
+        dob: form.dob.split("T")[0], // Extract only the date part
         emailOTP: form.emailOTP,
         phoneOTP: form.phoneOTP,
       };

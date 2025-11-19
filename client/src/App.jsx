@@ -8,6 +8,7 @@ import BookDemo from "./pages/candidateDashboard/BookDemoPage.jsx";
 import Profile from "../src/pages/candidateDashboard/ProfilePage.jsx";
 import ReferredPage from "./pages/candidateDashboard/RefferedPage.jsx";
 import ReferredRegistrationPage from "./pages/candidateDashboard/RefferedRegisterationPage.jsx";
+import Admindashboard from "./pages/adminDashboard/AdminDashboard.jsx"
 import "./App.css";
 
 function App() {
@@ -25,7 +26,9 @@ function App() {
           path="/candidateDashboard/RefferedRegisterationPage"
           element={<ReferredRegistrationPage />}
         />
+        <Route path="/admin/dashboard" element={<Admindashboard />} />
       </Routes>
+      
       <Footer />
     </BrowserRouter>
   );
