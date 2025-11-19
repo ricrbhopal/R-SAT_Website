@@ -7,7 +7,7 @@ const supportQuerySchema = new mongoose.Schema(
       ref: "Student",
     },
     subject: { type: String },
-    description: { type: String}, 
+    description: { type: String },
     status: {
       type: String,
       enum: ["open", "in_progress", "resolved"],
@@ -15,11 +15,13 @@ const supportQuerySchema = new mongoose.Schema(
     },
     responses: [
       {
-        responder: { type: String}, 
+        responder: { type: String },
         message: { type: String },
         date: { type: Date, default: Date.now },
       },
     ],
+    imageUrl: { type: String },
+    imagePublicId: { type: String },
   },
   { timestamps: true }
 );

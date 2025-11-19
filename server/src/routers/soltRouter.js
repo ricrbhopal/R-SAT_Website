@@ -6,8 +6,8 @@ const router = express.Router();
 // POST /solt/send-otp  -> send OTPs to email & phone
 router.post("/send-otp", SendDemoOTP);
 
-// POST /solt/registerSolt -> verify OTPs and book slot
-router.post("/registerSolt", BookDemoSlot);
-// GET /solt/getAllSolts
-router.get("/getAllSolts", GetDemoSlots);
+// POST /solt/registerSlot -> verify OTPs and book slot
+router.post("/registerSlot", BookDemoSlot);
+// GET /solt/getAllSlots
+router.get("/getAllSlots", GetDemoSlots);
 export default router;

@@ -495,3 +495,196 @@ export const sendCredentialsEmail = async (to, credentials) => {
 
   return sendEmail(to, subject, html, attachments);
 };
+
+export const sendConfirmationEmail = async ({
+  to,
+  subject,
+  studentName,
+  demoSlot,
+  type,
+}) => {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Demo Slot Confirmation</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                background-color: #f6f9fc;
+            }
+            
+            .email-container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 40px 30px;
+                text-align: center;
+                color: white;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+            
+            .header p {
+                font-size: 16px;
+                opacity: 0.9;
+            }
+            
+            .content {
+                padding: 40px 30px;
+            }
+            
+            .greeting {
+                font-size: 18px;
+                color: #555;
+                margin-bottom: 30px;
+            }
+            
+            .info-card {
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 25px;
+                margin-bottom: 30px;
+                border-left: 4px solid #667eea;
+            }
+            
+            .info-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 0;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .info-item:last-child {
+                border-bottom: none;
+            }
+            
+            .info-label {
+                font-weight: 600;
+                color: #555;
+                font-size: 14px;
+            }
+            
+            .info-value {
+                font-weight: 500;
+                color: #333;
+                font-size: 14px;
+            }
+            
+            .highlight {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 25px 0;
+                font-weight: 600;
+            }
+            
+            .footer {
+                text-align: center;
+                padding: 30px;
+                background: #f8f9fa;
+                color: #666;
+                font-size: 14px;
+            }
+            
+            .logo {
+                font-size: 24px;
+                font-weight: bold;
+                color: #667eea;
+                margin-bottom: 15px;
+            }
+            
+            @media (max-width: 600px) {
+                .email-container {
+                    margin: 10px;
+                    border-radius: 8px;
+                }
+                
+                .header, .content {
+                    padding: 25px 20px;
+                }
+                
+                .info-item {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 5px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <h1>🎉 Demo Slot Confirmed!</h1>
+                <p>Your booking has been successfully processed</p>
+            </div>
+            
+            <div class="content">
+                <div class="greeting">
+                    Dear <strong>${studentName}</strong>,
+                </div>
+                
+                <p style="margin-bottom: 25px; color: #555;">
+                    Thank you for choosing R-SAT! Your demo slot has been successfully booked. 
+                    Here are your booking details:
+                </p>
+                
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">🕒 Timing</span>
+                        <span class="info-value">${demoSlot}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">💻 Classes Mode</span>
+                        <span class="info-value">${type}</span>
+                    </div>
+                </div>
+                
+                <div class="highlight">
+                    ⏰ Please join 5 minutes before your scheduled time
+                </div>
+                
+                <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                    If you have any questions or need to reschedule, please contact our support team. 
+                    We look forward to helping you achieve your goals!
+                </p>
+            </div>
+            
+            <div class="footer">
+                <div class="logo">R-SAT</div>
+                <p>Thank you for trusting us with your educational journey</p>
+                <p style="margin-top: 10px; font-size: 12px; color: #888;">
+                    © 2024 R-SAT. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(to, subject, html);
+};

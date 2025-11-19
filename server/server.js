@@ -31,7 +31,7 @@ app.get("/", (req, res) => {
 // Use Auth router
 app.use("/auth", Auth);
 // Use Demo router
-app.use("/solt", Demo);
+app.use("/slot", Demo);
 // Use Support router
 app.use("/support", Support);
 // Use Reffered router

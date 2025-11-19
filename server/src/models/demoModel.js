@@ -22,7 +22,7 @@ const demoSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  demoSolt: {
+  demoSlot: {
     type: String,
     required: true,
   },

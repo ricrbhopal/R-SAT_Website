@@ -1,7 +1,9 @@
 // controllers/supportController.js
 import mongoose from "mongoose";
+import streamifier from "streamifier";
 import SupportQuery from "../models/supportQueriesModel.js"; // आपका schema file
 import Student from "../models/authModel.js"; // Student model (adjust path/name if different)
+import cloudinary from "../utils/couldinary.js"; // Cloudinary config (as in your project)
 
 /**
  * Helper: get studentId
@@ -31,12 +33,26 @@ const resolveStudentId = async (reqBody, reqUser) => {
 };
 
 /**
+ * Helper: upload buffer to cloudinary using upload_stream
+ */
+const uploadBufferToCloudinary = (buffer, folder = "support_images") =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: "image" },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+
+/**
  * Submit a new support query (student)
  * POST /support/submit-query
- * body: { subject, description, email? , studentId? , name? } 
- * if user is authenticated, use req.user._id
+ * body: { subject, description, email? , studentId? , name? }
+ * Accepts ONE image file under field name 'image' (multer single)
  */
-// server/src/controller/supportController.js
 export const SubmitSupportQuery = async (req, res, next) => {
   try {
     const { subject, description, name, email } = req.body;
@@ -53,15 +69,57 @@ export const SubmitSupportQuery = async (req, res, next) => {
       return res.status(400).json({ message: err.message });
     }
 
-    const newQuery = new SupportQuery({
+    // Image handling: only images allowed
+    let imageUrl = null;
+    let imagePublicId = null;
+
+    if (req.file) {
+      // Accept only image mime types
+      const allowedImageTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/svg+xml",
+      ];
+
+      if (!allowedImageTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          message: "Invalid file type. Only images (jpeg, png, gif, webp, svg) are allowed.",
+        });
+      }
+
+      try {
+        // If multer.memoryStorage used -> req.file.buffer exists
+        if (req.file.buffer) {
+          const result = await uploadBufferToCloudinary(req.file.buffer, "support_images");
+          imageUrl = result.secure_url;
+          imagePublicId = result.public_id;
+        } else if (req.file.path) {
+          // If diskStorage used -> upload by path
+          const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: "support_images",
+            resource_type: "image",
+          });
+          imageUrl = result.secure_url;
+          imagePublicId = result.public_id;
+        }
+      } catch (uploadError) {
+        console.error("Cloudinary upload error:", uploadError);
+        return res.status(500).json({ message: "Image upload failed", error: uploadError.message });
+      }
+    }
+
+    // Create support query in DB
+    const newQuery = await SupportQuery.create({
       studentId,
       subject,
       description,
+      imageUrl,
+      imagePublicId,
     });
 
-    await newQuery.save();
-
-    // Populate the studentId field
+    // Populate the studentId field for response
     await newQuery.populate({
       path: "studentId",
       select: "fullName mail_ID phoneNo",
@@ -75,6 +133,7 @@ export const SubmitSupportQuery = async (req, res, next) => {
     next(error);
   }
 };
+
 /**
  * Get all support queries (admin)
  * GET /support/all-queries
@@ -94,7 +153,7 @@ export const GetAllSupportQueries = async (req, res, next) => {
     // optionally support pagination later
     const queries = await SupportQuery.find(filter)
       .sort({ createdAt: -1 })
-      .populate({ path: "student", select: "fullName mail_ID phoneNo" })
+      .populate({ path: "studentId", select: "fullName mail_ID phoneNo" })
       .lean();
 
     return res.status(200).json(queries);
@@ -117,7 +176,7 @@ export const GetStudentSupportQueries = async (req, res, next) => {
 
     const queries = await SupportQuery.find({ studentId })
       .sort({ createdAt: -1 })
-      .populate({ path: "studentId", select: "fullName mail_ID phoneNo" }) // Corrected populate path
+      .populate({ path: "studentId", select: "fullName mail_ID phoneNo" })
       .lean();
 
     return res.status(200).json(queries);
@@ -148,7 +207,7 @@ export const UpdateSupportQueryStatus = async (req, res, next) => {
       queryId,
       { status },
       { new: true }
-    ).populate({ path: "student", select: "fullName mail_ID phoneNo" });
+    ).populate({ path: "studentId", select: "fullName mail_ID phoneNo" });
 
     if (!query) {
       return res.status(404).json({ message: "Support query not found" });
@@ -163,7 +222,7 @@ export const UpdateSupportQueryStatus = async (req, res, next) => {
 /**
  * Add response to support query (admin or support agent)
  * POST /support/:queryId/respond
- * body: { message } 
+ * body: { message }
  * responder will be taken from req.user.name if exists, otherwise require responder in body
  */
 export const AddSupportQueryResponse = async (req, res, next) => {
@@ -189,11 +248,10 @@ export const AddSupportQueryResponse = async (req, res, next) => {
         $push: {
           responses: { responder: responderName, message, date: new Date() },
         },
-        // optional: set status to in_progress when replied by staff
         status: "in_progress",
       },
       { new: true }
-    ).populate({ path: "student", select: "fullName mail_ID phoneNo" });
+    ).populate({ path: "studentId", select: "fullName mail_ID phoneNo" });
 
     if (!query) {
       return res.status(404).json({ message: "Support query not found" });

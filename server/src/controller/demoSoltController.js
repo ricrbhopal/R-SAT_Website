@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { sendOTPEmail } from '../utils/emailService.js';
 import { sendOTPPhone } from '../utils/phoneService.js';
 import Otp from '../models/otpModel.js';
+import { sendConfirmationEmail } from "../utils/emailService.js";
 
 // Send OTPs to email and phoneNo for demo slot booking
 export const SendDemoOTP = async (req, res, next) => {
@@ -91,6 +92,17 @@ export const BookDemoSlot = async (req, res, next) => {
     // Remove used OTPs after successful booking
     await Otp.deleteMany({ otpfor: email, type: 'email' });
     await Otp.deleteMany({ otpfor: phone.toString(), type: 'phone' });
+
+    // Send confirmation email
+    await sendConfirmationEmail({
+      to: email,
+      subject: 'Demo Slot Booking Confirmation',
+      studentName,
+      demoSlot,
+      type,
+      collegeName,
+      year,
+    });
 
     res.status(200).json({ message: 'Demo slot booked successfully' });
   } catch (error) {
