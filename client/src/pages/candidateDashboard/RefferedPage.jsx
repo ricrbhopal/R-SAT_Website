@@ -142,7 +142,6 @@ const ReferredPage = () => {
                 <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full">
                   <Users className="w-8 h-8 text-blue-600" />
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 mt-3">Refer Friends</h1>
                 <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
                   Share your referral link with friends and help them join our platform. Earn rewards when they sign up using your link.
                 </p>
@@ -155,11 +154,11 @@ const ReferredPage = () => {
                 </div>
 
                 {!referralLink ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex flex-col sm:flex-col  gap-3">
                     <button
                       onClick={createReferral}
                       disabled={loading}
-                      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 px-4 rounded-xl transition-all duration-200 font-medium flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto bg-blue-200 hover:bg-blue-300 disabled:bg-blue-300  hover:text-white  cursor-pointer text-blue-600  py-3 px-4 rounded-xl transition-all duration-200 font-medium flex items-center justify-center gap-2"
                     >
                       {loading ? (
                         <>
@@ -173,7 +172,6 @@ const ReferredPage = () => {
                         </>
                       )}
                     </button>
-                    <p className="text-sm text-gray-500">You must be logged in to create a referral link.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -187,7 +185,7 @@ const ReferredPage = () => {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         onClick={copyLink}
-                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-xl transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 cursor-pointer text-gray-700 py-2 px-4 rounded-xl py-4 transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
                       >
                         {copied ? (
                           <>
@@ -204,7 +202,7 @@ const ReferredPage = () => {
 
                       <button
                         onClick={shareLink}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-xl transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
+                        className="flex-1 bg-green-100 hover:bg-green-200 hover:text-blue-700 cursor-pointer text-green-600 py-4 px-4 rounded-xl transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
                       >
                         <Share2 className="w-4 h-4" />
                         <span>Share</span>

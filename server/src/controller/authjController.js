@@ -58,7 +58,7 @@ export const SendOTP = async (req, res, next) => {
 // Register student after verifying both OTPs. If password not provided, generate one and email it.
 export const Register = async (req, res, next) => {
   try {
-    const { fullName, phoneNo, phoneOTP, college, branch, year, dob } = req.body;
+    const { fullName, phoneNo, phoneOTP, college, branch, year, dob, email } = req.body;
 
     if (!fullName || !phoneNo || !phoneOTP || !college || !branch || !year || !dob) {
       const error = new Error('All required fields must be provided');
@@ -99,6 +99,7 @@ export const Register = async (req, res, next) => {
       branch,
       year,
       dob: new Date(dob),
+      mail_ID: email, // Include email in the student document
     });
 
     // Remove used OTPs

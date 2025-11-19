@@ -1,5 +1,6 @@
 // File: components/Slider.jsx
 import React from "react";
+import { MdOutlineDashboard } from "react-icons/md";
 
 /**
  * Slider.jsx
@@ -15,8 +16,8 @@ export default function Slider({
   items = [], 
   initialId = null, 
   onChange,
-  title = "Admin Menu",
-  description = "Click an item to view details"
+  title = "Admin Dashboard",
+  description = ""
 }) {
   const firstId = initialId ?? (items[0] && items[0].id) ?? null;
   const [activeId, setActiveId] = React.useState(firstId);
@@ -41,10 +42,13 @@ export default function Slider({
   return (
     <div className="flex gap-6 min-h-[480px]">
       {/* Left column - vertical navigation */}
-      <nav className="w-72 bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+      <nav className="w-72 bg-white rounded-xl border border-gray-200 p-4 shadow-sm text-center">
         <div className="mb-6 px-2">
+          <div className="flex items-center justify-center mb-2">
+            
           <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-500 mt-1">{description}</p>
+
+          </div>
         </div>
 
         <ul className="space-y-2">
@@ -54,7 +58,7 @@ export default function Slider({
               <li key={it.id}>
                 <button
                   onClick={() => handleItemClick(it.id)}
-                  className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                  className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 group ${
                     active
                       ? "bg-blue-50 border border-blue-200 text-blue-700 shadow-sm"
                       : "hover:bg-gray-50 text-gray-700 hover:text-gray-900 border border-transparent"
@@ -98,7 +102,7 @@ export default function Slider({
 
       {/* Right column - content area */}
       <section className="flex-1">
-        <div className={`bg-white rounded-xl border border-gray-200 p-6 shadow-sm min-h-full transition-opacity duration-300 ${
+        <div className={`bg-white rounded-xl border border-gray-200 p-5 shadow-sm min-h-full transition-opacity duration-300 ${
           isTransitioning ? "opacity-70" : "opacity-100"
         }`}>
           {activeItem ? (
@@ -106,7 +110,6 @@ export default function Slider({
               <div className="mb-6 flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold text-gray-900">{activeItem.title}</h2>
                     {activeItem.badge && (
                       <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                         {activeItem.badge}

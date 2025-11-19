@@ -99,6 +99,7 @@ const AuthRegister = () => {
         year: form.year,
         dob: form.dob.split("T")[0], // Extract only the date part
         phoneOTP: form.phoneOTP,
+        email: form.mail_ID, // Include email in the payload
       };
 
       const res = await AuthAPI.register(payload);
@@ -142,7 +143,7 @@ const AuthRegister = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-4 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-8 mt-12 sm:mt-15">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-indigo-50 py-4 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-8 mt-12 sm:mt-15">
       <div className="max-w-3xl mx-auto w-full">
         {/* Header */}
         <div className="text-center mb-12">
@@ -158,7 +159,7 @@ const AuthRegister = () => {
         {/* Main Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20 ">
           {/* Tab Header */}
-          <div className="flex bg-gradient-to-r from-gray-50 to-blue-50/50 border-b border-gray-200/50">
+          <div className="flex bg-linear-to-r from-gray-50 to-blue-50/50 border-b border-gray-200/50">
             <button
               onClick={() => setTab("register")}
               className={`flex-1 py-6 text-center font-semibold cursor-pointer text-lg transition-all duration-500 relative group ${
@@ -171,7 +172,7 @@ const AuthRegister = () => {
               {tab === "register" && (
                 <>
                   <div className="absolute bottom-0 left-0 w-full h-1 bg-[#125785]"></div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white to-blue-50/30"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-white to-blue-50/30"></div>
                 </>
               )}
             </button>
@@ -187,7 +188,7 @@ const AuthRegister = () => {
               {tab === "login" && (
                 <>
                   <div className="absolute bottom-0 left-0 w-full h-1 bg-[#125785]"></div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white to-blue-50/30"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-white to-blue-50/30"></div>
                 </>
               )}
             </button>
@@ -197,8 +198,8 @@ const AuthRegister = () => {
           <div className="p-10">
             {/* Messages */}
             {message && (
-              <div className="mb-4 sm:mb-6 lg:mb-8 p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg sm:rounded-xl lg:rounded-2xl flex items-start space-x-3 shadow-md">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center">
+              <div className="mb-4 sm:mb-6 lg:mb-8 p-3 sm:p-4 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg sm:rounded-xl lg:rounded-2xl flex items-start space-x-3 shadow-md">
+                <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center">
                   <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
@@ -208,8 +209,8 @@ const AuthRegister = () => {
             )}
 
             {error && (
-              <div className="mb-4 sm:mb-6 lg:mb-8 p-3 sm:p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg sm:rounded-xl lg:rounded-2xl flex items-start space-x-3 shadow-md">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-red-500 rounded-full flex items-center justify-center">
+              <div className="mb-4 sm:mb-6 lg:mb-8 p-3 sm:p-4 bg-linear-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg sm:rounded-xl lg:rounded-2xl flex items-start space-x-3 shadow-md">
+                <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-red-500 rounded-full flex items-center justify-center">
                   <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
@@ -224,7 +225,7 @@ const AuthRegister = () => {
                 {/* Personal Information */}
                 <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                   <div className="text-center">
-                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-linear-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
                       Personal Information
                     </h3>
                     <p className="text-gray-500 mt-1 sm:mt-2 text-xs sm:text-sm">Tell us about yourself</p>
@@ -368,7 +369,7 @@ const AuthRegister = () => {
                 {/* Academic Information */}
                 <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                   <div className="text-center">
-                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-linear-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
                       Academic Information
                     </h3>
                     <p className="text-gray-500 mt-1 sm:mt-2 text-xs sm:text-sm">Your educational background</p>
@@ -454,7 +455,7 @@ const AuthRegister = () => {
                 {/* OTP Section */}
                 <div className="border-t border-gray-200 pt-6 sm:pt-8 lg:pt-10">
                   <div className="text-center mb-4 sm:mb-6 lg:mb-8">
-                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-linear-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
                       Verification
                     </h3>
                     <p className="text-gray-500 mt-1 sm:mt-2 text-xs sm:text-sm">Verify your phone number</p>
@@ -554,7 +555,7 @@ const AuthRegister = () => {
             {tab === "login" && (
               <div className="max-w-md mx-auto">
                 <div className="text-center mb-8 sm:mb-10 lg:mb-12">
-                  <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
+                  <h2 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
                     Welcome Back!
                   </h2>
                   <p className="text-gray-600 mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg">
