@@ -90,8 +90,13 @@ export default function CandidateDashboard() {
   // get the selected action object
   const selectedAction = quickActions.find((q) => q.id === selectedId);
 
+  useEffect(() => {
+    // Ensure the Profile tab is always selected by default on login
+    setSelectedId(1);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-4 justify-between max-auto sm:p-6 mt-15">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-blue-50/30 p-4 justify-between max-auto sm:p-6 mt-15">
       <div className="max-w-7xl mx-auto mt-6">
         {/* Header */}
         <div className="mb-6 px-4 sm:px-8">
@@ -107,7 +112,7 @@ export default function CandidateDashboard() {
                 key={action.id}
                 onClick={() => setSelectedId(action.id)}
                 aria-pressed={selectedId === action.id}
-                className={`flex-shrink-0 min-w-[10rem] text-left p-4 rounded-2xl border shadow-sm transition-transform duration-150 flex items-center gap-3
+                className={`shrink-0 min-w-40 text-left p-4 rounded-2xl border shadow-sm transition-transform duration-150 flex items-center gap-3
                     ${
                       selectedId === action.id
                         ? "bg-blue-50 border-blue-300 shadow"

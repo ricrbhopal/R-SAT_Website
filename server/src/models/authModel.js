@@ -17,7 +17,7 @@ const StudentSchema = new mongoose.Schema(
     },
     mail_ID: {
         type: String,
-        required: true,
+        required: false, // Changed to optional
     },
     college:{
         type: String,

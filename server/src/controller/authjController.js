@@ -1,20 +1,19 @@
 // studentController.js
 import Student from '../models/authModel.js'; // ensure path is correct
 import bcrypt from 'bcryptjs';
-import { sendOTPEmail, sendCredentialsEmail } from '../utils/emailService.js';
 import { sendOTPPhone } from '../utils/phoneService.js';
 import Otp from '../models/otpModel.js';
 import { generateAuthToken } from '../utils/genAuthToken.js'; // adjust if signature differs
 
 
 
-// Send OTPs to email and phoneNo
+// Send OTPs to phoneNo
 export const SendOTP = async (req, res, next) => {
   try {
-    const { fullName, mail_ID, phoneNo } = req.body;
+    const { fullName, phoneNo } = req.body;
 
-    if (!fullName || !mail_ID || !phoneNo) {
-      const error = new Error('All fields (fullName, mail_ID, phoneNo) are required');
+    if (!fullName || !phoneNo) {
+      const error = new Error('All fields (fullName, phoneNo) are required');
       error.statusCode = 400;
       return next(error);
     }
@@ -34,25 +33,15 @@ export const SendOTP = async (req, res, next) => {
       return next(error);
     }
 
-    const emailOTP = Math.floor(100000 + Math.random() * 900000).toString();
     const phoneOTP = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Remove any previous OTP entries for that email/phone
-  await Otp.deleteMany({ otpfor: mail_ID, type: 'email' });
-  await Otp.deleteMany({ otpfor: phoneNo.toString(), type: 'phone' });
+    await Otp.deleteMany({ otpfor: phoneNo.toString(), type: 'phone' });
 
-  // Send OTPs (assumed implemented)
-  await sendOTPEmail(mail_ID, emailOTP);
+    // Send OTP to phone only
     await sendOTPPhone(phoneNo.toString(), phoneOTP);
 
-    const hashedEmailOTP = await bcrypt.hash(emailOTP, 10);
     const hashedPhoneOTP = await bcrypt.hash(phoneOTP, 10);
-
-    await Otp.create({
-      otpfor: mail_ID,
-      otp: hashedEmailOTP,
-      type: 'email',
-    });
 
     await Otp.create({
       otpfor: phoneNo.toString(),
@@ -60,7 +49,7 @@ export const SendOTP = async (req, res, next) => {
       type: 'phone',
     });
 
-    res.status(200).json({ message: 'OTPs sent successfully to email and phone' });
+    res.status(200).json({ message: 'OTP sent successfully to phone' });
   } catch (error) {
     next(error);
   }
@@ -69,25 +58,10 @@ export const SendOTP = async (req, res, next) => {
 // Register student after verifying both OTPs. If password not provided, generate one and email it.
 export const Register = async (req, res, next) => {
   try {
-    const { fullName, mail_ID, phoneNo, phoneOTP, emailOTP, college, branch, year, dob } = req.body;
+    const { fullName, phoneNo, phoneOTP, college, branch, year, dob } = req.body;
 
-    if (!fullName || !mail_ID || !phoneNo || !phoneOTP || !emailOTP || !college || !branch || !year || !dob) {
+    if (!fullName || !phoneNo || !phoneOTP || !college || !branch || !year || !dob) {
       const error = new Error('All required fields must be provided');
-      error.statusCode = 400;
-      return next(error);
-    }
-
-    // Verify email OTP
-    const emailOTPEntry = await Otp.findOne({ otpfor: mail_ID, type: 'email' });
-    if (!emailOTPEntry) {
-      const error = new Error('Email OTP not found or expired');
-      error.statusCode = 400;
-      return next(error);
-    }
-    const cleanEmailOTP = emailOTP.toString().trim();
-    const isEmailOTPValid = await bcrypt.compare(cleanEmailOTP, emailOTPEntry.otp);
-    if (!isEmailOTPValid) {
-      const error = new Error('Invalid Email OTP');
       error.statusCode = 400;
       return next(error);
     }
@@ -121,26 +95,20 @@ export const Register = async (req, res, next) => {
       student_ID,
       fullName,
       phoneNo: phoneNo.toString(),
-      mail_ID,
       college,
       branch,
       year,
       dob: new Date(dob),
     });
 
-    // Remove used OTPs (optional cleanup)
-    await Otp.deleteMany({ otpfor: mail_ID, type: 'email' });
+    // Remove used OTPs
     await Otp.deleteMany({ otpfor: phoneNo.toString(), type: 'phone' });
 
-    // Send credentials email (student_ID)
-    await sendCredentialsEmail(mail_ID, student_ID);
-
     res.status(201).json({
-      message: 'Student registered successfully. Login credentials sent to email.',
+      message: 'Student registered successfully.',
       student: {
         student_ID: newStudent.student_ID,
         fullName: newStudent.fullName,
-        mail_ID: newStudent.mail_ID,
         phoneNo: newStudent.phoneNo,
       },
     });

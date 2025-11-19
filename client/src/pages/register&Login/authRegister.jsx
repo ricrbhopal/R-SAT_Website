@@ -15,7 +15,6 @@ const AuthRegister = () => {
     year: "",
     PaymentAddress: "",
     dob: "",
-    emailOTP: "",
     phoneOTP: "",
   });
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -55,20 +54,17 @@ const AuthRegister = () => {
   const onSendOTP = async () => {
     setError(null);
     setMessage(null);
-    if (!form.fullName || !form.mail_ID || !form.phoneNo) {
-      setError("Full name, email and phone number are required to send OTPs");
+    if (!form.fullName || !form.phoneNo) {
+      setError("Full name and phone number are required to send OTP");
       return;
     }
     try {
       setSendingOtp(true);
       await AuthAPI.sendOTP({
         fullName: form.fullName,
-        mail_ID: form.mail_ID,
         phoneNo: form.phoneNo,
       });
-      setMessage(
-        "OTPs sent to the provided email and phone. Please check and enter them below."
-      );
+      setMessage("OTP sent to the provided phone number. Please check and enter it below.");
     } catch (err) {
       setError(
         err?.response?.data?.message || err.message || "Failed to send OTP"
@@ -83,29 +79,25 @@ const AuthRegister = () => {
     setMessage(null);
     const required = [
       "fullName",
-      "mail_ID",
       "phoneNo",
       "college",
       "branch",
       "year",
       "dob",
-      "emailOTP",
       "phoneOTP",
     ];
     for (const k of required)
-      if (!form[k]) return setError("Please fill all required fields and OTPs");
+      if (!form[k]) return setError("Please fill all required fields and OTP");
 
     try {
       setRegistering(true);
       const payload = {
         fullName: form.fullName,
-        mail_ID: form.mail_ID,
         phoneNo: form.phoneNo,
         college: form.college,
         branch: form.branch,
         year: form.year,
         dob: form.dob.split("T")[0], // Extract only the date part
-        emailOTP: form.emailOTP,
         phoneOTP: form.phoneOTP,
       };
 
@@ -249,7 +241,7 @@ const AuthRegister = () => {
                           value={form.fullName}
                           onChange={handleChange}
                           placeholder="Enter your full name"
-                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                         />
                         <div
                           className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 cursor-pointer"
@@ -277,7 +269,7 @@ const AuthRegister = () => {
                             value={form.mail_ID}
                             onChange={handleChange}
                             placeholder="your@email.com"
-                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                           />
                           <div
                             className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 cursor-pointer"
@@ -303,7 +295,7 @@ const AuthRegister = () => {
                             value={form.phoneNo}
                             onChange={handleChange}
                             placeholder="+91 9876543210"
-                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                           />
                           <div
                             className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 cursor-pointer"
@@ -330,7 +322,7 @@ const AuthRegister = () => {
                           value={form.PaymentAddress}
                           onChange={handleChange}
                           placeholder="Your complete address"
-                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                         />
                         <div
                           className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 cursor-pointer"
@@ -357,7 +349,7 @@ const AuthRegister = () => {
                           type="date"
                           value={form.dob}
                           onChange={handleChange}
-                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                         />
                         <div
                           className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 cursor-pointer"
@@ -393,7 +385,7 @@ const AuthRegister = () => {
                           value={form.college}
                           onChange={handleChange}
                           placeholder="Enter your college name"
-                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                         />
                         <div className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2">
                           <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -413,7 +405,7 @@ const AuthRegister = () => {
                             name="branch"
                             value={form.branch}
                             onChange={handleChange}
-                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md appearance-none cursor-pointer"
+                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md appearance-none cursor-pointer"
                           >
                             <option value="">Select your branch</option>
                             {streamOptions.map((s) => (
@@ -439,7 +431,7 @@ const AuthRegister = () => {
                             name="year"
                             value={form.year}
                             onChange={handleChange}
-                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md appearance-none cursor-pointer"
+                            className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md appearance-none cursor-pointer"
                           >
                             <option value="">Select year</option>
                             {yearOptions.map((year) => (
@@ -465,13 +457,13 @@ const AuthRegister = () => {
                     <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-800 to-blue-800 bg-clip-text text-transparent">
                       Verification
                     </h3>
-                    <p className="text-gray-500 mt-1 sm:mt-2 text-xs sm:text-sm">Verify your email and phone number</p>
+                    <p className="text-gray-500 mt-1 sm:mt-2 text-xs sm:text-sm">Verify your phone number</p>
                   </div>
 
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6 mb-6 sm:mb-8">
                     <div className="text-center lg:text-left">
                       <p className="text-gray-600 text-xs sm:text-sm">
-                        We'll send verification codes to your email and phone
+                        We'll send a verification code to your phone
                       </p>
                     </div>
                     <button
@@ -501,27 +493,12 @@ const AuthRegister = () => {
                         </svg>
                       )}
                       <span className="font-semibold text-sm sm:text-base lg:text-lg">
-                        {sendingOtp ? "Sending OTPs..." : "Send Verification OTPs"}
+                        {sendingOtp ? "Sending OTP..." : "Send Verification OTP"}
                       </span>
                     </button>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-                        Email OTP *
-                      </label>
-                      <div className="relative">
-                        <input
-                          name="emailOTP"
-                          value={form.emailOTP}
-                          onChange={handleChange}
-                          placeholder="Enter 6-digit OTP"
-                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-center text-base sm:text-lg lg:text-xl font-mono tracking-widest placeholder-gray-400 shadow-sm hover:shadow-md"
-                          maxLength={6}
-                        />
-                      </div>
-                    </div>
                     <div>
                       <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                         Phone OTP *
@@ -532,7 +509,7 @@ const AuthRegister = () => {
                           value={form.phoneOTP}
                           onChange={handleChange}
                           placeholder="Enter 6-digit OTP"
-                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-center text-base sm:text-lg lg:text-xl font-mono tracking-widest placeholder-gray-400 shadow-sm hover:shadow-md"
+                          className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-center text-base sm:text-lg lg:text-xl font-mono tracking-widest placeholder-gray-400 shadow-sm hover:shadow-md"
                           maxLength={6}
                         />
                       </div>
@@ -596,7 +573,7 @@ const AuthRegister = () => {
                         value={loginForm.student_ID}
                         onChange={handleLoginChange}
                         placeholder="e.g., RICR-RS-0001"
-                        className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                        className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 placeholder-gray-400 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                       />
                       <div className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2">
                         <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -616,7 +593,7 @@ const AuthRegister = () => {
                         type="date"
                         value={loginForm.dob}
                         onChange={handleLoginChange}
-                        className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 sm:border-2 border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
+                        className="w-full px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 border border-gray-300 rounded-lg sm:rounded-xl lg:rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-white/50 text-sm sm:text-base lg:text-lg shadow-sm hover:shadow-md"
                       />
            
                     </div>
