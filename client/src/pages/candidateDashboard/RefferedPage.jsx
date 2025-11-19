@@ -213,7 +213,6 @@ const ReferredPage = () => {
               </div>
             </div>
 
-            <div className="mt-4 text-sm text-gray-500">Tip: On mobile devices use the Share button to open native share options.</div>
           </div>
 
           {/* Right column (benefits) */}
