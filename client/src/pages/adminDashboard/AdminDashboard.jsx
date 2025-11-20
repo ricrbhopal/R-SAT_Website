@@ -6,6 +6,7 @@ import DashboardUsers from "./StudentRecordPage.jsx";
 import { MdOutlineDashboard } from "react-icons/md";
 import { PiStudentFill } from "react-icons/pi";
 import RefferedPage from "./RefferedPage.jsx";
+import { CiLink } from "react-icons/ci";
 export default function AdminDashboard() {
   const items = [
     {
@@ -23,7 +24,7 @@ export default function AdminDashboard() {
     {
       id: "referrals",
       title: "Referral Records",
-      icon: <PiStudentFill />,
+      icon: <CiLink  className="font-bold" size={22}/>,
       node: <RefferedPage />,
     },
   ];

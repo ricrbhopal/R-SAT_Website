@@ -168,9 +168,9 @@ export default function ReferredRegisterationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4 sm:px-6 lg:px-8 mt-18">
-      <ToastContainer 
-        position="top-right" 
-        autoClose={5000} 
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
         hideProgressBar={false}
         newestOnTop={false}
         closeOnClick
@@ -180,10 +180,8 @@ export default function ReferredRegisterationPage() {
         pauseOnHover
         theme="light"
       />
-      
+
       <div className="max-w-2xl mx-auto">
-
-
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mt-10">
           {/* Referral Info Banner */}
@@ -196,7 +194,7 @@ export default function ReferredRegisterationPage() {
                   ) : (
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
                       <span className="text-blue-700 font-bold text-sm">
-                        {referrer?.fullName?.charAt(0) || "?"}
+                        {referrer?.fullName ? String(referrer.fullName).charAt(0) : "?"}
                       </span>
                     </div>
                   )}
@@ -210,20 +208,20 @@ export default function ReferredRegisterationPage() {
                   ) : referrer ? (
                     <>
                       <p className="text-blue-600 font-bold">
-                        Referred by: {referrer.fullName || "Referrer"}
+                        Referred by: {referrer?.fullName || "Referrer"}
                       </p>
-                    
                     </>
                   ) : (
                     <p className="text-red-200 font-medium">Invalid referral link</p>
                   )}
                 </div>
               </div>
-              
+
               <div className="mt-3 sm:mt-0">
                 <div className="bg-white bg-opacity-30 px-3 py-1 rounded-full">
                   <span className="text-blue-600  text-sm font-bold">
-                        {referrer.student_ID && `Student ID: ${referrer.student_ID}`}
+                    {/* Guard access to student_ID with optional chaining */}
+                    {referrer?.student_ID ? `Student ID: ${referrer.student_ID}` : ""}
                   </span>
                 </div>
               </div>
