@@ -1,4 +1,4 @@
-// ReferredPage.jsx
+// src/pages/ReferredPage.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -6,12 +6,58 @@ import { AdminAPI } from "../../config/api.js";
 
 const PageSizeOptions = [10, 25, 50, 100];
 
+function normalizeRow(row) {
+  const r = { ...(row || {}) };
+
+  let ref = r.referrerId ?? r.referrer ?? null;
+
+  if (!ref || typeof ref === "string") {
+    ref = {
+      fullName: r.fullName ?? r.referrerName ?? r.referrerFullName ?? null,
+      student_ID:
+        r.referrerStudentID ??
+        r.referrerStudentId ??
+        r.student_ID ??
+        r.studentId ??
+        null,
+      mail_ID: r.referrerEmail ?? r.referrerMail ?? r.mail_ID ?? r.email ?? null,
+      phoneNo:
+        r.referrerPhone ??
+        r.referrerPhoneNo ??
+        r.phoneNo ??
+        r.phone ??
+        null,
+      _id: r.referrerUserId ?? null,
+    };
+  } else {
+    ref = {
+      fullName: ref.fullName ?? ref.name ?? ref.fullname ?? null,
+      student_ID: ref.student_ID ?? ref.studentId ?? ref.student ?? null,
+      mail_ID: ref.mail_ID ?? ref.mail ?? ref.email ?? null,
+      phoneNo: ref.phoneNo ?? ref.phone ?? ref.phone_number ?? null,
+      _id: ref._id ?? ref.id ?? null,
+      ...ref,
+    };
+  }
+
+  r.referrerId = ref;
+
+  r.referredName = r.referredName ?? r.fullName ?? r.name ?? "";
+  r.referredEmail = r.referredEmail ?? r.mail_ID ?? r.email ?? "";
+  r.referredPhone = r.referredPhone ?? r.phoneNo ?? r.phone ?? "";
+  r.collegeName = r.collegeName ?? r.college ?? "";
+  r.year = r.year ?? r.academicYear ?? "";
+  r.refCode = r.refCode ?? r.referralCode ?? "";
+  r.referredDate = r.referredDate ?? r.createdAt ?? null;
+
+  return r;
+}
+
 export default function ReferredPage() {
   const [referredUsers, setReferredUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // pagination & filters
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState(0);
@@ -19,12 +65,10 @@ export default function ReferredPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // candidate page global toggle
   const [candidatePageBlocked, setCandidatePageBlocked] = useState(() => {
     return localStorage.getItem("candidatePageBlocked") === "true";
   });
 
-  // Modal state
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -44,10 +88,12 @@ export default function ReferredPage() {
     try {
       setLoading(true);
       setError("");
+
       const params = { page, limit: pageSize, q: query, status: statusFilter };
       const resp = await AdminAPI.getRefferedUsers(params);
-      console.log("Fetched referred users raw resp:", resp);
-console.log(resp.data);
+      console.log("Fetched raw resp:", resp);
+      console.log("Fetched raw resp:", resp.data);
+
       let rows = [];
       let tot = 0;
 
@@ -65,15 +111,29 @@ console.log(resp.data);
         rows = resp.data.rows;
         tot = resp.data.total ?? resp.data.rows.length;
       } else {
-        rows = resp.data ?? [];
+        if (resp.data && typeof resp.data === "object" && !Array.isArray(resp.data)) {
+          if (Array.isArray(resp.data.data)) {
+            rows = resp.data.data;
+            tot = resp.data.total ?? rows.length;
+          } else if (Array.isArray(resp.data.rows)) {
+            rows = resp.data.rows;
+            tot = resp.data.total ?? rows.length;
+          } else {
+            rows = Array.isArray(resp.data) ? resp.data : [resp.data];
+          }
+        } else {
+          rows = resp.data ?? [];
+        }
         if (typeof resp.total === "number") tot = resp.total;
       }
 
       if (!Array.isArray(rows)) rows = [];
 
+      const normalized = rows.map(normalizeRow);
+
       if (!mountedRef.current) return;
-      setReferredUsers(rows);
-      setTotal(Number(tot) || rows.length);
+      setReferredUsers(normalized);
+      setTotal(Number(tot) || normalized.length);
     } catch (err) {
       console.error("Failed to fetch referred users", err);
       if (!mountedRef.current) return;
@@ -91,35 +151,23 @@ console.log(resp.data);
     localStorage.setItem("candidatePageBlocked", newStatus);
   };
 
-  // View details in modal
   const handleViewDetails = (user) => {
     setSelectedUser(user);
     setShowModal(true);
   };
-
-  // Close modal
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedUser(null);
   };
-
-  // Edit user
   const handleEdit = (user) => {
-    console.log("Edit user:", user);
-    // Add your edit logic here
     alert(`Edit functionality for: ${user.referredName || user.referredEmail}`);
   };
-
-  // Delete user
   const handleDelete = (user) => {
     if (window.confirm(`Are you sure you want to delete ${user.referredName || user.referredEmail}?`)) {
-      console.log("Delete user:", user);
-      // Add your delete logic here
       alert(`Delete functionality for: ${user.referredName || user.referredEmail}`);
     }
   };
 
-  // Exports
   const downloadExcel = () => {
     if (!referredUsers.length) return alert("No data to export");
     const sheetData = referredUsers.map((r) => ({
@@ -133,7 +181,6 @@ console.log(resp.data);
       College: r.collegeName ?? "-",
       Year: r.year ?? "-",
       "Referral Code": r.refCode ?? "-",
-      Status: r.status ?? "-",
       "Referred On": new Date(r.referredDate ?? r.createdAt ?? Date.now()).toLocaleString(),
     }));
 
@@ -146,55 +193,42 @@ console.log(resp.data);
 
   const lastPage = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
-  // Stats calculation
   const stats = useMemo(() => {
     const totalReferrals = total;
     const today = new Date().toDateString();
-    const todayReferrals = referredUsers.filter(user => 
+    const todayReferrals = referredUsers.filter((user) =>
       new Date(user.referredDate ?? user.createdAt).toDateString() === today
     ).length;
-    
     return { totalReferrals, todayReferrals };
   }, [total, referredUsers]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6">
-      {/* Header Section */}
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Referral Management
             </h1>
-            <p className="text-gray-600 mt-2 text-lg">
-              Manage and track all student referrals in one place
-            </p>
+            <p className="text-gray-600 mt-2 text-lg">Manage and track all student referrals in one place</p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
-            {/* Candidate Page Toggle */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center gap-4">
-                <div className={`w-3 h-3 rounded-full ${candidatePageBlocked ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                <div className={`w-3 h-3 rounded-full ${candidatePageBlocked ? "bg-red-500 animate-pulse" : "bg-green-500"}`}></div>
                 <span className="text-sm font-semibold text-gray-700">
-                  Candidate Page: {candidatePageBlocked ? 'Blocked' : 'Active'}
+                  Candidate Page: {candidatePageBlocked ? "Blocked" : "Active"}
                 </span>
                 <button
                   onClick={toggleCandidatePageStatus}
-                  className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-300 ${
-                    candidatePageBlocked ? 'bg-red-600' : 'bg-green-600'
-                  }`}
+                  className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-300 ${candidatePageBlocked ? "bg-red-600" : "bg-green-600"}`}
                 >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
-                      candidatePageBlocked ? 'translate-x-7' : 'translate-x-1'
-                    }`}
-                  />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${candidatePageBlocked ? "translate-x-7" : "translate-x-1"}`} />
                 </button>
               </div>
             </div>
 
-            {/* Export Button */}
             <button
               onClick={downloadExcel}
               className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
@@ -207,13 +241,12 @@ console.log(resp.data);
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-300">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-100 rounded-xl">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div>
@@ -255,7 +288,7 @@ console.log(resp.data);
             <div className="flex items-center gap-4">
               <div className="p-3 bg-orange-100 rounded-xl">
                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z" />
                 </svg>
               </div>
               <div>
@@ -268,7 +301,6 @@ console.log(resp.data);
           </div>
         </div>
 
-        {/* Search and Filters */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
@@ -285,7 +317,7 @@ console.log(resp.data);
                 />
               </div>
             </div>
-            
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -299,7 +331,10 @@ console.log(resp.data);
 
             <select
               value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
               className="px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
             >
               {PageSizeOptions.map((size) => (
@@ -312,9 +347,7 @@ console.log(resp.data);
         </div>
       </div>
 
-      {/* Main Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-b">
@@ -325,269 +358,155 @@ console.log(resp.data);
                 <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                // Loading Skeleton
-                Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index} className="animate-pulse">
-                    <td className="px-8 py-6 text-center"><div className="h-4 bg-gray-200 rounded w-8 mx-auto"></div></td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center justify-center gap-3">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-24"></div>
-                          <div className="h-3 bg-gray-200 rounded w-16"></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center justify-center gap-3">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-20"></div>
-                          <div className="h-3 bg-gray-200 rounded w-32"></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="h-8 bg-gray-200 rounded w-16"></div>
-                        <div className="h-8 bg-gray-200 rounded w-16"></div>
-                        <div className="h-8 bg-gray-200 rounded w-16"></div>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : error ? (
+              {loading && referredUsers.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-8 py-12 text-center">
+                    <div className="flex flex-col items-center gap-3 text-gray-700">
+                      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      <div>Loading…</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && error && referredUsers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-4 text-red-600">
-                      <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
                       <p className="text-lg font-semibold">{error}</p>
-                      <button
-                        onClick={fetchReferredUsers}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
-                      >
+                      <button onClick={fetchReferredUsers} className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">
                         Try Again
                       </button>
                     </div>
                   </td>
                 </tr>
-              ) : referredUsers.length === 0 ? (
+              )}
+
+              {!loading && !error && referredUsers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-4 text-gray-500">
-                      <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
                       <p className="text-lg font-semibold">No referral records found</p>
                       <p className="text-sm">Try adjusting your search or filters</p>
                     </div>
                   </td>
                 </tr>
-              ) : (
+              )}
+
+              {referredUsers.length > 0 &&
                 referredUsers.map((r, idx) => {
-                  const referrer = r.referrerId ?? r.referrer ?? {};
+                  const referrer = r.referrerId ?? {};
+                  const idxNumber = (page - 1) * pageSize + idx + 1;
                   return (
                     <tr key={r._id ?? idx} className="hover:bg-blue-50/30 transition-colors duration-200 group">
-                      {/* Serial Number */}
                       <td className="px-8 py-6 text-center">
                         <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-semibold text-sm">
-                          {(page - 1) * pageSize + idx + 1}
+                          {idxNumber}
                         </span>
                       </td>
-                      
-                      {/* Referrer Column - Only Name */}
+
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-4">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-lg">
-                              {referrer.fullName?.charAt(0) || r.fullName?.charAt(0) || "?"}
-                            </span>
+                            <span className="text-white font-bold text-lg">{((referrer.fullName ?? r.fullName ?? "?") + "").charAt(0)}</span>
                           </div>
                           <div className="text-center">
-                            <p className="font-semibold text-gray-900 text-lg">
-                              {referrer.fullName ?? r.fullName ?? "-"}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {referrer.student_ID ? `ID: ${referrer.student_ID}` : ""}
-                            </p>
+                            <p className="font-semibold text-gray-900 text-lg">{referrer.fullName ?? r.fullName ?? "-"}</p>
+                            <p className="text-sm text-gray-500 mt-1">{referrer.student_ID ? `ID: ${referrer.student_ID}` : ""}</p>
                           </div>
                         </div>
                       </td>
-                      
-                      {/* Referred Column - Only Name */}
+
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-4">
                           <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-lg">
-                              {r.referredName?.charAt(0) || "?"}
-                            </span>
+                            <span className="text-white font-bold text-lg">{((r.referredName ?? "?") + "").charAt(0)}</span>
                           </div>
                           <div className="text-center">
-                            <p className="font-semibold text-gray-900 text-lg">
-                              {r.referredName ?? "-"}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {r.collegeName ? r.collegeName : ""}
-                            </p>
+                            <p className="font-semibold text-gray-900 text-lg">{r.referredName ?? "-"}</p>
+                            <p className="text-sm text-gray-500 mt-1">{r.collegeName ?? ""}</p>
                           </div>
                         </div>
                       </td>
-                      
-                      {/* Actions Column */}
+
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-3">
-                          {/* View Button */}
-                          <button
-                            onClick={() => handleViewDetails(r)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 group"
-                            title="View Details"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
+                          <button onClick={() => handleViewDetails(r)} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 group" title="View Details">
                             View
                           </button>
 
-                          {/* Edit Button */}
-                          <button
-                            onClick={() => handleEdit(r)}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 hover:text-green-700 transition-all duration-300 transform hover:scale-105 group"
-                            title="Edit"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                          <button onClick={() => handleEdit(r)} className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 hover:text-green-700 transition-all duration-300 transform hover:scale-105 group" title="Edit">
                             Edit
                           </button>
 
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => handleDelete(r)}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:text-red-700 transition-all duration-300 transform hover:scale-105 group"
-                            title="Delete"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                          <button onClick={() => handleDelete(r)} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:text-red-700 transition-all duration-300 transform hover:scale-105 group" title="Delete">
                             Delete
                           </button>
                         </div>
                       </td>
                     </tr>
                   );
-                })
-              )}
+                })}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-6 border-t border-gray-200 bg-gray-50/50">
           <div className="text-sm text-gray-600 font-medium">
             Showing <span className="font-bold text-gray-900">{(page - 1) * pageSize + 1}</span> to{" "}
             <span className="font-bold text-gray-900">{Math.min(page * pageSize, total)}</span> of{" "}
             <span className="font-bold text-gray-900">{total}</span> results
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium">
               Previous
             </button>
-            
+
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, lastPage) }, (_, i) => {
                 const pageNum = i + 1;
                 return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      page === pageNum
-                        ? "bg-blue-600 text-white shadow-lg"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
+                  <button key={pageNum} onClick={() => setPage(pageNum)} className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${page === pageNum ? "bg-blue-600 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}>
                     {pageNum}
                   </button>
                 );
               })}
               {lastPage > 5 && <span className="px-2 text-gray-500">...</span>}
             </div>
-            
-            <button
-              onClick={() => setPage(p => Math.min(lastPage, p + 1))}
-              disabled={page === lastPage}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium"
-            >
+
+            <button onClick={() => setPage((p) => Math.min(lastPage, p + 1))} disabled={page === lastPage} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium">
               Next
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Details Modal */}
       {showModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transform animate-scale-in">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-8 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-t-3xl">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-2xl">
-                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Referral Details</h2>
-                  <p className="text-gray-600">Complete information about the referral</p>
-                </div>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transform">
+            <div className="flex items-center justify-between p-8 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Referral Details</h2>
+                <p className="text-gray-600">Complete information about the referral</p>
               </div>
-              <button
-                onClick={handleCloseModal}
-                className="p-3 hover:bg-gray-100 rounded-2xl transition-colors duration-300"
-              >
-                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <button onClick={handleCloseModal} className="p-3 hover:bg-gray-100 rounded-2xl transition-colors duration-300">Close</button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Referrer Information */}
                 <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 flex items-center gap-3">
-                    <div className="w-2 h-8 bg-blue-500 rounded-full"></div>
-                    Referrer Information
-                  </h3>
+                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Referrer Information</h3>
                   <DetailItem label="Full Name" value={selectedUser.referrerId?.fullName ?? selectedUser.fullName ?? "-"} />
                   <DetailItem label="Student ID" value={selectedUser.referrerId?.student_ID ?? selectedUser.referrerStudentID ?? "-"} />
                   <DetailItem label="Email" value={selectedUser.referrerId?.mail_ID ?? "-"} />
                   <DetailItem label="Phone" value={selectedUser.referrerId?.phoneNo ?? "-"} />
                 </div>
 
-                {/* Referred Information */}
                 <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 flex items-center gap-3">
-                    <div className="w-2 h-8 bg-green-500 rounded-full"></div>
-                    Referred Information
-                  </h3>
+                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Referred Information</h3>
                   <DetailItem label="Full Name" value={selectedUser.referredName ?? "-"} />
                   <DetailItem label="Email" value={selectedUser.referredEmail ?? "-"} />
                   <DetailItem label="Phone" value={selectedUser.referredPhone ?? "-"} />
@@ -598,30 +517,17 @@ console.log(resp.data);
                 </div>
               </div>
 
-              {/* Additional Information */}
-              <div className="mt-8 space-y-6">
-                <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 flex items-center gap-3">
-                  <div className="w-2 h-8 bg-purple-500 rounded-full"></div>
-                  Additional Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="mt-8">
+                <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Additional Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                   <DetailItem label="Referral Code" value={selectedUser.refCode ?? "-"} />
-                  <DetailItem 
-                    label="Referred On" 
-                    value={new Date(selectedUser.referredDate ?? selectedUser.createdAt ?? Date.now()).toLocaleString()} 
-                  />
+                  <DetailItem label="Referred On" value={new Date(selectedUser.referredDate ?? selectedUser.createdAt ?? Date.now()).toLocaleString()} />
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-4 p-8 border-t border-gray-200 bg-gray-50/50 rounded-b-3xl">
-              <button
-                onClick={handleCloseModal}
-                className="px-8 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-white hover:shadow-lg transition-all duration-300 font-medium"
-              >
-                Close
-              </button>
+            <div className="flex justify-end gap-4 p-8 border-t border-gray-200">
+              <button onClick={handleCloseModal} className="px-8 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-white hover:shadow-lg transition-all duration-300 font-medium">Close</button>
             </div>
           </div>
         </div>
@@ -630,10 +536,9 @@ console.log(resp.data);
   );
 }
 
-// Helper component for detail items in modal
 function DetailItem({ label, value }) {
   return (
-    <div className="bg-gray-50/50 rounded-2xl p-4 hover:bg-gray-100/50 transition-colors duration-300">
+    <div className="bg-gray-50/50 rounded-2xl p-4">
       <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
       <p className="text-lg text-gray-900 mt-2 font-medium">{value}</p>
     </div>
