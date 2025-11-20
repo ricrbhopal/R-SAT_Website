@@ -292,19 +292,24 @@ export default function ReferredRegisterationPage() {
                   />
                 </div>
 
-                {/* Branch */}
+                {/* Branch Dropdown */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Branch *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={form.branch}
                     onChange={(e) => updateFormField(setForm, "branch", e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="e.g., Computer Science"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
                     required
-                  />
+                  >
+                    <option value="">Select Branch</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Mechanical">Mechanical</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Civil">Civil</option>
+                    <option value="Electronics">Electronics</option>
+                  </select>
                 </div>
 
                 {/* Academic Year */}

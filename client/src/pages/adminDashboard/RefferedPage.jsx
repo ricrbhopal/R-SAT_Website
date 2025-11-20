@@ -84,66 +84,28 @@ export default function ReferredPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, query, statusFilter]);
 
-  async function fetchReferredUsers() {
+  const fetchReferredUsers = async () => {
     try {
       setLoading(true);
-      setError("");
+      const params = { page, limit: pageSize, q: query };
+      const response = await AdminAPI.getRefferedUsers(params);
+      console.log("Fetched raw resp:", response);
 
-      const params = { page, limit: pageSize, q: query, status: statusFilter };
-      const resp = await AdminAPI.getRefferedUsers(params);
-      console.log("Fetched raw resp:", resp);
-      console.log("Fetched raw resp:", resp.data);
-
-      let rows = [];
-      let tot = 0;
-
-      if (!resp) {
-        rows = [];
-      } else if (Array.isArray(resp)) {
-        rows = resp;
-      } else if (Array.isArray(resp.data)) {
-        rows = resp.data;
-        tot = resp.total ?? rows.length;
-      } else if (resp.data && Array.isArray(resp.data.data)) {
-        rows = resp.data.data;
-        tot = resp.data.total ?? rows.length;
-      } else if (resp.data && Array.isArray(resp.data.rows)) {
-        rows = resp.data.rows;
-        tot = resp.data.total ?? resp.data.rows.length;
+      // Ensure the data is extracted correctly
+      if (response && response.data) {
+        setReferredUsers(response.data); // Update state with the data array
+        setTotal(response.total || response.data.length); // Update total count
       } else {
-        if (resp.data && typeof resp.data === "object" && !Array.isArray(resp.data)) {
-          if (Array.isArray(resp.data.data)) {
-            rows = resp.data.data;
-            tot = resp.data.total ?? rows.length;
-          } else if (Array.isArray(resp.data.rows)) {
-            rows = resp.data.rows;
-            tot = resp.data.total ?? rows.length;
-          } else {
-            rows = Array.isArray(resp.data) ? resp.data : [resp.data];
-          }
-        } else {
-          rows = resp.data ?? [];
-        }
-        if (typeof resp.total === "number") tot = resp.total;
+        setReferredUsers([]); // Fallback to empty array if no data
+        setTotal(0);
       }
-
-      if (!Array.isArray(rows)) rows = [];
-
-      const normalized = rows.map(normalizeRow);
-
-      if (!mountedRef.current) return;
-      setReferredUsers(normalized);
-      setTotal(Number(tot) || normalized.length);
     } catch (err) {
       console.error("Failed to fetch referred users", err);
-      if (!mountedRef.current) return;
-      setError("Failed to load data. Please try again.");
-      setReferredUsers([]);
-      setTotal(0);
+      setError("Failed to fetch data.");
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
-  }
+  };
 
   const toggleCandidatePageStatus = () => {
     const newStatus = !candidatePageBlocked;
@@ -201,6 +163,8 @@ export default function ReferredPage() {
     ).length;
     return { totalReferrals, todayReferrals };
   }, [total, referredUsers]);
+
+  console.log("Referred Users State:", referredUsers); // Debugging log to verify state
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6">
@@ -301,50 +265,7 @@ export default function ReferredPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search by name, email, college, phone..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                />
-              </div>
-            </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="rejected">Rejected</option>
-            </select>
-
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              className="px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-            >
-              {PageSizeOptions.map((size) => (
-                <option key={size} value={size}>
-                  Show {size}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
