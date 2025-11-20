@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/navbar.jsx";
-import Home from "./pages/homePage.jsx";
+import Home from "../../client/src/pages/HomePage.jsx";
 import Footer from "./components/footer.jsx";
 import AuthRegister from "./pages/register&Login/authRegister.jsx";
 import CandidateDashboard from "./pages/candidateDashboard/CandidateDashboard.jsx";
