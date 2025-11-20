@@ -205,70 +205,12 @@ export default function ReferredPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-300">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Referrals</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalReferrals}</p>
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-300">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Today's Referrals</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.todayReferrals}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-300">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Current Page</p>
-                <p className="text-2xl font-bold text-gray-900">{page}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-300">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-100 rounded-xl">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Showing</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {Math.min(page * pageSize, total)} / {total}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
 
 
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mt-10">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-b">
@@ -406,7 +348,7 @@ export default function ReferredPage() {
       </div>
 
       {showModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transform">
             <div className="flex items-center justify-between p-8 border-b border-gray-200">
               <div>
@@ -432,9 +374,7 @@ export default function ReferredPage() {
                   <DetailItem label="Email" value={selectedUser.referredEmail ?? "-"} />
                   <DetailItem label="Phone" value={selectedUser.referredPhone ?? "-"} />
                   <DetailItem label="College" value={selectedUser.collegeName ?? "-"} />
-                  <DetailItem label="Branch" value={selectedUser.branch ?? "-"} />
                   <DetailItem label="Academic Year" value={selectedUser.year ?? "-"} />
-                  <DetailItem label="Date of Birth" value={selectedUser.dob ? new Date(selectedUser.dob).toLocaleDateString() : "-"} />
                 </div>
               </div>
 

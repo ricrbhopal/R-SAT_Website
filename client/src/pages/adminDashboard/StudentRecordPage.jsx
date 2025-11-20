@@ -44,6 +44,7 @@ export default function StudentRecordPage() {
       const name = (s.name || s.fullName || "").toString().toLowerCase();
       const email = (s.email || "").toString().toLowerCase();
       const phone = (s.phone || s.mobile || "").toString().toLowerCase();
+      const roll = (s.roll || s.rollNumber || "").toString().toLowerCase(); // Added roll fallback
       return name.includes(q) || email.includes(q) || phone.includes(q) || roll.includes(q);
     });
   }, [students, query]);
