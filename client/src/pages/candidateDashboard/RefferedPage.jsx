@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// pages/ReferredPage.jsx
+import React, { useState, useEffect } from "react";
 import { ReferralAPI } from "../../config/api.js";
 import { Copy, Link2, Users, Share2, CheckCircle2 } from "lucide-react";
 import ScholarshipImage from "../../assets/scholarshipp.png";
@@ -35,6 +36,7 @@ function getStoredToken() {
       const userObj = JSON.parse(userRaw);
       if (userObj?.token) return userObj.token;
       if (userObj?.accessToken) return userObj.accessToken;
+      // if stored as Bearer already, return as-is
     }
   } catch (e) {}
   return null;
@@ -44,6 +46,17 @@ const ReferredPage = () => {
   const [referralLink, setReferralLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pageBlocked, setPageBlocked] = useState(() => {
+    return localStorage.getItem("candidatePageBlocked") === "true";
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setPageBlocked(localStorage.getItem("candidatePageBlocked") === "true");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const createReferral = async () => {
     try {
@@ -53,33 +66,39 @@ const ReferredPage = () => {
         alert("You are not logged in. Please log in to generate a referral link.");
         return;
       }
-      const payload = decodeJwtPayload(token);
-      if (!payload) {
-        alert("Invalid token. Please log in again.");
+
+      // Create proper Authorization header (if the token is not already 'Bearer ...')
+      const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+
+      // call API - pass empty body and headers so server sees req.user from token
+      const response = await ReferralAPI.createReferral({}, { headers: { Authorization: authHeader } });
+
+      // Controller returns: { message, ref: newRef, referralLink }
+      // prefer referralLink if provided, otherwise construct from returned ref.refCode
+      const referralLinkFromServer = response?.data?.referralLink;
+      const refObj = response?.data?.ref;
+      let finalLink = "";
+
+      if (referralLinkFromServer) {
+        finalLink = referralLinkFromServer;
+      } else if (refObj?.refCode) {
+        const origin = window.location.origin;
+        finalLink = `${origin}/register?ref=${encodeURIComponent(refObj.refCode)}`;
+      } else if (response?.data?.code) {
+        // back-compat if older backend returned { code }
+        finalLink = `${window.location.origin}/register?ref=${encodeURIComponent(response.data.code)}`;
+      } else {
+        // fallback
+        alert("Referral created but server did not return a link. Check server response.");
+        console.log("Full response:", response?.data);
         return;
       }
-      const studentId =
-        payload.studentId ||
-        payload.student_id ||
-        payload.id ||
-        payload.userId ||
-        payload.user_id ||
-        payload.sub;
-      if (!studentId) {
-        alert("Student ID not found in token. Please log in again.");
-        return;
-      }
-      const response = await ReferralAPI.createReferral();
-      const { code } = response.data;
-      const origin = window.location.origin;
-      setReferralLink(
-        `${origin}/candidateDashboard/RefferedRegisterationPage?ref=${encodeURIComponent(
-          code
-        )}&studentId=${encodeURIComponent(studentId)}`
-      );
+
+      setReferralLink(finalLink);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Failed to create referral link.");
+      const msg = err?.response?.data?.message || err.message || "Failed to create referral link.";
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -120,6 +139,20 @@ const ReferredPage = () => {
     }
   };
 
+  const generateReferralLink = (refCode) => {
+    const baseUrl = window.location.origin; // Get the base URL of the app
+    return `${baseUrl}/register?ref=${refCode}`;
+  };
+
+  if (pageBlocked) {
+    return (
+      <div className="bg-red-50 text-red-700 p-6 rounded-lg shadow-md">
+        <h2 className="text-lg font-semibold">Referral Blocked</h2>
+        <p className="mt-2">Your referral privileges have been blocked by the admin.</p>
+      </div>
+    );
+  }
+
   return (
     <div className=" bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4 sm:px-6 lg:px-8">
       {/* Copy toast */}
@@ -133,9 +166,7 @@ const ReferredPage = () => {
       )}
 
       <div className="max-w-6xl mx-auto">
-        {/* responsive grid: stacked on mobile, two columns on md+ */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-          {/* Main (left) - spans 2 cols on desktop */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-2xl shadow p-6">
               <div className="text-center mb-4">
@@ -158,7 +189,7 @@ const ReferredPage = () => {
                     <button
                       onClick={createReferral}
                       disabled={loading}
-                      className="w-full sm:w-auto bg-blue-200 hover:bg-blue-300 disabled:bg-blue-300  hover:text-white  cursor-pointer text-blue-600  py-3 px-4 rounded-xl transition-all duration-200 font-medium flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto bg-blue-200 hover:bg-blue-300 disabled:bg-blue-300 hover:text-white cursor-pointer text-blue-600 py-3 px-4 rounded-xl transition-all duration-200 font-medium flex items-center justify-center gap-2"
                     >
                       {loading ? (
                         <>
@@ -179,13 +210,12 @@ const ReferredPage = () => {
                       <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 pr-20 break-words text-sm text-gray-600 font-mono">
                         {referralLink}
                       </div>
-
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         onClick={copyLink}
-                        className="flex-1 bg-gray-100 hover:bg-gray-200 cursor-pointer text-gray-700 py-2 px-4 rounded-xl py-4 transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 cursor-pointer text-gray-700 py-2 px-4 rounded-xl transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-2"
                       >
                         {copied ? (
                           <>
@@ -212,10 +242,8 @@ const ReferredPage = () => {
                 )}
               </div>
             </div>
-
           </div>
 
-          {/* Right column (benefits) */}
           <aside>
             <div className="bg-white rounded-2xl shadow p-6 h-full flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-900 text-center mb-4">Referral Benefits</h3>

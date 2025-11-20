@@ -1,389 +1,300 @@
-// src/pages/ReferredPage.jsx
+// src/pages/ReferredRegisterationPage.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { ReferralAPI } from "../../config/api.js"; // आपका axios wrapper
+import { ReferralAPI } from "../../config/api.js";
 
-// Custom hook to read query params and log full URL for debugging
 const useQuery = () => {
-  // log full URL to help debugging in devtools
   const { search } = useLocation();
   return new URLSearchParams(search);
 };
 
-/**
- * Decode a JWT payload (no external lib).
- * Returns parsed payload object or null on failure.
- */
-function decodeJwtPayload(token) {
-  if (!token || typeof token !== "string") return null;
-
-  // Remove "Bearer " prefix if present
-  const cleaned = token.trim().startsWith("Bearer ")
-    ? token.trim().slice(7)
-    : token.trim();
-
-  const parts = cleaned.split(".");
-  if (parts.length < 2) return null;
-
-  const payloadB64 = parts[1];
-
-  // Convert base64url to base64
-  const base64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = base64.length % 4;
-  const padded = pad ? base64 + "=".repeat(4 - pad) : base64;
-
-  try {
-    // atob decodes base64
-    const json = atob(padded);
-    return JSON.parse(json);
-  } catch (e) {
-    console.error("Failed to decode JWT payload:", e);
-    return null;
-  }
-}
-
-/**
- * Try to find token from common places (localStorage, sessionStorage,
- * or inside a stored `user` object). Returns token string or null.
- */
-function getStoredToken() {
-  const keys = ["token", "accessToken", "authToken", "jwt"];
-  for (const k of keys) {
-    const vLocal = localStorage.getItem(k);
-    if (vLocal) return vLocal;
-    const vSession = sessionStorage.getItem(k);
-    if (vSession) return vSession;
-  }
-
-  // Sometimes token is stored inside a saved user object
-  try {
-    const maybeUserLocal = localStorage.getItem("user");
-    if (maybeUserLocal) {
-      const u = JSON.parse(maybeUserLocal);
-      if (u?.token) return u.token;
-      if (u?.accessToken) return u.accessToken;
-    }
-  } catch (e) {
-    // ignore JSON parse errors
-  }
-
-  try {
-    const maybeUserSession = sessionStorage.getItem("user");
-    if (maybeUserSession) {
-      const u = JSON.parse(maybeUserSession);
-      if (u?.token) return u.token;
-      if (u?.accessToken) return u.accessToken;
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  return null;
-}
-
-/* small helper placed below to keep JSX cleaner */
 function updateFormField(setForm, key, value) {
   setForm((s) => ({ ...s, [key]: value }));
 }
 
-export default function ReferredPage() {
+export default function ReferredRegisterationPage() {
   const query = useQuery();
-  // accept many possible param names
-  const referrerIdFromUrl =
+
+  // referral code param name may be ref or code etc.
+  const refParam =
     query.get("ref") ||
-    query.get("referrer") ||
-    query.get("referrerId") ||
-    query.get("refId") ||
-    query.get("rid") ||
+    query.get("code") ||
+    query.get("referral") ||
     "";
 
-  const [referrer, setReferrer] = useState(null); // optional meta about referrer
+  // explicit studentId param added by backend when generating link
+  const studentIdParam =
+    query.get("studentId") ||
+    query.get("student_id") ||
+    query.get("sid") ||
+    "";
+
+  const [referrer, setReferrer] = useState(null);
   const [loadingReferrer, setLoadingReferrer] = useState(false);
 
   const [form, setForm] = useState({
-    referredName: "",
+    fullName: "",
     referredEmail: "",
     referredPhone: "",
     collegeName: "",
+    branch: "",
     year: "",
+    dob: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!referrerIdFromUrl) {
-      console.warn("No referral ID found in the URL.");
-      setReferrer(null);
-      return;
-    }
-
     const fetchReferrer = async () => {
       try {
         setLoadingReferrer(true);
-        if (ReferralAPI?.getReferrer) {
-          const res = await ReferralAPI.getReferrer(referrerIdFromUrl);
-          console.log("Referrer data fetched:", res?.data);
-          setReferrer(res?.data || { _id: referrerIdFromUrl });
-        } else {
-          setReferrer({ _id: referrerIdFromUrl });
+
+        if (!refParam) {
+          setReferrer(null);
+          toast.error("Invalid or missing referral link.");
+          return;
         }
+
+        // If a studentId param is present, use it immediately for fast prefill/display
+        if (studentIdParam) {
+          // show immediate minimal info
+          setReferrer({
+            student_ID: studentIdParam,
+            fullName: "Referrer",
+            userId: null,
+          });
+
+          // Optionally fetch friendly name and other details using referral code
+          try {
+            const res = await ReferralAPI.getReferralInfo(refParam);
+            const data = res?.data || {};
+            setReferrer({
+              student_ID: studentIdParam,
+              fullName: data?.referrer?.name || data?.referrer?.fullName || "Referrer",
+              userId: data?.referrer?.userId || data?.referrer?.id || null,
+            });
+          } catch (err) {
+            // ignore — we already have studentId param; log for debug
+            console.warn("Could not fetch referrer friendly name:", err);
+          }
+          return;
+        }
+
+        // No explicit studentId in URL; fetch using referral code
+        const res = await ReferralAPI.getReferralInfo(refParam);
+        const data = res?.data || {};
+
+        setReferrer({
+          id: data?.referrer?.id || null,
+          student_ID: data?.referrer?.student_ID || data?.referrer?.studentId || null,
+          fullName: data?.referrer?.name || data?.referrer?.fullName || "Referrer",
+          userId: data?.referrer?.userId || data?.referrer?.id || null,
+        });
       } catch (err) {
         console.error("Error fetching referrer data:", err);
-        setReferrer({ _id: referrerIdFromUrl });
+        setReferrer({ fullName: "Unknown Referrer", student_ID: studentIdParam || null });
       } finally {
         setLoadingReferrer(false);
       }
     };
 
     fetchReferrer();
-  }, [referrerIdFromUrl]);
+  }, [refParam, studentIdParam]);
 
   const validateForm = () => {
-    if (!form.referredName.trim()) return "Please enter full name.";
+    if (!form.fullName.trim()) return "Please enter full name.";
     if (!form.referredEmail.trim()) return "Please enter email.";
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRe.test(form.referredEmail.trim()))
-      return "Please enter a valid email.";
+    if (!emailRe.test(form.referredEmail.trim())) return "Please enter a valid email.";
     if (!form.referredPhone.trim()) return "Please enter phone number.";
-    if (!/^\d{10,15}$/.test(form.referredPhone.replace(/\D/g, "")))
-      return "Please enter valid phone (10-15 digits).";
-    if (!form.collegeName.trim())
-      return "Please enter college / institute name.";
+    if (!/^[0-9]{6,15}$/.test(form.referredPhone.trim()))
+      return "Please enter a valid phone number (6-15 digits).";
+    if (!form.collegeName.trim()) return "Please enter college name.";
+    if (!form.branch.trim()) return "Please enter branch.";
     if (!form.year.trim()) return "Please select academic year.";
-    if (!referrerIdFromUrl) return "Referral link is invalid or missing.";
+    if (!form.dob.trim()) return "Please enter date of birth.";
     return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const err = validateForm();
-    if (err) {
-      toast.error(err);
+
+    if (!refParam) {
+      toast.error("Referral code is missing. Please check the link.");
+      return;
+    }
+
+    const error = validateForm();
+    if (error) {
+      toast.error(error);
       return;
     }
 
     try {
       setSubmitting(true);
 
-      // Get token from storage (robust)
-      const token = getStoredToken();
-      console.log("Token found:", !!token);
-
-      if (!token) {
-        toast.error("You are not logged in. Please log in to continue.");
-        return;
-      }
-
-      const decoded = decodeJwtPayload(token);
-      console.log("Decoded token payload:", decoded);
-
-      // Accept several possible claim names
-      const studentId =
-        decoded?.studentId ||
-        decoded?.student_id ||
-        decoded?.id ||
-        decoded?.userId ||
-        decoded?.user_id ||
-        decoded?.sub;
-
-      if (!studentId) {
-        toast.error("Student ID not found in token. Please log in again.");
-        return;
-      }
-
       const payload = {
-        referrerId: referrerIdFromUrl,
-        studentId,
-        referredName: form.referredName.trim(),
-        referredEmail: form.referredEmail.trim(),
-        referredPhone: form.referredPhone.trim(),
-        collegeName: form.collegeName.trim(),
+        fullName: form.fullName.trim(),
+        phoneNo: form.referredPhone.trim(),
+        mail_ID: form.referredEmail.trim(),
+        college: form.collegeName.trim(),
+        branch: form.branch.trim(),
         year: form.year.trim(),
+        dob: form.dob.trim(),
       };
 
-      console.log("Payload being sent to backend:", payload);
+      const res = await ReferralAPI.registerWithReferral(payload, refParam);
+      toast.success(res?.data?.message || "Registration successful!");
 
-      const res = await ReferralAPI.createReferral(payload);
-      toast.success(res?.data?.message || "Referral submitted successfully!");
-
+      // reset form on success
       setForm({
-        referredName: "",
+        fullName: "",
         referredEmail: "",
         referredPhone: "",
         collegeName: "",
+        branch: "",
         year: "",
+        dob: "",
       });
-    } catch (error) {
-      console.error("submit referral error:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to submit referral. Try again."
-      );
+    } catch (err) {
+      console.error("Error during registration:", err);
+      toast.error(err?.response?.data?.message || "Failed to register. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className=" flex items-start justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-6 mt-20 ">
-      <div className="w-full max-w-3xl mt-6">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="p-6 bg-gradient-to-r from-sky-600 to-indigo-600 text-white">
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Referral / Referred Student
-            </h1>
-            <p className="mt-1 text-sm opacity-90">
-              Fill the form to complete your registration through a referral
-              link.
+    <div className="flex items-center justify-center bg-gray-100 min-h-screen">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} pauseOnHover />
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 className="text-2xl font-bold mb-4">Referral Registration</h1>
+
+        {/* Show referral metadata */}
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Referral Code: <span className="font-mono text-sm">{refParam || "—"}</span>
+          </p>
+          {studentIdParam && (
+            <p className="text-sm text-gray-600">
+              studentId param: <span className="font-medium">{studentIdParam}</span>
+            </p>
+          )}
+        </div>
+
+        {loadingReferrer ? (
+          <p>Loading referrer details...</p>
+        ) : referrer ? (
+          <div className="mb-4">
+            <p>
+              Referred by:{" "}
+              <strong>{referrer.fullName || referrer.student_ID || "Referrer"}</strong>{" "}
+              { (referrer.student_ID || referrer.userId || referrer.id) && (
+                <span className="ml-2 text-sm text-gray-500">
+                  {referrer.student_ID ? `(${referrer.student_ID})` : null}
+                  {referrer.userId ? ` id:${referrer.userId}` : null}
+                </span>
+              )}
             </p>
           </div>
+        ) : (
+          <p className="mb-4 text-red-500">Invalid or missing referral link.</p>
+        )}
 
-          <div className="p-6">
-            {/* Referrer summary */}
-            <div className="mb-6">
-              {/* <h3 className="text-sm font-semibold text-gray-700 mb-2">Referrer</h3> */}
-
-              {/* {loadingReferrer ? (
-                <div className="text-sm text-gray-500">Loading referrer details...</div>
-              ) :  (
-                <div className="text-sm text-red-600">Referral link not found or invalid. Please check the link.</div>
-              )} */}
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Full Name
-                  </label>
-                  <input
-                    value={form.referredName}
-                    onChange={(e) =>
-                      updateFormField(setForm, "referredName", e.target.value)
-                    }
-                    className="mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300"
-                    placeholder="Enter full name"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    value={form.referredEmail}
-                    onChange={(e) =>
-                      updateFormField(setForm, "referredEmail", e.target.value)
-                    }
-                    type="email"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300"
-                    placeholder="name@example.com"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Phone
-                  </label>
-                  <input
-                    value={form.referredPhone}
-                    onChange={(e) =>
-                      updateFormField(setForm, "referredPhone", e.target.value)
-                    }
-                    type="tel"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300"
-                    placeholder="10 digit mobile"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    College / Institute
-                  </label>
-                  <input
-                    value={form.collegeName}
-                    onChange={(e) =>
-                      updateFormField(setForm, "collegeName", e.target.value)
-                    }
-                    className="mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300"
-                    placeholder="College name"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Academic Year
-                  </label>
-                  <select
-                    value={form.year}
-                    onChange={(e) =>
-                      updateFormField(setForm, "year", e.target.value)
-                    }
-                    className="mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300"
-                    required
-                  >
-                    <option value="">Select year</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="Passed Out">Passed Out</option>
-                  </select>
-                </div>
-                {/* 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Referral ID (auto)</label>
-                  <input
-                    value={referrerIdFromUrl}
-                    readOnly
-                    className="mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 bg-gray-50 text-sm"
-                  />
-                </div> */}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={submitting || !referrerIdFromUrl}
-                  className="inline-flex items-center gap-3 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-lg font-semibold disabled:opacity-50"
-                >
-                  {submitting ? "Submitting..." : "Submit & Register"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm({
-                      referredName: "",
-                      referredEmail: "",
-                      referredPhone: "",
-                      collegeName: "",
-                      year: "",
-                    })
-                  }
-                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
-                >
-                  Reset
-                </button>
-              </div>
-
-              <div className="text-xs text-gray-400 mt-2">
-                Note: This will save referral details with the referrer's ID.
-                The referred student's `referredStudentId` will be linked when
-                they complete full registration (handled by backend).
-              </div>
-            </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium">Full Name</label>
+            <input
+              type="text"
+              value={form.fullName}
+              onChange={(e) => updateFormField(setForm, "fullName", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
           </div>
-        </div>
+
+          <div>
+            <label className="block text-sm font-medium">Email</label>
+            <input
+              type="email"
+              value={form.referredEmail}
+              onChange={(e) => updateFormField(setForm, "referredEmail", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Phone</label>
+            <input
+              type="tel"
+              value={form.referredPhone}
+              onChange={(e) => updateFormField(setForm, "referredPhone", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">College Name</label>
+            <input
+              type="text"
+              value={form.collegeName}
+              onChange={(e) => updateFormField(setForm, "collegeName", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Branch</label>
+            <input
+              type="text"
+              value={form.branch}
+              onChange={(e) => updateFormField(setForm, "branch", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Academic Year</label>
+            <select
+              value={form.year}
+              onChange={(e) => updateFormField(setForm, "year", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            >
+              <option value="">Select Year</option>
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
+              <option value="Passed Out">Passed Out</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Date of Birth</label>
+            <input
+              type="date"
+              value={form.dob}
+              onChange={(e) => updateFormField(setForm, "dob", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {submitting ? "Submitting..." : "Submit"}
+          </button>
+        </form>
       </div>
     </div>
   );

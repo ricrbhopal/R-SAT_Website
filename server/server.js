@@ -6,7 +6,7 @@ import ConnectDB from "./src/config/db.js";
 import Auth from "./src/routers/authRouter.js";
 import Demo from "./src/routers/soltRouter.js"
 import Support from "./src/routers/supportRouter.js"
-import Reffered from "./src/routers/refferedRouter.js"
+import referralRoutes from "./src/routers/refferedRouter.js"
 import Admin from "./src/routers/adminRouter.js"
 
 dotenv.config();
@@ -36,7 +36,7 @@ app.use("/slot", Demo);
 // Use Support router
 app.use("/support", Support);
 // Use Reffered router
-app.use("/reffered", Reffered);
+app.use("/referrals", referralRoutes);
 // Use Admin router
 app.use("/admin", Admin);
 

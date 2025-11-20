@@ -1,4 +1,6 @@
 import AuthModel from "../models/authModel.js";
+import Referred from "../models/refferedModel.js";
+
 
 // Example: Get all users (admin only)
 export const getAllUsers = async (req, res, next) => {
@@ -54,6 +56,17 @@ export const deleteUser = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// get All referred users 
+
+export const getRefferedUsers = async (req, res, next) => {
+  try {
+    const referredUsers = await Referred.find().populate("referrerId", "student_ID fullName mail_ID phoneNo");
+    res.status(200).json(referredUsers);
   } catch (error) {
     next(error);
   }

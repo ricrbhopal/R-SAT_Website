@@ -2,13 +2,30 @@
 import React from "react";
 import Silder from "./Silder.jsx";
 import DashboardHome from "./OverView.jsx";
-import DashboardUsers from "./StudentRecordPage.jsx"
-import { MdOutlineDashboard } from "react-icons/md";;
+import DashboardUsers from "./StudentRecordPage.jsx";
+import { MdOutlineDashboard } from "react-icons/md";
 import { PiStudentFill } from "react-icons/pi";
+import RefferedPage from "./RefferedPage.jsx";
 export default function AdminDashboard() {
   const items = [
-    { id: "home", title: "Over View", icon: <MdOutlineDashboard />, node: <DashboardHome /> },
-{ id: "users", title: "Student Record", icon: <PiStudentFill />, node: <DashboardUsers /> },
+    {
+      id: "home",
+      title: "Over View",
+      icon: <MdOutlineDashboard />,
+      node: <DashboardHome />,
+    },
+    {
+      id: "users",
+      title: "Student Record",
+      icon: <PiStudentFill />,
+      node: <DashboardUsers />,
+    },
+    {
+      id: "referrals",
+      title: "Referral Records",
+      icon: <PiStudentFill />,
+      node: <RefferedPage />,
+    },
   ];
 
   return (

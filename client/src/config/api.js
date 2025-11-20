@@ -43,12 +43,21 @@ export const SupportAPI = {
     api.put(`/support/add-response/${queryId}`, { responder, message }),
 };
 
+// Referral API
 export const ReferralAPI = {
-  createReferral: (data) => api.post("/reffered/create", data),
-  getReferralInfo: (code) => api.get(`/reffered/info/${code}`),
-  registerWithReferral: (ref, data) =>
-    api.post(`/reffered/register?ref=${ref}`, data),
+  // Create referral (authenticated). Pass optional axios config to include Authorization header.
+  createReferral: (data = {}, config = {}) => api.post("/referrals/create", data, config),
+
+  // Get referral info by referral code
+  getReferralInfo: (code) => api.get(`/referrals/info/${encodeURIComponent(code)}`),
+
+  // Register with referral (public)
+  registerWithReferral: (data, ref) => {
+    if (!ref) throw new Error("Referral code is required for registration.");
+    return api.post(`/referrals/register?ref=${encodeURIComponent(ref)}`, data);
+  },
 };
+
 
 export const AdminAPI = {
   getAllStudents: () => api.get("/admin/users"),
@@ -56,7 +65,10 @@ export const AdminAPI = {
   updateStudent: (studentId, studentData) =>
     api.put(`/admin/user/${studentId}`, studentData),
 
-  deleteStudent: (studentId) => api.delete(`/admin/user/${studentId}`)
+  deleteStudent: (studentId) => api.delete(`/admin/user/${studentId}`),
+  getAllReferredUsers: () => api.get("/admin/reffered-users"),
+
+
 };
 
 export default api;

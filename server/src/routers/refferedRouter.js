@@ -3,7 +3,7 @@ import express from "express";
 import {
   createReferral,
   getReferralInfo,
-  registerWithReferral
+  registerWithReferral,
 } from "../controller/refferedController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -12,7 +12,7 @@ const router = express.Router();
 // create referral (authenticated)
 router.post("/create", protect, createReferral);
 
-// get referral info (public) -> frontend can prefill fields
+// get referral info (public)
 router.get("/info/:code", getReferralInfo);
 
 // register via referral (public)
