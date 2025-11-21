@@ -1,5 +1,5 @@
 import React from "react";
-import { AdminAPI } from "../../../config/api";
+import { AdminAPI } from "../../../../config/api";
 import {
   FiUser,
   FiMail,

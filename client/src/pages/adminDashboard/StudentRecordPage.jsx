@@ -2,9 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import { AdminAPI } from "../../config/api.js";
 import Silder from "./Silder.jsx";
 import { FiUser, FiUsers, FiSearch, FiRefreshCw, FiEye, FiEdit } from "react-icons/fi";
-import ViewModalPage from "../adminDashboard/modals/ViewModalPage.jsx"; // Import the modal component
-import EditModalPage from "../adminDashboard/modals/EditModalPage.jsx"; // Import the EditModalPage component
-import DeleteModalPage from "../adminDashboard/modals/DeleteModalPage.jsx"; // Import the DeleteModalPage component
+import ViewModalPage from "./modals/StudentRecordModals.jsx/ViewModalPage.jsx"; // Import the modal component
+import EditModalPage from "./modals/StudentRecordModals.jsx/EditModalPage.jsx"; // Import the EditModalPage component
+import DeleteModalPage from "./modals/StudentRecordModals.jsx/DeleteModalPage.jsx"; // Import the DeleteModalPage component
 import { MdOutlineDeleteOutline } from "react-icons/md";
 export default function StudentRecordPage() {
   const [students, setStudents] = useState([]);

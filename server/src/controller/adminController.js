@@ -71,3 +71,45 @@ export const getRefferedUsers = async (req, res, next) => {
     next(error);
   }
 };
+
+
+
+// edit referred user details can be added here in future
+
+export const putRefferedUserDetails = async (req, res, next) => {
+  try {
+    const referredId = req.params.id;
+    const updateData = req.body;
+    const updatedReferred = await Referred.findByIdAndUpdate(referredId, updateData, {
+      new: true,
+    }).populate("referrerId", "student_ID fullName mail_ID phoneNo");
+    if (!updatedReferred) {
+      return res.status(404).json({ message: "Referred user not found" });
+    }
+    res
+      .status(200)
+      .json({ message: "Referred user updated successfully", referred: updatedReferred });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+// delete referred user can be added here in future
+
+export const deleteRefferedUser = async (req, res, next) => {
+  try {
+    const referredId = req.params.id;
+    const deletedReferred = await Referred.findByIdAndDelete(referredId);
+    if (!deletedReferred) {
+      return res.status(404).json({ message: "Referred user not found" });
+    }
+
+    res.status(200).json({ message: "Referred user deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+

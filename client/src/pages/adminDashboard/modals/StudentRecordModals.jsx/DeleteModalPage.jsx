@@ -1,6 +1,6 @@
 import react from 'react';
 
-import { AdminAPI } from '../../../config/api';  
+import { AdminAPI } from '../../../../config/api';  
 
 export default function DeleteModalPage({ studentId, onClose }) {
   const [student, setStudent] = react.useState(null);

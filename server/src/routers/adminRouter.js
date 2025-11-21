@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllUsers , deleteUser,putUserDetails, getUserById,getRefferedUsers} from "../controller/adminController.js";
+import { getAllUsers , deleteUser,putUserDetails, getUserById,getRefferedUsers ,deleteRefferedUser,putRefferedUserDetails} from "../controller/adminController.js";
 
 const router = express.Router();
 
@@ -13,5 +13,9 @@ router.get("/user/:id", getUserById);
 router.delete("/user/:id", deleteUser);
 // GET /admin/reffered-users -> Get all referred users (admin only)
 router.get("/reffered-users", getRefferedUsers);
+// DELETE /admin/reffered-user/:id -> Delete a referred user (admin only)
+router.delete("/reffered-user/:id", deleteRefferedUser);
+// PUT /admin/reffered-user/:id -> Update referred user details (admin only)
+router.put("/reffered-user/:id", putRefferedUserDetails);
 
 export default router;

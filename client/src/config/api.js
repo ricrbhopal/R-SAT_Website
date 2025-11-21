@@ -71,6 +71,10 @@ export const AdminAPI = {
 
   deleteStudent: (studentId) => api.delete(`/admin/user/${studentId}`),
 getRefferedUsers: () => api.get("/admin/reffered-users"),
+deleteRefferedUser: (userId) => api.delete(`/admin/reffered-user/${userId}`),
+putRefferedUserDetails: (userId, userData) =>
+    api.put(`/admin/reffered-user/${userId}`, userData),
+
 
 
 };
