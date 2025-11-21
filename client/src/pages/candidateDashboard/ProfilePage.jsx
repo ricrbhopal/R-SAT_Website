@@ -91,16 +91,16 @@ const ProfilePage = () => {
         {/* Profile Card - responsive but keeps desktop look */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Header: stacked on mobile, horizontal on md+ */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-5">
+          <div className="bg-blue-200 px-6 py-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6 gap-3">
               <div className="flex items-center gap-3">
                 {/* Avatar size adjusts with screen */}
-                <div className="w-5 h-5 sm:w-16 sm:h-16 md:w-10 md:h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-sm sm:text-lg md:text-lg font-bold backdrop-blur-sm">
+                <div className="w-5 h-5 sm:w-16 sm:h-16 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center text-blue-600 text-sm sm:text-lg md:text-lg font-bold backdrop-blur-sm">
                   {getInitials(profile.fullName)}
                 </div>
 
                 <div>
-                  <h2 className="text-sm sm:text-base md:text-xl font-bold text-white leading-tight">
+                  <h2 className="text-sm sm:text-base md:text-xl font-bold text-blue-600 leading-tight">
                     {profile.fullName || "Unnamed Student"}
                   </h2>
                 </div>
@@ -122,8 +122,7 @@ const ProfilePage = () => {
                       {profile.student_ID || "—"}
                     </p>
                   </div>
-      
-      
+
                   <div>
                     <label className="text-sm font-medium text-gray-500">
                       Email Address
@@ -148,14 +147,11 @@ const ProfilePage = () => {
                       {safeDate(profile.dob)}
                     </p>
                   </div>
-      
-
                 </div>
               </div>
 
               {/* Academic Information */}
               <div>
-                
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">
@@ -181,7 +177,6 @@ const ProfilePage = () => {
                       Year {profile.year || "-"}
                     </p>
                   </div>
-                  
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import AuthModel from "../models/authModel.js";
 import Referred from "../models/refferedModel.js";
-
+import mongoose from "mongoose";
 
 // Example: Get all users (admin only)
 export const getAllUsers = async (req, res, next) => {
@@ -34,19 +34,17 @@ export const putUserDetails = async (req, res, next) => {
 };
 
 export const getUserById = async (req, res, next) => {
-    try {
-        const userId = req.params.id;
-        const user = await AuthModel.findById(userId).select("-password");
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        res.status(200).json(user);
-    } catch (error) {
-        next(error);
+  try {
+    const userId = req.params.id;
+    const user = await AuthModel.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
 };
-
 
 export const deleteUser = async (req, res, next) => {
   try {
@@ -61,18 +59,19 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-// get All referred users 
+// get All referred users
 
 export const getRefferedUsers = async (req, res, next) => {
   try {
-    const referredUsers = await Referred.find().populate("referrerId", "student_ID fullName mail_ID phoneNo");
+    const referredUsers = await Referred.find().populate(
+      "referrerId",
+      "student_ID fullName mail_ID phoneNo"
+    );
     res.status(200).json(referredUsers);
   } catch (error) {
     next(error);
   }
 };
-
-
 
 // edit referred user details can be added here in future
 
@@ -80,21 +79,41 @@ export const putRefferedUserDetails = async (req, res, next) => {
   try {
     const referredId = req.params.id;
     const updateData = req.body;
-    const updatedReferred = await Referred.findByIdAndUpdate(referredId, updateData, {
-      new: true,
-    }).populate("referrerId", "student_ID fullName mail_ID phoneNo");
+
+    // Map incoming fields to schema fields
+    const mappedData = {
+      referredName: updateData.fullName,
+      referredEmail: updateData.mail_ID,
+      referredPhone: updateData.phoneNo,
+      collegeName: updateData.collegeName,
+      year: updateData.year,
+      refCode: updateData.refCode,
+    };
+
+    const updatedReferred = await Referred.findByIdAndUpdate(
+      referredId,
+      mappedData,
+      {
+        new: true,
+        runValidators: true, // Ensure validation is applied
+      }
+    ).populate("referrerId", "student_ID fullName mail_ID phoneNo");
+
     if (!updatedReferred) {
       return res.status(404).json({ message: "Referred user not found" });
     }
+
     res
       .status(200)
-      .json({ message: "Referred user updated successfully", referred: updatedReferred });
+      .json({
+        message: "Referred user updated successfully",
+        referred: updatedReferred,
+      });
   } catch (error) {
+    console.error("[putRefferedUserDetails] Error:", error);
     next(error);
   }
 };
-
-
 
 // delete referred user can be added here in future
 
@@ -112,4 +131,19 @@ export const deleteRefferedUser = async (req, res, next) => {
   }
 };
 
-
+// get by id referred user can be added here in fut
+export const getRefferedUserById = async (req, res, next) => {
+  try {
+    const referredId = req.params.id;
+    const referredUser = await Referred.findById(referredId).populate(
+      "referrerId",
+      "student_ID fullName mail_ID phoneNo"
+    );
+    if (!referredUser) {
+      return res.status(404).json({ message: "Referred user not found" });
+    }
+    res.status(200).json(referredUser);
+  } catch (error) {
+    next(error);
+  }
+};

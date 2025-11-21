@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { AdminAPI } from "../../config/api.js";
+import EditModalPage from "./modals/StudentRefferalsModals.jsx/editModal";
+import DeleteModalPage from "./modals/StudentRefferalsModals.jsx/deleteModal";
 
 const PageSizeOptions = [10, 25, 50, 100];
 
@@ -68,6 +70,8 @@ export default function ReferredPage() {
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -119,20 +123,24 @@ export default function ReferredPage() {
     setSelectedUser(null);
   };
   const handleEdit = (user) => {
-    alert(`Edit functionality for: ${user.referredName || user.referredEmail}`);
+    console.log("Edit button clicked for user:", user);
+    setSelectedUser(user);
+    setShowEditModal(true);
   };
   const handleDelete = (user) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete ${
-          user.referredName || user.referredEmail
-        }?`
-      )
-    ) {
-      alert(
-        `Delete functionality for: ${user.referredName || user.referredEmail}`
-      );
-    }
+    console.log("Delete button clicked for user:", user);
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
+  const handleCloseEditModal = () => {
+    console.log("Closing Edit Modal");
+    setShowEditModal(false);
+    setSelectedUser(null);
+  };
+  const handleCloseDeleteModal = () => {
+    console.log("Closing Delete Modal");
+    setShowDeleteModal(false);
+    setSelectedUser(null);
   };
 
   const downloadExcel = () => {
@@ -552,6 +560,21 @@ export default function ReferredPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showEditModal && selectedUser && (
+        <EditModalPage
+          studentId={selectedUser._id}
+          onClose={handleCloseEditModal}
+        />
+      )}
+
+      {showDeleteModal && selectedUser && (
+        <DeleteModalPage
+          initialData={selectedUser} // pass the whole selected object
+          studentId={selectedUser._id} // optional, kept for compatibility
+          onClose={handleCloseDeleteModal}
+        />
       )}
     </div>
   );

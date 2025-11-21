@@ -75,6 +75,7 @@ deleteRefferedUser: (userId) => api.delete(`/admin/reffered-user/${userId}`),
 putRefferedUserDetails: (userId, userData) =>
     api.put(`/admin/reffered-user/${userId}`, userData),
 
+getRefferedUserById: (userId) => api.get(`/admin/reffered-user/${userId}`),
 
 
 };

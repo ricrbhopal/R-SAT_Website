@@ -65,24 +65,37 @@ export default function EditModalPage({ studentId, onClose, onUpdate }) {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
+const handleSubmit = async () => {
+  if (!student && !studentId) {
+    alert("No student to update.");
+    return;
+  }
 
-    try {
-      await AdminAPI.updateStudent(studentId, student);
-      onUpdate?.(); // Notify parent about update
-      onClose?.(); // Close modal on success
-    } catch (err) {
-      console.error("Error updating student:", err);
-      setError(
-        "Failed to update student details. Please check your input and try again."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+  try {
+    setSaving(true);
+    const payload = {
+      fullName: student.fullName,
+      mail_ID: student.mail_ID,
+      phoneNo: student.phoneNo,
+      collegeName: student.college,
+      year: student.year,
+      refCode: student.referralCode,
+    };
+
+    console.log("[EditModal] Sending payload:", payload);
+
+    const idToUpdate = student?._id ?? studentId;
+    await AdminAPI.putRefferedUserDetails(idToUpdate, payload);
+
+    alert("Referred user updated successfully.");
+    onClose();
+  } catch (error) {
+    console.error("[EditModal] Failed to save referred user details:", error);
+    alert("Failed to save. Please try again.");
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleFieldBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
