@@ -16,7 +16,7 @@ const app = express();
 app.use(cors({
     origin: [
         'http://localhost:5173',
-        'https://rsat.ricr.in/'
+        'https://rsat.ricr.in/api'
     ],
     credentials: true
 }));
