@@ -1,5 +1,17 @@
 import express from "express";
-import { getAllUsers , deleteUser,putUserDetails, getUserById,getRefferedUsers ,deleteRefferedUser,putRefferedUserDetails,getRefferedUserById} from "../controller/adminController.js";
+import { getAllUsers , deleteUser,putUserDetails, getUserById,getRefferedUsers ,
+    deleteRefferedUser,putRefferedUserDetails,
+    getRefferedUserById,
+    putDemoClassDetails,
+    deleteDemoClass,
+    getDemoClassById,
+    getAllDemoClasses,
+    AddSupportQueryResponse,
+    UpdateSupportQueryStatus,
+    GetStudentSupportQueries,
+    GetAllSupportQueries,
+
+} from "../controller/adminController.js";
 
 const router = express.Router();
 
@@ -19,4 +31,20 @@ router.delete("/reffered-user/:id", deleteRefferedUser);
 router.put("/reffered-user/:id", putRefferedUserDetails);
 // GET /admin/reffered-user/:id -> Get referred user by ID (admin only)
 router.get("/reffered-user/:id", getRefferedUserById);
+// GET /admin/demo-classes -> Get all demo classes (admin only)
+router.get("/demo-classes", getAllDemoClasses);
+// GET /admin/demo-class/:id -> Get demo class by ID (admin only)
+router.get("/demo-class/:id", getDemoClassById);
+// PUT /admin/demo-class/:id -> Update demo class details (admin only)
+router.put("/demo-class/:id", putDemoClassDetails);
+// DELETE /admin/demo-class/:id -> Delete a demo class (admin only)
+router.delete("/demo-class/:id", deleteDemoClass);
+// GET /admin/support/all-queries -> Get all support queries (admin only)
+router.get("/support/all-queries", GetAllSupportQueries);
+// GET /admin/support/student-queries -> Get support queries for logged-in student
+router.get("/support/student-queries", GetStudentSupportQueries);
+// PUT /admin/support/update-status/:queryId -> Update support query status (admin only)
+router.put("/support/update-status/:queryId", UpdateSupportQueryStatus);
+// PUT /admin/support/add-response/:queryId -> Add response to support query (admin only)
+router.put("/support/add-response/:queryId", AddSupportQueryResponse);
 export default router;

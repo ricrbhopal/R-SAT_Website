@@ -55,8 +55,6 @@ export default function DemoSlotBooking() {
       "collegeName",
       "year",
       "demoSlot",
-      "emailOTP",
-      "phoneOTP",
       "type",
     ];
     for (const f of required) {
@@ -92,8 +90,6 @@ export default function DemoSlotBooking() {
       year: "",
       demoSlot: "",
       type: "",
-      emailOTP: "",
-      phoneOTP: "",
     });
     setStep(1);
   };
@@ -186,14 +182,50 @@ export default function DemoSlotBooking() {
                     <input value={form.phone} onChange={(e)=>update("phone", e.target.value)} type="tel" className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="10 digit mobile number" />
                   </div>
 
-                  <div className="flex items-end">
-                    <button onClick={sendOTPs} disabled={loading} className="w-full bg-[#125785] text-white py-3 px-6 rounded-xl font-semibold hover:opacity-95 transition">
-                      {loading ? "Sending..." : "Send Verification Codes"}
-                    </button>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">College/University <span className="text-red-500">*</span></label>
+                    <input value={form.collegeName} onChange={(e)=>update("collegeName", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Your institution name" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Academic Year <span className="text-red-500">*</span></label>
+                    <select value={form.year} onChange={(e)=>update("year", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select your year</option>
+                      <option>1st Year</option>
+                      <option>2nd Year</option>
+                      <option>3rd Year</option>
+                      <option>4th Year</option>
+                      <option>Passed Out</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Preferred Demo Slot <span className="text-red-500">*</span></label>
+                    <select value={form.demoSlot} onChange={(e)=>update("demoSlot", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select a preferred slot</option>
+                      <option value="2025-11-17 11:00 AM">17-11-2025 11:00 AM</option>
+                      <option value="2025-11-18 02:00 PM">18-11-2025 02:00 PM</option>
+                      <option value="2025-11-19 11:00 AM">19-11-2025 11:00 AM</option>
+                      <option value="2025-11-20 02:00 PM">20-11-2025 02:00 PM</option>
+                      <option value="2025-11-21 11:00 AM">21-11-2025 11:00 AM</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Demo Type <span className="text-red-500">*</span></label>
+                    <select value={form.type} onChange={(e)=>update("type", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Demo Type</option>
+                      <option value="online">Online</option>
+                      <option value="offline">Offline</option>
+                    </select>
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-500">By requesting codes you agree to receive SMS and Email for verification purposes.</p>
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                  <button onClick={bookSlot} disabled={loading} className="flex-1 bg-linear-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:opacity-95 transition">
+                    {loading ? "Processing..." : "Submit"}
+                  </button>
+                </div>
               </div>
             )}
 

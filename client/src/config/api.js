@@ -76,6 +76,20 @@ putRefferedUserDetails: (userId, userData) =>
     api.put(`/admin/reffered-user/${userId}`, userData),
 
 getRefferedUserById: (userId) => api.get(`/admin/reffered-user/${userId}`),
+getAllDemoClasses: () => api.get("/admin/demo-classes"),
+getDemoClassById: (demoClassId) => api.get(`/admin/demo-class/${demoClassId}`),
+putDemoClassDetails: (demoClassId, demoClassData) =>
+    api.put(`/admin/demo-class/${demoClassId}`, demoClassData),
+deleteDemoClass: (demoClassId) => api.delete(`/admin/demo-class/${demoClassId}`),
+
+  GetAllSupportQueries: () => api.get("/admin/support/all-queries"),
+  GetStudentSupportQueries: () => api.get("/admin/support/student-queries"),
+  UpdateSupportQueryStatus: (queryId, status) =>
+    api.put(`/admin/support/update-status/${queryId}`, { status }),
+  AddSupportQueryResponse: (queryId, responder, message) =>
+    api.put(`/admin/support/add-response/${queryId}`, { responder, message }),
+  
+
 
 
 };
