@@ -109,6 +109,7 @@ const ReferredPage = () => {
       if (!referralLink) return;
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
+      setReferralLink(""); // Reset referral link to show the generate button again
       setTimeout(() => setCopied(false), 2000);
     } catch {
       const input = document.createElement("input");
@@ -118,6 +119,7 @@ const ReferredPage = () => {
       document.execCommand("copy");
       document.body.removeChild(input);
       setCopied(true);
+      setReferralLink(""); // Reset referral link to show the generate button again
       setTimeout(() => setCopied(false), 2000);
     }
   };
