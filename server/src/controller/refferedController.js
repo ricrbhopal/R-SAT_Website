@@ -1,10 +1,10 @@
-// controllers/referralController.js
 import crypto from "crypto";
 import Referred from "../models/refferedModel.js";
 import Student from "../models/authModel.js";
 import { generateAuthToken } from "../utils/genAuthToken.js";
 import { sendOTPPhone } from "../utils/phoneService.js";
 import { sendCredentialsEmail } from "../utils/emailService.js";
+import { sendReferralConfirmationEmail } from "../utils/emailService.js"; // <-- new import
 import bcrypt from "bcryptjs";
 import Otp from "../models/otpModel.js";
 
@@ -186,19 +186,44 @@ export const registerWithReferral = async (req, res, next) => {
     const recipientEmail = (mail_ID || newStudent?.mail_ID || "").toString().trim();
     console.log("[registerWithReferral] recipientEmail:", recipientEmail);
 
+    // --- Send the referral confirmation email with all required labels populated ---
     if (recipientEmail) {
       try {
-        await sendConfirmationEmail(recipientEmail, fullName);
-        console.log("[registerWithReferral] confirmation email sent to:", recipientEmail);
+        await sendReferralConfirmationEmail(recipientEmail, fullName, {
+          referrerStudentID: refer.referrerStudentID || refer.referrerUserId || "-",
+          rsatId: student_ID,
+          dob: newStudent?.dob ?? dob,
+          testDate: process.env.RSAT_TEST_DATE || "19th Jan 2026",
+          venue: process.env.RSAT_VENUE || "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)",
+        });
+        console.log("[registerWithReferral] referral confirmation email sent to:", recipientEmail);
       } catch (mailErr) {
-        console.error("[registerWithReferral] sendConfirmationEmail ERROR:", mailErr?.message || mailErr);
-        console.debug("[registerWithReferral] sendConfirmationEmail full error:", mailErr);
+        console.error("[registerWithReferral] sendReferralConfirmationEmail ERROR:", mailErr?.message || mailErr);
       }
     } else {
       console.warn("[registerWithReferral] skipping confirmation email: recipient empty");
     }
 
-    // send credentials email after registration
+    // Send referral confirmation email with all details
+    if (mail_ID) {
+      try {
+        await sendReferralConfirmationEmail(mail_ID, fullName, {
+          referrerStudentID: refer.referrerStudentID || null,
+          dob: dob,
+          college: college,
+          branch: branch,
+          year: year,
+          phoneNo: phoneNo,
+        });
+        console.log("Referral confirmation email sent successfully to:", mail_ID);
+      } catch (emailErr) {
+        console.error("Failed to send referral confirmation email:", emailErr);
+      }
+    } else {
+      console.warn("No email provided; skipping referral confirmation email.");
+    }
+
+    // send credentials email after registration (keep existing credentials email behavior)
     if (mail_ID) {
       try {
         await sendCredentialsEmail(mail_ID, fullName, student_ID);

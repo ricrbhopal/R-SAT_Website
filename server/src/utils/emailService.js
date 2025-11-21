@@ -67,6 +67,7 @@ export const sendCredentialsEmail = async (to, credentials) => {
   let name = "";
   let rsatId = "";
   let testDate = "19th Jan 2026";
+  let dob = "";
   let venue =
     "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)";
   const mapsLink = "https://maps.app.goo.gl/81ntQ3GwTYrRTdT8A";
@@ -77,6 +78,7 @@ export const sendCredentialsEmail = async (to, credentials) => {
     rsatId =
       credentials.rsatId || credentials.student_ID || credentials.id || "";
     testDate = credentials.testDate || testDate;
+    dob = credentials.dob || dob;
     venue = credentials.venue || venue;
   } else {
     rsatId = credentials || "";
@@ -392,6 +394,10 @@ export const sendCredentialsEmail = async (to, credentials) => {
                         <span class="detail-label">Test Date</span>
                         <div class="detail-value">${testDate}</div>
                     </div>
+                            <div class="detail-item">
+                        <span class="detail-label">Password</span>
+                        <div class="detail-value">${dob}</div>
+                    </div>
                     <div class="detail-item">
                         <span class="detail-label">Venue</span>
                         <div class="detail-value">${venue}</div>
@@ -688,3 +694,148 @@ export const sendConfirmationEmail = async ({
 
   return sendEmail(to, subject, html);
 };
+
+
+
+export const sendReferralConfirmationEmail = async (to, recipientName = "", payload = {}) => {
+  if (!to) throw new Error("Recipient email required");
+
+  // defensive extraction with many possible property names
+  const extract = (obj, ...keys) => {
+    for (const k of keys) {
+      if (!obj) continue;
+      const v = obj[k];
+      if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+    }
+    return "";
+  };
+
+  const referrerStudentID =
+    extract(payload, "referrerStudentID", "referrer_studentID", "referrerStudentId") ||
+    extract(payload.referrer, "student_ID", "studentId", "studentId", "studentID") ||
+    "—";
+
+  const studentRSAT =
+    extract(payload, "rsatId", "studentID", "studentId", "student_id") ||
+    (payload.student ? extract(payload.student, "student_ID", "studentId") : "") ||
+    "—";
+
+  // normalize DOB to dd-mm-yyyy if date-like
+  const rawDob = extract(payload, "dob", "dateOfBirth", "birthDate");
+  let dobFormatted = "";
+  if (rawDob) {
+    const d = new Date(rawDob);
+    if (!Number.isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      dobFormatted = `${dd}-${mm}-${yyyy}`;
+    } else {
+      dobFormatted = String(rawDob);
+    }
+  } else dobFormatted = "—";
+
+  const testDate = extract(payload, "testDate", "examDate", "eventDate") || "19th Jan 2026";
+  const venue =
+    extract(payload, "venue", "location", "testVenue") ||
+    "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)";
+
+  // HTML template for referral-confirmation mail (simple & clear)
+  const html = `
+    <!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>R-SAT — Referral Confirmation</title>
+    <style>
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f5f7fa;margin:0;padding:22px}
+      .card{max-width:700px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+      .head{background:linear-gradient(90deg,#2d7ff9,#1e56a0);color:#fff;padding:24px;text-align:center}
+      .body{padding:22px;color:#111}
+      .row{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+      .cell{flex:1;min-width:160px;background:#f8fafc;border-left:4px solid #2d7ff9;padding:12px;border-radius:8px}
+      .label{font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:6px}
+      .val{font-size:15px;color:#0f172a;font-weight:800}
+      a.cta{display:inline-block;margin-top:14px;padding:10px 14px;background:#2d7ff9;color:#fff;border-radius:8px;text-decoration:none}
+      .note{color:#6b7280;font-size:13px;margin-top:14px}
+      .foot{background:#0f172a;color:#fff;padding:14px;text-align:center;font-size:13px}
+      @media(max-width:600px){.row{flex-direction:column}}
+    </style>
+    </head>
+    <body>
+      <div class="card" role="article" aria-label="Referral Confirmation">
+        <div class="head">
+          <h2>R-SAT Registration — Referral Confirmed</h2>
+          <div>${recipientName ? `Hi ${escapeHtml(recipientName)}` : "Hello"}</div>
+        </div>
+
+        <div class="body">
+          <p>Thank you for completing registration through a referral. Keep these details safe — they will be used to sign in.</p>
+
+          <div class="row">
+            <div class="cell"><div class="label">Referrer RSAT ID</div><div class="val">${escapeHtml(referrerStudentID)}</div></div>
+            <div class="cell"><div class="label">Your RSAT ID</div><div class="val">${escapeHtml(studentRSAT)}</div></div>
+          </div>
+
+          <div class="row">
+            <div class="cell"><div class="label">Password (DOB)</div><div class="val">${escapeHtml(dobFormatted)}</div></div>
+            <div class="cell"><div class="label">Test Date</div><div class="val">${escapeHtml(testDate)}</div></div>
+          </div>
+
+          <div style="margin-top:8px">
+            <strong>Venue</strong>
+            <p style="margin:6px 0 0;color:#374151">${escapeHtml(venue)}</p>
+          </div>
+
+          <a class="cta" href="#" onclick="return false;">Open Venue in Maps</a>
+
+          <p class="note">If any value above looks incorrect, please contact support immediately: <a href="mailto:contact@ricr.in">contact@ricr.in</a></p>
+        </div>
+
+        <div class="foot">&copy; ${new Date().getFullYear()} RICR — R-SAT</div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // attachments: allow payload.attachments override; include default RSAT.pdf if present
+  const attachments = Array.isArray(payload.attachments) ? [...payload.attachments] : [];
+  const defaultPdfPath = path.resolve(process.cwd(), "src", "assests", "RSAT.pdf");
+  if (fs.existsSync(defaultPdfPath)) {
+    const already = attachments.some(a => a.path && path.resolve(a.path) === defaultPdfPath);
+    if (!already) attachments.push({ filename: "RSAT.pdf", path: defaultPdfPath, contentType: "application/pdf" });
+  }
+
+  // transporter from env
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.example.com",
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER || process.env.EMAIL_USER,
+      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || '"RICR" <no-reply@ricr.in>',
+    to,
+    subject: "R-SAT — Referral Registration Confirmation",
+    html,
+    attachments,
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  if (!info || (info.rejected && info.rejected.length)) {
+    throw new Error("Email not delivered: " + JSON.stringify(info));
+  }
+  return true;
+};
+
+// small helper
+function escapeHtml(s) {
+  if (!s && s !== 0) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}

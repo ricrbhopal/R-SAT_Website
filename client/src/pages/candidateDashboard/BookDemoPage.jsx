@@ -300,6 +300,12 @@ export default function DemoSlotBooking() {
                   <div className="flex justify-between"><span className="text-gray-600 text-sm">Name:</span><span className="font-medium">{form.studentName}</span></div>
                   <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Demo Slot:</span><span className="font-medium">{form.demoSlot}</span></div>
                   <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Institution:</span><span className="font-medium">{form.collegeName}</span></div>
+                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Student ID:</span><span className="font-medium">{form.student_ID}</span></div>
+                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Phone Number:</span><span className="font-medium">{form.phoneNo}</span></div>
+                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Email:</span><span className="font-medium">{form.mail_ID}</span></div>
+                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Branch:</span><span className="font-medium">{form.branch}</span></div>
+                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Year:</span><span className="font-medium">{form.year}</span></div>
+                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Date of Birth:</span><span className="font-medium">{form.dob}</span></div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">

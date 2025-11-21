@@ -17,11 +17,13 @@ function updateFormField(setForm, key, value) {
 export default function ReferredRegisterationPage() {
   const query = useQuery();
 
-  const refParam =
+  // normalize/trim & decode ref param from URL
+  const rawRef =
     query.get("ref") ||
     query.get("code") ||
     query.get("referral") ||
     "";
+  const refParam = rawRef ? decodeURIComponent(String(rawRef).trim()) : "";
 
   const studentIdParam =
     query.get("studentId") ||
@@ -51,6 +53,19 @@ export default function ReferredRegisterationPage() {
   const [otpError, setOtpError] = useState("");
   const [resendSeconds, setResendSeconds] = useState(0);
   const resendTimerRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (resendTimerRef.current) {
+        clearInterval(resendTimerRef.current);
+        resendTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const fetchReferrer = async () => {
@@ -63,6 +78,7 @@ export default function ReferredRegisterationPage() {
           return;
         }
 
+        // If studentId provided in URL we prefill quickly then try to fetch nicer info
         if (studentIdParam) {
           setReferrer({
             student_ID: studentIdParam,
@@ -73,41 +89,47 @@ export default function ReferredRegisterationPage() {
           try {
             const res = await ReferralAPI.getReferralInfo(refParam);
             const data = res?.data || {};
-            setReferrer({
-              student_ID: studentIdParam,
-              fullName: data?.referrer?.name || data?.referrer?.fullName || "Referrer",
-              userId: data?.referrer?.userId || data?.referrer?.id || null,
-            });
+            if (data?.referrer) {
+              setReferrer({
+                student_ID: studentIdParam,
+                fullName: data?.referrer?.name || data?.referrer?.fullName || "Referrer",
+                userId: data?.referrer?.userId || data?.referrer?.id || null,
+              });
+            }
           } catch (err) {
+            // don't spam user with toast here; keep console warn
             console.warn("Could not fetch referrer friendly name:", err);
           }
           return;
         }
 
-        const res = await ReferralAPI.getReferralInfo(refParam);
-        const data = res?.data || {};
-
-        setReferrer({
-          id: data?.referrer?.id || null,
-          student_ID: data?.referrer?.student_ID || data?.referrer?.studentId || null,
-          fullName: data?.referrer?.name || data?.referrer?.fullName || "Referrer",
-          userId: data?.referrer?.userId || data?.referrer?.id || null,
-        });
-      } catch (err) {
-        console.error("Error fetching referrer data:", err);
-        setReferrer({ fullName: "Unknown Referrer", student_ID: studentIdParam || null });
+        // Normal flow: fetch referrer using ref code
+        try {
+          const res = await ReferralAPI.getReferralInfo(refParam);
+          const data = res?.data || {};
+          if (!data?.referrer) {
+            setReferrer(null);
+            toast.error("Referral not found or expired.");
+          } else {
+            setReferrer({
+              id: data?.referrer?.id || null,
+              student_ID: data?.referrer?.student_ID || data?.referrer?.studentId || null,
+              fullName: data?.referrer?.name || data?.referrer?.fullName || "Referrer",
+              userId: data?.referrer?.userId || data?.referrer?.id || null,
+            });
+          }
+        } catch (err) {
+          // If API returns 404 or network error, show friendly message
+          console.error("Error fetching referrer data:", err);
+          setReferrer(null);
+          toast.error("Unable to verify referral link. Please check the link or contact support.");
+        }
       } finally {
-        setLoadingReferrer(false);
+        if (mountedRef.current) setLoadingReferrer(false);
       }
     };
 
     fetchReferrer();
-
-    return () => {
-      if (resendTimerRef.current) {
-        clearInterval(resendTimerRef.current);
-      }
-    };
   }, [refParam, studentIdParam]);
 
   // OTP resend countdown effect
@@ -132,7 +154,7 @@ export default function ReferredRegisterationPage() {
         });
       }, 1000);
     }
-    // cleanup handled in outer return
+    // cleanup is handled on unmount
   }, [resendSeconds]);
 
   const validateForm = () => {
@@ -155,14 +177,16 @@ export default function ReferredRegisterationPage() {
   // Send OTP to phone (uses ReferralAPI.sendReferralOTP)
   const handleSendOTP = async () => {
     setOtpError("");
-    const phone = form.referredPhone.trim();
+    const phone = String(form.referredPhone || "").trim();
     if (!/^[0-9]{6,15}$/.test(phone)) {
       setOtpError("Enter a valid phone number before requesting OTP.");
       return;
     }
+    if (otpLoading) return;
     setOtpLoading(true);
     try {
       await ReferralAPI.sendReferralOTP({ phoneNo: phone, ref: refParam });
+      if (!mountedRef.current) return;
       setOtpSent(true);
       setResendSeconds(60); // 60s cooldown
       toast.success("OTP sent to your phone. Enter it below.");
@@ -172,13 +196,12 @@ export default function ReferredRegisterationPage() {
       setOtpError(msg);
       toast.error(msg);
     } finally {
-      setOtpLoading(false);
+      if (mountedRef.current) setOtpLoading(false);
     }
   };
 
   const handleResendOTP = async () => {
     if (resendSeconds > 0) return;
-    // Clear previous OTP state
     setPhoneOTP("");
     await handleSendOTP();
   };
@@ -191,15 +214,16 @@ export default function ReferredRegisterationPage() {
       return;
     }
 
-    const error = validateForm();
-    if (error) {
-      toast.error(error);
+    const errorMsg = validateForm();
+    if (errorMsg) {
+      toast.error(errorMsg);
       return;
     }
 
-    try {
-      setSubmitting(true);
+    if (submitting) return;
+    setSubmitting(true);
 
+    try {
       const payload = {
         fullName: form.fullName.trim(),
         phoneNo: form.referredPhone.trim(),
@@ -211,11 +235,21 @@ export default function ReferredRegisterationPage() {
         phoneOTP: phoneOTP.trim(),
       };
 
-      // registerWithReferral(payload, refParam) -- assumes this is implemented in ReferralAPI
+      // Note: ReferralAPI.registerWithReferral should accept (payload, ref)
       const res = await ReferralAPI.registerWithReferral(payload, refParam);
+
       toast.success(res?.data?.message || "Registration successful!");
 
-      // Optional: do something with token (res.data.token) if returned, e.g., save to storage
+      // if backend returns token, store for session (optional)
+      const token = res?.data?.token;
+      if (token) {
+        try {
+          sessionStorage.setItem("token", token);
+        } catch (err) {
+          // ignore storage errors
+        }
+      }
+
       // reset form on success
       setForm({
         fullName: "",
@@ -234,7 +268,7 @@ export default function ReferredRegisterationPage() {
       const msg = err?.response?.data?.message || "Failed to register. Please try again.";
       toast.error(msg);
     } finally {
-      setSubmitting(false);
+      if (mountedRef.current) setSubmitting(false);
     }
   };
 
@@ -255,7 +289,7 @@ export default function ReferredRegisterationPage() {
 
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mt-10">
-          <div className="bg-blue-200   px-6 py-4">
+          <div className="bg-blue-200 px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0">
@@ -282,14 +316,14 @@ export default function ReferredRegisterationPage() {
                       </p>
                     </>
                   ) : (
-                    <p className="text-red-200 font-medium">Invalid referral link</p>
+                    <p className="text-red-500 font-medium">Invalid referral link</p>
                   )}
                 </div>
               </div>
 
               <div className="mt-3 sm:mt-0">
                 <div className="bg-white bg-opacity-30 px-3 py-1 rounded-full">
-                  <span className="text-blue-600  text-sm font-bold">
+                  <span className="text-blue-600 text-sm font-bold">
                     {referrer?.student_ID ? `Student ID: ${referrer.student_ID}` : ""}
                   </span>
                 </div>
@@ -337,7 +371,7 @@ export default function ReferredRegisterationPage() {
                     <input
                       type="tel"
                       value={form.referredPhone}
-                      onChange={(e) => updateFormField(setForm, "referredPhone", e.target.value)}
+                      onChange={(e) => updateFormField(setForm, "referredPhone", e.target.value.replace(/\D/g, ""))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="Enter your phone number"
                       required
@@ -345,7 +379,7 @@ export default function ReferredRegisterationPage() {
                     <button
                       type="button"
                       onClick={handleSendOTP}
-                      disabled={otpLoading || resendSeconds > 0 || !/^[0-9]{6,15}$/.test(form.referredPhone.trim())}
+                      disabled={otpLoading || resendSeconds > 0 || !/^[0-9]{6,15}$/.test(String(form.referredPhone || "").trim())}
                       className={`px-4 py-3 rounded-lg font-semibold text-sm ${
                         otpLoading || resendSeconds > 0
                           ? "bg-gray-200 text-gray-600 cursor-not-allowed"
@@ -365,7 +399,7 @@ export default function ReferredRegisterationPage() {
                     <input
                       type="text"
                       value={phoneOTP}
-                      onChange={(e) => setPhoneOTP(e.target.value)}
+                      onChange={(e) => setPhoneOTP(e.target.value.replace(/\D/g, ""))}
                       className="w-48 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="6-digit OTP"
                       maxLength={6}
