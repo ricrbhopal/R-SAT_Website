@@ -55,6 +55,10 @@ export const ReferralAPI = {
   registerWithReferral: (data, ref) => {
     if (!ref) throw new Error("Referral code is required for registration.");
     return api.post(`/referrals/register?ref=${encodeURIComponent(ref)}`, data);
+
+  },
+  sendReferralOTP: (data) => {
+    return api.post("/referrals/send-otp", data);
   },
 };
 
