@@ -70,18 +70,25 @@ export const AdminAPI = {
     api.put(`/admin/user/${studentId}`, studentData),
 
   deleteStudent: (studentId) => api.delete(`/admin/user/${studentId}`),
-getRefferedUsers: () => api.get("/admin/reffered-users"),
-deleteRefferedUser: (userId) => api.delete(`/admin/reffered-user/${userId}`),
-putRefferedUserDetails: (userId, userData) =>
+  getRefferedUsers: () => api.get("/admin/reffered-users"),
+  deleteRefferedUser: (userId) => api.delete(`/admin/reffered-user/${userId}`),
+  putRefferedUserDetails: (userId, userData) =>
     api.put(`/admin/reffered-user/${userId}`, userData),
 
-getRefferedUserById: (userId) => api.get(`/admin/reffered-user/${userId}`),
-getAllDemoClasses: () => api.get("/admin/demo-classes"),
-getDemoClassById: (demoClassId) => api.get(`/admin/demo-class/${demoClassId}`),
-putDemoClassDetails: (demoClassId, demoClassData) =>
+  getRefferedUserById: (userId) => api.get(`/admin/reffered-user/${userId}`),
+  getAllDemoClasses: () => api.get("/admin/demo-classes"),
+  getDemoClassById: (demoClassId) => api.get(`/admin/demo-class/${demoClassId}`),
+  putDemoClassDetails: (demoClassId, demoClassData) =>
     api.put(`/admin/demo-class/${demoClassId}`, demoClassData),
-deleteDemoClass: (demoClassId) => api.delete(`/admin/demo-class/${demoClassId}`),
+  deleteDemoClass: (demoClassId) => api.delete(`/admin/demo-class/${demoClassId}`),
 
+bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
+    getAllAdmitCards: () => api.get("/admin/all"),
+  updateAdmitCard: (id, data) => api.put(`/admin/${id}`, data),
+  getAdmitCardById: (id) => api.get(`/admin/${id}`),
+  deleteAdmitCard: (id) => api.delete(`/admin/${id}`),
+  updateAdmitCardStatus: (id, status) =>
+    api.put(`/admin/${id}/status`, { status }),
   GetAllSupportQueries: () => api.get("/admin/support/all-queries"),
   GetStudentSupportQueries: () => api.get("/admin/support/student-queries"),
   UpdateSupportQueryStatus: (queryId, status) =>
@@ -91,6 +98,14 @@ deleteDemoClass: (demoClassId) => api.delete(`/admin/demo-class/${demoClassId}`)
   
 
 
+
+};
+
+
+
+export const AdmitCardAPI = {
+
+  getAdmitCardById: (id) => api.get(`/admit-cards/${id}`),
 
 };
 

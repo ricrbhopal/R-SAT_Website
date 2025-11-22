@@ -10,6 +10,12 @@ import { getAllUsers , deleteUser,putUserDetails, getUserById,getRefferedUsers ,
     UpdateSupportQueryStatus,
     GetStudentSupportQueries,
     GetAllSupportQueries,
+     bulkCreateAdmitCards,
+  getAllAdmitCards,
+  getAdmitCardById,
+  updateAdmitCard,
+  deleteAdmitCard,
+  updateAdmitCardStatus,
 
 } from "../controller/adminController.js";
 
@@ -47,4 +53,12 @@ router.get("/support/student-queries", GetStudentSupportQueries);
 router.put("/support/update-status/:queryId", UpdateSupportQueryStatus);
 // PUT /admin/support/add-response/:queryId -> Add response to support query (admin only)
 router.put("/support/add-response/:queryId", AddSupportQueryResponse);
+
+
+router.post("/bulk", bulkCreateAdmitCards);
+router.get("/all", getAllAdmitCards);
+router.get("/:id", getAdmitCardById);
+router.patch("/:id", updateAdmitCard);
+router.delete("/:id", deleteAdmitCard);
+router.post("/:id/status", updateAdmitCardStatus); // change status (issue)
 export default router;

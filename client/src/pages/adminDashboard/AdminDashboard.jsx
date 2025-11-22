@@ -11,6 +11,7 @@ import RefferedPage from "./RefferedPage.jsx";
 import { CiLink } from "react-icons/ci";
 import {FaChalkboardTeacher} from "react-icons/fa";
 import { MdOutlineSupportAgent } from "react-icons/md";
+import AdmitCard from "./AdmitCardManagePage.jsx";
 export default function AdminDashboard() {
   const items = [
     {
@@ -42,6 +43,12 @@ export default function AdminDashboard() {
       title: "Support Manager",
       icon: <MdOutlineSupportAgent className="font-bold" size={22} />,
       node: <SupportManager />,
+    },
+    {
+      id: "admit-card",
+      title: "Admit Card",
+      icon: <MdOutlineDashboard />,
+      node: <AdmitCard />,
     },
   ];
 

@@ -2,6 +2,10 @@ import nodemailer from "nodemailer";
 import path from "path";
 
 const sendEmail = async (to, subject, html, attachments = []) => {
+  if (!to || (Array.isArray(to) && to.length === 0)) {
+    throw new Error("Recipient email address is required and cannot be empty.");
+  }
+
   const transporter = nodemailer.createTransport({
     service: "Gmail",
     auth: {
@@ -839,3 +843,137 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+
+
+
+
+
+/**
+ * Send admit-card notification email to student (one email to all student's emails or individual)
+ *
+ * @param {Object} student - Student object (expects .name and .email). .email can be string, comma-separated or array.
+ * @param {Array<Object>} admits - Array of admit objects. Each admit should have at least _id and optionally admitToken, examDate, venue, examTime, ReportingTime.
+ * @param {Object} opts - Optional:
+ *    - attachFiles: Array of nodemailer attachment objects to include
+ *    - dashboardPath: path to student dashboard (default '/student/dashboard')
+ *    - sendIndividually: boolean (default false) - send separate email to each recipient
+ * @returns {Promise<{ success: boolean, sentTo?: Array, error?: string }>}
+ */
+export const sendAdmitCardEmail = async (student, admits, opts = {}) => {
+  if (!student || !student.email) {
+    return { success: false, error: "Student email is required" };
+  }
+
+  const emails = Array.isArray(student.email)
+    ? student.email
+    : String(student.email).split(",").map(e => e.trim()).filter(e => e);
+
+  if (emails.length === 0) {
+    return { success: false, error: "No valid student email addresses found" };
+  }
+
+  const attachFiles = Array.isArray(opts.attachFiles) ? opts.attachFiles : [];
+  const dashboardPath = opts.dashboardPath || "/student/dashboard";
+  const sendIndividually = opts.sendIndividually === true;
+  const subject = "Your R-SAT Admit Card is Now Available";
+  const sentTo = [];
+
+  // Prepare common HTML content for the email
+  const generateEmailHtml = (admit) => {
+    const examDate = admit.examDate || "19th Jan 2026";
+    const venue = admit.venue || "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)";
+    const examTime = admit.examTime || "10:00 AM";
+    const reportingTime = admit.ReportingTime || "9:30 AM";
+    const dashboardUrl = `${process.env.APP_BASE_URL || "https://ricr.in"}${dashboardPath}`;
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your R-SAT Admit Card</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            line-height: 1.6;
+          }
+          .email-container {
+            max-inline-size: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            background: #2d7ff9;
+            color: white;
+            padding: 20px;
+            text-align: center;
+          }
+          .content {
+            padding: 20px;
+          }
+          .content h2 {
+            color: #2d7ff9;
+          }
+          .content p {
+            margin: 10px 0;
+          }
+          .footer {
+            background: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #555;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <h1>R-SAT Admit Card</h1>
+          </div>
+          <div class="content">
+            <h2>Exam Details</h2>
+            <p><strong>Exam Date:</strong> ${examDate}</p>
+            <p><strong>Venue:</strong> ${venue}</p>
+            <p><strong>Exam Time:</strong> ${examTime}</p>
+            <p><strong>Reporting Time:</strong> ${reportingTime}</p>
+            <p>You can access your dashboard here: <a href="${dashboardUrl}">${dashboardUrl}</a></p>
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} R-SAT. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  try {
+    if (sendIndividually) {
+      for (const admit of admits) {
+        for (const email of emails) {
+          const html = generateEmailHtml(admit);
+          const sent = await sendEmail(email, subject, html, attachFiles);
+          if (sent) sentTo.push(email);
+        }
+      }
+    } else {
+      const html = admits.map(generateEmailHtml).join("<hr>");
+      const sent = await sendEmail(emails.join(","), subject, html, attachFiles);
+      if (sent) sentTo.push(...emails);
+    }
+
+    return { success: true, sentTo };
+  } catch (error) {
+    console.error("Error sending admit card email:", error);
+    return { success: false, error: error.message || String(error) };
+  }
+};
+
+

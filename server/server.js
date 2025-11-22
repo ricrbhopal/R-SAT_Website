@@ -8,6 +8,7 @@ import Demo from "./src/routers/soltRouter.js"
 import Support from "./src/routers/supportRouter.js"
 import referralRoutes from "./src/routers/refferedRouter.js"
 import Admin from "./src/routers/adminRouter.js"
+import AdmitCard from "./src/routers/admitRouter.js"
 
 dotenv.config();
 const app = express();
@@ -39,7 +40,8 @@ app.use("/support", Support);
 app.use("/referrals", referralRoutes);
 // Use Admin router
 app.use("/admin", Admin);
-
+// Use Admit Card router
+app.use("/admit-cards", AdmitCard);
 
 
 // Centralized error handler (should be last middleware)

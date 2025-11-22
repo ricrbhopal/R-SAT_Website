@@ -248,15 +248,20 @@ export default function DashboardHome() {
             </h2>
           </div>
           <div className="space-y-4">
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer
+              width="100%"
+              height={300}
+              minWidth={300}
+              minHeight={200}
+            >
               <AreaChart data={performanceData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="name" 
+                <XAxis
+                  dataKey="name"
                   axisLine={false}
                   tickLine={false}
                 />
-                <YAxis 
+                <YAxis
                   axisLine={false}
                   tickLine={false}
                 />
@@ -320,10 +325,15 @@ export default function DashboardHome() {
                 <p className="text-sm text-gray-600">Resolved</p>
               </div>
             </div>
-            
+
             {/* Pie Chart for Query Distribution */}
             <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={200}
+                minHeight={200}
+              >
                 <PieChart>
                   <Pie
                     data={[
@@ -368,7 +378,12 @@ export default function DashboardHome() {
             Referral Performance
           </h2>
           <div className="space-y-4">
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer
+              width="100%"
+              height={200}
+              minWidth={300}
+              minHeight={200}
+            >
               <BarChart data={referralChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" />
@@ -379,7 +394,7 @@ export default function DashboardHome() {
                 <Bar dataKey="Registrations" fill="#10B981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            
+
             <div className="space-y-3 mt-4">
               {referralData.map((referrer, index) => (
                 <div
@@ -387,7 +402,7 @@ export default function DashboardHome() {
                   className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    <div className="w-8 h-8 bg-linear-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                       {index + 1}
                     </div>
                     <div>
@@ -444,7 +459,12 @@ export default function DashboardHome() {
 
             {/* Result Distribution Pie Chart */}
             <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={200}
+                minHeight={200}
+              >
                 <PieChart>
                   <Pie
                     data={resultDistribution}
