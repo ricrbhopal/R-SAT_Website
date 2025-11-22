@@ -11,6 +11,7 @@ import Profile from "./ProfilePage.jsx";
 import Demo from "../candidateDashboard/BookDemoPage.jsx";
 import Support from "../candidateDashboard/QueriesPage.jsx";
 import Reffered from "./RefferedPage.jsx";
+import AdmitCard from "./AdmitCardPage.jsx";
 
 export default function CandidateDashboard() {
   // quickActions declared inside component so we can reference it when initializing selection
@@ -25,7 +26,7 @@ export default function CandidateDashboard() {
     {
       id: 2,
       title: "Admit Card",
-      content: <div className="p-4">Your Admit Card will appear here…</div>,
+      content: <AdmitCard />,
       icon: <FiDownload className="w-5 h-5 text-red-600" />,
       accent: "bg-red-100",
     },
