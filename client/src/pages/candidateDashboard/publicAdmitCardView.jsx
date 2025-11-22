@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import QRCode from "react-qr-code";
-import { AdminAPI } from "../config/api";
+import { AdminAPI } from "../../config/api.js";
 
 export default function PublicAdmitCardView() {
   const { idOrRsat } = useParams();

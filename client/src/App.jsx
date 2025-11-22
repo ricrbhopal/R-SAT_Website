@@ -8,7 +8,8 @@ import BookDemo from "./pages/candidateDashboard/BookDemoPage.jsx";
 import Profile from "../src/pages/candidateDashboard/ProfilePage.jsx";
 import ReferredPage from "./pages/candidateDashboard/RefferedPage.jsx";
 import ReferredRegistrationPage from "./pages/candidateDashboard/RefferedRegisterationPage.jsx";
-import Admindashboard from "./pages/adminDashboard/AdminDashboard.jsx"
+import Admindashboard from "./pages/adminDashboard/AdminDashboard.jsx";
+import PublicAdmitCardView from "./pages/candidateDashboard/publicAdmitCardView.jsx";
 import "./App.css";
 
 function App() {
@@ -27,8 +28,12 @@ function App() {
           element={<ReferredRegistrationPage />}
         />
         <Route path="/admin/dashboard" element={<Admindashboard />} />
+        <Route
+          path="/public/admit/:idOrRsat"
+          element={<PublicAdmitCardView />}
+        />
       </Routes>
-      
+
       <Footer />
     </BrowserRouter>
   );
