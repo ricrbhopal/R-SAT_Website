@@ -717,3 +717,42 @@ export const bulkUpdateAdmitCards = async (req, res) => {
     return res.status(500).json({ message: "Failed to update admit cards.", error: String(error.message || error) });
   }
 };
+
+export const getPublicAdmitCard = async (req, res, next) => {
+  try {
+    const { idOrRsat } = req.params;
+
+    // Try as ObjectId first, if not found try RSAT
+    let admit = null;
+    if (idOrRsat.match(/^[0-9a-fA-F]{24}$/)) {
+      admit = await AdmitCard.findById(idOrRsat).populate("studentId", "fullName email phoneNo");
+    }
+    if (!admit) {
+      admit = await AdmitCard.findOne({ RSAT: idOrRsat }).populate("studentId", "fullName email phoneNo");
+    }
+
+    if (!admit) {
+      return res.status(404).json({ message: "Admit card not found" });
+    }
+
+    // Return minimal safe data for public view
+    const payload = {
+      _id: admit._id,
+      RSAT: admit.RSAT,
+      ApplicantName: admit.ApplicantName || admit.studentId?.fullName,
+      contact: admit.contact || admit.studentId?.phoneNo || admit.studentId?.email,
+      college: admit.college || admit.studentId?.college,
+      branch: admit.branch || admit.studentId?.branch,
+      year: admit.year || admit.studentId?.year,
+      venue: admit.venue,
+      examDate: admit.examDate,
+      examTime: admit.examTime,
+      ReportingTime: admit.ReportingTime,
+      // don't include sensitive fields you don't want public
+    };
+
+    return res.status(200).json({ success: true, data: payload });
+  } catch (err) {
+    next(err);
+  }
+};

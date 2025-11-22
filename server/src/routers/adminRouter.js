@@ -16,7 +16,8 @@ import { getAllUsers , deleteUser,putUserDetails, getUserById,getRefferedUsers ,
   updateAdmitCard,
   deleteAdmitCard,
   updateAdmitCardStatus,
-  bulkUpdateAdmitCards
+  bulkUpdateAdmitCards,
+   getPublicAdmitCard
 
 } from "../controller/adminController.js";
 
@@ -63,4 +64,6 @@ router.put("/bulk-update", bulkUpdateAdmitCards); // Bulk update admit cards
 router.put("/:id", updateAdmitCard); // Update a single admit card
 router.delete("/:id", deleteAdmitCard);
 router.post("/:id/status", updateAdmitCardStatus); // change status (issue)
+router.get("/admit/:idOrRsat", getPublicAdmitCard);
+
 export default router;

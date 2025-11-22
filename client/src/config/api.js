@@ -96,6 +96,7 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
     api.put(`/admin/support/update-status/${queryId}`, { status }),
   AddSupportQueryResponse: (queryId, responder, message) =>
     api.put(`/admin/support/add-response/${queryId}`, { responder, message }),
+  getPublicAdmitCard: (idOrRsat) => api.get(`/public/admit/${encodeURIComponent(idOrRsat)}`),
   
 
 
