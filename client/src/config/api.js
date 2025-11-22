@@ -83,6 +83,7 @@ export const AdminAPI = {
   deleteDemoClass: (demoClassId) => api.delete(`/admin/demo-class/${demoClassId}`),
 
 bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
+  bulkUpdateAdmitCards: (data) => api.put("/admin/bulk-update", data),
     getAllAdmitCards: () => api.get("/admin/all"),
   updateAdmitCard: (id, data) => api.put(`/admin/${id}`, data),
   getAdmitCardById: (id) => api.get(`/admin/${id}`),

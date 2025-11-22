@@ -683,3 +683,37 @@ export const updateAdmitCardStatus = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * Bulk update admit cards
+ * PATCH /api/admitcards/bulk-update
+ */
+export const bulkUpdateAdmitCards = async (req, res) => {
+  try {
+    const { venue, examDate, examTime, ReportingTime } = req.body;
+
+    // Validate required fields
+    if (!venue || !examDate || !examTime || !ReportingTime) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    // Update all admit cards
+    const updatedAdmitCards = await AdmitCard.updateMany(
+      {},
+      { venue, examDate, examTime, ReportingTime },
+      { new: true, runValidators: true }
+    );
+
+    if (updatedAdmitCards.modifiedCount === 0) {
+      return res.status(404).json({ message: "No admit cards were updated." });
+    }
+
+    return res.status(200).json({
+      message: "Admit cards updated successfully.",
+      updatedCount: updatedAdmitCards.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error updating admit cards:", error);
+    return res.status(500).json({ message: "Failed to update admit cards.", error: String(error.message || error) });
+  }
+};
