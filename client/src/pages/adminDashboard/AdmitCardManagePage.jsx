@@ -161,17 +161,7 @@ export default function AdmitCardManagePage() {
     setShowDetailsModal(true);
   };
 
-  const handleDownloadCard = (card) => {
-    console.log("Downloading admit card for:", card.ApplicantName);
-  };
-
-  const handleSendEmail = (card) => {
-    console.log("Sending email for:", card.ApplicantName);
-  };
-
-  const handleBulkEmail = () => {
-    console.log("Sending bulk emails for all admit cards");
-  };
+  
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -186,37 +176,7 @@ export default function AdmitCardManagePage() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      issued: {
-        color: "bg-green-100 text-green-800 border-green-200",
-        text: "Issued",
-        icon: FiCheckCircle,
-      },
-      not_issued: {
-        color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-        text: "Not Issued",
-        icon: FiAlertCircle,
-      },
-      sent: {
-        color: "bg-blue-100 text-blue-800 border-blue-200",
-        text: "Email Sent",
-        icon: FiSend,
-      },
-    };
 
-    const config = statusConfig[status] || statusConfig.not_issued;
-    const IconComponent = config.icon;
-
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${config.color}`}
-      >
-        <IconComponent className="w-3 h-3" />
-        {config.text}
-      </span>
-    );
-  };
 
   const filteredAdmitCards = admitCards.filter((card) => {
     const searchLower = searchTerm.toLowerCase();
@@ -544,15 +504,6 @@ export default function AdmitCardManagePage() {
                     )}
                   </button>
 
-                  {admitCards.length > 0 && (
-                    <button
-                      onClick={handleBulkEmail}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                    >
-                      <FiMail className="w-4 h-4 inline mr-2" />
-                      Send Email
-                    </button>
-                  )}
                 </div>
 
                 {message.text && (
