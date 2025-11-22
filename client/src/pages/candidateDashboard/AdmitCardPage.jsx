@@ -1,7 +1,6 @@
 // src/pages/AdmitCardPage.jsx
 import React, { useEffect, useState } from "react";
 import { AdminAPI } from "../../config/api.js";
-import QRCode from "react-qr-code";
 
 export default function AdmitCardPage() {
   const [admitCard, setAdmitCard] = useState(null);
@@ -35,9 +34,8 @@ export default function AdmitCardPage() {
   if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
   if (!admitCard) return <div className="text-center py-8">No admit card found.</div>;
 
-  // Build public URL for QR (points to the public viewer route)
-  const publicUrl = `${import.meta.env.VITE_BASE_URL || window.location.origin}/admit-card/${encodeURIComponent(admitCard._id || admitCard.RSAT)}`;
 
+  
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md border">
       {/* Header */}
@@ -94,12 +92,7 @@ export default function AdmitCardPage() {
         </div>
       </div>
 
-      {/* QR Code */}
-      <div className="text-center mt-6">
-        <p className="text-sm font-medium text-gray-500 mb-2">Scan QR Code for Details</p>
-        <QRCode value={publicUrl} size={128} />
-        <div className="mt-2 text-xs text-gray-500 break-words">{publicUrl}</div>
-      </div>
+
 
       {/* Footer */}
       <div className="mt-8 border-t pt-4">
