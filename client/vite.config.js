@@ -7,10 +7,14 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
-      external: ['crypto', 'fs', 'path', 'module'], // Exclude Node.js modules
+      external: ['crypto', 'fs', 'path', 'module'],
     },
   },
   optimizeDeps: {
-    exclude: ['nodemailer'], // Exclude nodemailer from dependency optimization
+    include: ['react-is', 'recharts'],
+    exclude: ['nodemailer'],
   },
+  ssr: {
+    noExternal: ['react-is', 'recharts']
+  }
 });

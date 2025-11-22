@@ -36,7 +36,7 @@ export default function AdmitCardPage() {
   if (!admitCard) return <div className="text-center py-8">No admit card found.</div>;
 
   // Build public URL for QR (points to the public viewer route)
-  const publicUrl = `${import.meta.env.VITE_BASE_URL || window.location.origin}/public/admit/${encodeURIComponent(admitCard._id || admitCard.RSAT)}`;
+  const publicUrl = `${import.meta.env.VITE_BASE_URL || window.location.origin}/admit-card/${encodeURIComponent(admitCard._id || admitCard.RSAT)}`;
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md border">
