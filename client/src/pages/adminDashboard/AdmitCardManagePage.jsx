@@ -31,6 +31,8 @@ import UniversalScanner from "./modals/AdmitCard/scancer.jsx";
 export default function AdmitCardManagePage() {
   const [students, setStudents] = useState([]);
   const [admitCards, setAdmitCards] = useState([]);
+  // Attendance tab state
+  const [attendanceSearch, setAttendanceSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -206,6 +208,10 @@ export default function AdmitCardManagePage() {
     emailsSent: admitCards.filter((card) => card.emailSent).length,
   };
 
+  // Attendance records
+  const pendingAttendance = admitCards.filter(card => !card.present);
+  const savedAttendance = admitCards.filter(card => card.present);
+
   const handleEditClick = (card) => {
     setSelectedAdmitCard(card);
     setIsEditModalOpen(true);
@@ -258,6 +264,8 @@ export default function AdmitCardManagePage() {
               alert(data.message);
             } else {
               alert("Attendance marked successfully.");
+              // Refresh admit cards so attendance tab updates
+              await fetchAllAdmitCards();
             }
           })
           .catch((err) => {
@@ -420,6 +428,16 @@ export default function AdmitCardManagePage() {
                 }`}
               >
                 Admit Cards ({admitCards.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("attendance")}
+                className={`py-3 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "attendance"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Attendance
               </button>
             </nav>
           </div>
@@ -631,6 +649,110 @@ export default function AdmitCardManagePage() {
             {/* Admit Cards Tab */}
             {activeTab === "admitCards" && (
               <div className="space-y-4">{/* ... same as before ... */}
+                            {activeTab === "attendance" && (
+                              <div className="space-y-6">
+                                <h2 className="text-lg font-semibold text-gray-900">Attendance Records</h2>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="flex gap-2 items-center">
+                                    <input
+                                      type="text"
+                                      placeholder="Search by name, college, branch..."
+                                      value={attendanceSearch}
+                                      onChange={e => setAttendanceSearch(e.target.value)}
+                                      className="pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-64"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <h3 className="text-md font-semibold text-gray-800 mb-2">Pending Attendance</h3>
+                                  <div className="border border-gray-200 rounded-lg overflow-x-auto mb-6">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                      <thead className="bg-gray-50">
+                                        <tr>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Date</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="bg-white divide-y divide-gray-200">
+                                        {pendingAttendance
+                                          .filter(card => {
+                                            const searchLower = attendanceSearch.toLowerCase();
+                                            return (
+                                              card.ApplicantName?.toLowerCase().includes(searchLower) ||
+                                              card.college?.toLowerCase().includes(searchLower) ||
+                                              card.branch?.toLowerCase().includes(searchLower) ||
+                                              card.year?.toString().includes(searchLower)
+                                            );
+                                          })
+                                          .map(card => (
+                                            <tr key={card._id} className="hover:bg-gray-50">
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{card.ApplicantName}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.college}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.branch}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.year}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{formatDate(card.examDate)}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-yellow-600">Pending</td>
+                                            </tr>
+                                          ))}
+                                        {pendingAttendance.length === 0 && (
+                                          <tr>
+                                            <td colSpan={6} className="text-center py-4 text-gray-500">No pending attendance records.</td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                <div>
+                                  <h3 className="text-md font-semibold text-gray-800 mb-2">Saved Attendance</h3>
+                                  <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                      <thead className="bg-gray-50">
+                                        <tr>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Date</th>
+                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="bg-white divide-y divide-gray-200">
+                                        {savedAttendance
+                                          .filter(card => {
+                                            const searchLower = attendanceSearch.toLowerCase();
+                                            return (
+                                              card.ApplicantName?.toLowerCase().includes(searchLower) ||
+                                              card.college?.toLowerCase().includes(searchLower) ||
+                                              card.branch?.toLowerCase().includes(searchLower) ||
+                                              card.year?.toString().includes(searchLower)
+                                            );
+                                          })
+                                          .map(card => (
+                                            <tr key={card._id} className="hover:bg-gray-50">
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{card.ApplicantName}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.college}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.branch}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.year}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{formatDate(card.examDate)}</td>
+                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600">Saved</td>
+                                            </tr>
+                                          ))}
+                                        {savedAttendance.length === 0 && (
+                                          <tr>
+                                            <td colSpan={6} className="text-center py-4 text-gray-500">No saved attendance records.</td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-lg font-semibold text-gray-900">Admit Cards</h2>
                   <div className="mt-2 sm:mt-0 flex flex-col sm:flex-row gap-2">
@@ -702,14 +824,7 @@ export default function AdmitCardManagePage() {
                                     <FiEye className="w-4 h-4" />
                                   </button>
 
-                                  {/* open scanner modal */}
-                                  <button
-                                    onClick={() => setIsScannerOpen(true)}
-                                    className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded transition-colors"
-                                    title="Scan QR (opens scanner)"
-                                  >
-                                    <FiCamera className="w-4 h-4" />
-                                  </button>
+                    
 
                                   <button
                                     onClick={() => handleEditClick(card)}
