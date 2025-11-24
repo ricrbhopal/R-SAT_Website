@@ -81,8 +81,15 @@ export const markAttendanceWithToken = async (req, res) => {
 
 export const scanAttendance = async (req, res) => {
   try {
-    const id = req.params.id;               // <- changed to params
+    const id = req.params.id;
     if (!id) return res.status(400).json({ message: "Missing admitCardId" });
+
+    // Restrict attendance marking to official scanner
+    // Check for a custom header, e.g., 'x-official-scanner'
+    const isOfficialScanner = req.headers["x-official-scanner"] === "true";
+    if (!isOfficialScanner) {
+      return res.status(403).json({ message: "Attendance can only be marked using the official scanner." });
+    }
 
     const admit = await AdmitCard.findById(id);
     if (!admit) return res.status(404).json({ message: "Admit card not found" });

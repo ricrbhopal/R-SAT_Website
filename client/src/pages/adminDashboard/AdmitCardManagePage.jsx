@@ -239,12 +239,39 @@ export default function AdmitCardManagePage() {
     if (!scannedText) return;
     try {
       const trimmed = scannedText.trim();
-      if (/^https?:\/\//i.test(trimmed)) {
-        window.open(trimmed, "_blank");
+      // If it's a QR URL for attendance marking, try to mark attendance via API
+      const attendanceUrlMatch = trimmed.match(/\/scan-attendance\/(\w+)/);
+      if (/^https?:\/\//i.test(trimmed) && attendanceUrlMatch) {
+        // Extract admitCardId from URL
+        const admitCardId = attendanceUrlMatch[1];
+        // Mark attendance using fetch with official scanner header
+        fetch(trimmed, {
+          method: "GET",
+          headers: {
+            "x-official-scanner": "true"
+          }
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (res.status === 403) {
+              setScannerError("Attendance can only be marked using the official scanner. Unauthorized scan detected.");
+              alert("Attendance can only be marked using the official scanner. Unauthorized scan detected.");
+            } else if (data.message) {
+              alert(data.message);
+            } else {
+              alert("Attendance marked successfully.");
+            }
+          })
+          .catch((err) => {
+            setScannerError("Error marking attendance. Please try again.");
+            alert("Error marking attendance. Please try again.");
+          })
+          .finally(() => {
+            setIsScannerOpen(false);
+          });
       } else {
         setSearchTerm(trimmed);
         setActiveTab("admitCards");
-
         const matched = admitCards.find(
           (c) =>
             (c.RSAT && c.RSAT.toString().toLowerCase() === trimmed.toLowerCase()) ||
@@ -254,12 +281,14 @@ export default function AdmitCardManagePage() {
           setSelectedCard(matched);
           setShowDetailsModal(true);
         }
+        setIsScannerOpen(false);
+        setScannerError("");
       }
     } catch (err) {
       console.error("Error processing scanned result:", err);
-    } finally {
+      setScannerError("Error processing scanned result.");
+      alert("Error processing scanned result.");
       setIsScannerOpen(false);
-      setScannerError("");
     }
   };
 
