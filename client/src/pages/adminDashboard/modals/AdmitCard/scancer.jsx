@@ -1,6 +1,7 @@
 // UniversalScanner.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import toast from "react-hot-toast";
 
 /**
  * Props:
@@ -27,6 +28,8 @@ export default function UniversalScanner({
   const [errorMsg, setErrorMsg] = useState("");
   const [torchOn, setTorchOn] = useState(false);
   const [trackSupportsTorch, setTrackSupportsTorch] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [scanResult, setScanResult] = useState("");
 
   // helper: attempt to get the active video track element
   const getActiveVideoTrack = () => {
@@ -90,7 +93,12 @@ export default function UniversalScanner({
         },
         (decodedText) => {
           try {
-            if (onScan) onScan(decodedText);
+            setScanResult(decodedText);
+            setShowConfirm(true);
+            toast.success("Scan successful! Click OK to confirm.", {
+              duration: 4000,
+              position: "top-center",
+            });
           } catch (e) {
             console.error("[UniversalScanner] onScan callback error:", e);
           }
@@ -209,7 +217,7 @@ export default function UniversalScanner({
 
   // UI
   return (
-    <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden relative">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b">
         <div className="flex items-center gap-3">
@@ -321,6 +329,25 @@ export default function UniversalScanner({
               </div>
             </div>
           </div>
+          {/* Confirmation dialog */}
+          {showConfirm && (
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-lg p-6 max-w-xs w-full text-center">
+                <div className="text-lg font-semibold mb-2">Scan Successful</div>
+                <div className="text-gray-700 mb-4">Do you want to confirm this scan?</div>
+                <div className="mb-4 break-words text-xs text-gray-500">{scanResult}</div>
+                <button
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  onClick={() => {
+                    setShowConfirm(false);
+                    if (onScan) onScan(scanResult);
+                  }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* status / errors */}

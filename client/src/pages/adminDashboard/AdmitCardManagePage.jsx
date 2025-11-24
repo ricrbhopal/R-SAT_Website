@@ -21,12 +21,12 @@ import {
   FiSettings,
   FiCamera,
   FiXCircle,
+  FiMenu,
+  FiX,
 } from "react-icons/fi";
 import EditModal from "./modals/AdmitCard/EditModal.jsx";
 import DeleteModal from "./modals/AdmitCard/DeleteModels.jsx";
 import BulkEditModal from "./modals/AdmitCard/BulkEditModals.jsx";
-
-// Universal scanner (html5-qrcode based)
 import UniversalScanner from "./modals/AdmitCard/scancer.jsx";
 
 export default function AdmitCardManagePage() {
@@ -52,10 +52,9 @@ export default function AdmitCardManagePage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedAdmitCard, setSelectedAdmitCard] = useState(null);
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
-
-  // NEW: scanner state
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannerError, setScannerError] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchAllStudents();
@@ -238,16 +237,13 @@ export default function AdmitCardManagePage() {
     await fetchAllAdmitCards();
   };
 
-  // NEW: handle a successful scan
   const handleScanResult = (scannedText) => {
     if (!scannedText) return;
     try {
       const trimmed = scannedText.trim();
-      // Only handle URLs that match the expected attendance scan format
       const expectedBase =
         "https://rsat.ricr.in/api/admit-cards/scan-attendance/";
       if (trimmed.startsWith(expectedBase)) {
-        // Mark attendance using fetch with official scanner header
         fetch(trimmed, {
           method: "GET",
           headers: {
@@ -309,19 +305,30 @@ export default function AdmitCardManagePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header Section */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Admit Card Management
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Manage student admit cards and examination details
-              </p>
+            <div className="flex items-center justify-between sm:block">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  Admit Card Management
+                </h1>
+                <p className="text-gray-600 text-sm sm:text-base mt-1">
+                  Manage student admit cards and examination details
+                </p>
+              </div>
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="sm:hidden p-2 rounded-lg border border-gray-300 bg-white"
+              >
+                {mobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
+              </button>
             </div>
-            <div className="flex items-center gap-3 mt-4 sm:mt-0">
+            
+            {/* Action Buttons - Desktop */}
+            <div className="hidden sm:flex items-center gap-3 mt-4 sm:mt-0">
               <button
                 onClick={handleBulkEditClick}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -339,132 +346,106 @@ export default function AdmitCardManagePage() {
                 <FiRefreshCw className="w-4 h-4" />
                 Refresh
               </button>
-              {/* Button opens UniversalScanner modal */}
               <button
                 onClick={() => setIsScannerOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-sm"
               >
                 <FiCamera className="w-4 h-4" />
-                Scan Admit Card
+                Scan
               </button>
             </div>
+
+            {/* Action Buttons - Mobile */}
+            {mobileMenuOpen && (
+              <div className="sm:hidden flex flex-col gap-2 mt-4 p-4 bg-white border border-gray-200 rounded-lg">
+                <button
+                  onClick={handleBulkEditClick}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <FiSettings className="w-4 h-4" />
+                  Bulk Edit
+                </button>
+                <button
+                  onClick={() => {
+                    fetchAllStudents();
+                    fetchAllAdmitCards();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                >
+                  <FiRefreshCw className="w-4 h-4" />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setIsScannerOpen(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <FiCamera className="w-4 h-4" />
+                  Scan Admit Card
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FiUsers className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Students</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.totalStudents}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <FiFileText className="w-5 h-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">
-                  Cards Generated
-                </p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.cardsGenerated}
-                </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          {[
+            { label: "Students", value: stats.totalStudents, icon: FiUsers, color: "blue" },
+            { label: "Cards Generated", value: stats.cardsGenerated, icon: FiFileText, color: "green" },
+            { label: "Cards Issued", value: stats.cardsIssued, icon: FiCheckCircle, color: "purple" },
+            { label: "Emails Sent", value: stats.emailsSent, icon: FiSend, color: "orange" },
+          ].map((stat, index) => (
+            <div key={index} className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+              <div className="flex items-center">
+                <div className={`p-2 bg-${stat.color}-100 rounded-lg`}>
+                  <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${stat.color}-600`} />
+                </div>
+                <div className="ml-3">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.label}</p>
+                  <p className="text-lg sm:text-xl font-bold text-gray-900">{stat.value}</p>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <FiCheckCircle className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">
-                  Cards Issued
-                </p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.cardsIssued}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <FiSend className="w-5 h-5 text-orange-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Emails Sent</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.emailsSent}
-                </p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Main Content Area */}
         <div className="bg-white rounded-lg border border-gray-200">
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
-              <button
-                onClick={() => setActiveTab("generate")}
-                className={`py-3 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === "generate"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Generate Cards
-              </button>
-              <button
-                onClick={() => setActiveTab("students")}
-                className={`py-3 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === "students"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Students ({students.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("admitCards")}
-                className={`py-3 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === "admitCards"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Admit Cards ({admitCards.length})
-              </button>
+          <div className="border-b border-gray-200 overflow-x-auto">
+            <nav className="flex min-w-max sm:min-w-0">
+              {[
+                { id: "generate", label: "Generate Cards" },
+                { id: "students", label: `Students (${students.length})` },
+                { id: "admitCards", label: `Admit Cards (${admitCards.length})` },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 sm:flex-none py-3 px-4 sm:px-6 text-center border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </nav>
           </div>
 
-          {/* Tab Content (unchanged) */}
-          <div className="p-6">
+          {/* Tab Content */}
+          <div className="p-4 sm:p-6">
             {/* Generate Cards Tab */}
             {activeTab === "generate" && (
-              <div className="space-y-6">
-                {/* ... same as before ... */}
+              <div className="space-y-4 sm:space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                     Generate Admit Cards
                   </h2>
-                  <p className="text-gray-600 mb-6">
-                    Create admit cards for all registered students with exam
-                    details.
+                  <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">
+                    Create admit cards for all registered students with exam details.
                   </p>
                 </div>
 
@@ -479,7 +460,7 @@ export default function AdmitCardManagePage() {
                       value={form.venue}
                       onChange={handleFormChange}
                       placeholder="Enter examination venue"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     />
                   </div>
 
@@ -493,7 +474,7 @@ export default function AdmitCardManagePage() {
                       value={form.examDate}
                       onChange={handleFormChange}
                       type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     />
                   </div>
 
@@ -507,7 +488,7 @@ export default function AdmitCardManagePage() {
                       value={form.examTime}
                       onChange={handleFormChange}
                       type="time"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     />
                   </div>
 
@@ -521,7 +502,7 @@ export default function AdmitCardManagePage() {
                       value={form.ReportingTime}
                       onChange={handleFormChange}
                       type="time"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     />
                   </div>
 
@@ -533,7 +514,7 @@ export default function AdmitCardManagePage() {
                       name="status"
                       value={form.status}
                       onChange={handleFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     >
                       <option value="not_issued">Not Issued</option>
                       <option value="issued">Issued</option>
@@ -541,11 +522,11 @@ export default function AdmitCardManagePage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
                   <div className="flex items-start">
-                    <FiAlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 shrink-0" />
+                    <FiAlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 mr-3 shrink-0" />
                     <div>
-                      <p className="text-sm text-blue-800">
+                      <p className="text-xs sm:text-sm text-blue-800">
                         This will generate admit cards for all{" "}
                         <strong>{students.length}</strong> registered students.
                       </p>
@@ -557,7 +538,7 @@ export default function AdmitCardManagePage() {
                   <button
                     onClick={handleBulkCreate}
                     disabled={saving}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium text-white transition-colors ${
+                    className={`flex-1 py-2 px-4 rounded-lg font-medium text-white transition-colors text-sm sm:text-base ${
                       saving
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700"
@@ -594,7 +575,7 @@ export default function AdmitCardManagePage() {
 
                 {message.text && (
                   <div
-                    className={`p-3 rounded-lg border ${
+                    className={`p-3 rounded-lg border text-sm ${
                       message.type === "success"
                         ? "bg-green-50 border-green-200 text-green-800"
                         : "bg-red-50 border-red-200 text-red-800"
@@ -606,7 +587,7 @@ export default function AdmitCardManagePage() {
                       ) : (
                         <FiAlertCircle className="w-4 h-4 mr-2" />
                       )}
-                      <span className="text-sm">{message.text}</span>
+                      <span>{message.text}</span>
                     </div>
                   </div>
                 )}
@@ -616,12 +597,11 @@ export default function AdmitCardManagePage() {
             {/* Students Tab */}
             {activeTab === "students" && (
               <div className="space-y-4">
-                {/* ... same as before ... */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h2 className="text-lg font-semibold text-gray-900">
                     Registered Students
                   </h2>
-                  <div className="mt-2 sm:mt-0">
+                  <div className="w-full sm:w-auto">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                       <input
@@ -629,7 +609,7 @@ export default function AdmitCardManagePage() {
                         placeholder="Search students..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-64"
+                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full text-sm sm:text-base"
                       />
                     </div>
                   </div>
@@ -641,7 +621,8 @@ export default function AdmitCardManagePage() {
                   </div>
                 ) : students.length > 0 ? (
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table */}
+                    <div className="hidden lg:block overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
@@ -694,6 +675,41 @@ export default function AdmitCardManagePage() {
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Mobile Cards */}
+                    <div className="lg:hidden divide-y divide-gray-200">
+                      {students.map((student) => (
+                        <div key={student._id} className="p-4 hover:bg-gray-50">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center">
+                              <FiUser className="w-4 h-4 text-gray-400 mr-2" />
+                              <span className="font-medium text-gray-900">{student.fullName}</span>
+                            </div>
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                              {student.student_ID}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                            <div>
+                              <span className="text-gray-500">Contact:</span>
+                              <div>{student.phoneNo}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">College:</span>
+                              <div className="truncate">{student.college}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Branch:</span>
+                              <div>{student.branch}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Year:</span>
+                              <div>{student.year}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -712,12 +728,11 @@ export default function AdmitCardManagePage() {
             {/* Admit Cards Tab */}
             {activeTab === "admitCards" && (
               <div className="space-y-4">
-                {/* ... same as before ... */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h2 className="text-lg font-semibold text-gray-900">
                     Admit Cards
                   </h2>
-                  <div className="mt-2 sm:mt-0 flex flex-col sm:flex-row gap-2">
+                  <div className="w-full sm:w-auto">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                       <input
@@ -725,7 +740,7 @@ export default function AdmitCardManagePage() {
                         placeholder="Search admit cards..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-64"
+                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full text-sm sm:text-base"
                       />
                     </div>
                   </div>
@@ -737,7 +752,8 @@ export default function AdmitCardManagePage() {
                   </div>
                 ) : filteredAdmitCards.length > 0 ? (
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table */}
+                    <div className="hidden lg:block overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
@@ -820,6 +836,81 @@ export default function AdmitCardManagePage() {
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Mobile Cards */}
+                    <div className="lg:hidden divide-y divide-gray-200">
+                      {filteredAdmitCards.map((card) => (
+                        <div key={card._id} className="p-4 hover:bg-gray-50">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h3 className="font-medium text-gray-900">{card.ApplicantName}</h3>
+                              <p className="text-sm text-gray-500">{card.contact}</p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-gray-500">Year {card.year}</div>
+                              {card.present ? (
+                                <span className="inline-flex items-center text-green-600 text-xs">
+                                  <FiCheckCircle className="w-3 h-3 mr-1" />
+                                  Present
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-red-500 text-xs">
+                                  <FiXCircle className="w-3 h-3 mr-1" />
+                                  Absent
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                            <div>
+                              <span className="text-gray-500">College:</span>
+                              <div className="font-medium">{card.college}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Branch:</span>
+                              <div className="font-medium">{card.branch}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Date:</span>
+                              <div className="font-medium">{formatDate(card.examDate)}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Time:</span>
+                              <div className="font-medium">{card.examTime}</div>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-gray-500">Venue:</span>
+                              <div className="font-medium text-xs">{card.venue}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 pt-3 border-t border-gray-100">
+                            <button
+                              onClick={() => handleViewDetails(card)}
+                              className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded text-sm"
+                            >
+                              <FiEye className="w-3 h-3" />
+                              View
+                            </button>
+                            <button
+                              onClick={() => handleEditClick(card)}
+                              className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded text-sm"
+                            >
+                              <FiEdit className="w-3 h-3" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(card)}
+                              className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded text-sm"
+                            >
+                              <FiTrash2 className="w-3 h-3" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -861,58 +952,41 @@ export default function AdmitCardManagePage() {
         onUpdate={refreshAdmitCards}
       />
 
-      {/* Details Modal */}
+      {/* Responsive Details Modal */}
       {showDetailsModal && selectedCard && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Admit Card Details
                 </h3>
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <FiX className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
                     Student Information
                   </h4>
                   <dl className="space-y-3">
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Full Name
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.ApplicantName || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Full Name</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.ApplicantName || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Contact
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.contact || "N/A"}
-                      </dd>
-                        <dd className="text-sm text-gray-900">
+                      <dt className="text-xs text-gray-500 font-medium">Contact</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.contact || "N/A"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-gray-500 font-medium">Attendance</dt>
+                      <dd className="text-sm">
                         {typeof selectedCard.present === 'boolean' ? (
                           selectedCard.present ? (
                             <span className="flex items-center text-green-600 gap-1">
@@ -929,28 +1003,16 @@ export default function AdmitCardManagePage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        College
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.college || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">College</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.college || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Branch
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.branch || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Branch</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.branch || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Year
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.year || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Year</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.year || "N/A"}</dd>
                     </div>
                   </dl>
                 </div>
@@ -961,36 +1023,20 @@ export default function AdmitCardManagePage() {
                   </h4>
                   <dl className="space-y-3">
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Venue
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.venue || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Venue</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.venue || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Exam Date
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {formatDate(selectedCard.examDate)}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Exam Date</dt>
+                      <dd className="text-sm text-gray-900">{formatDate(selectedCard.examDate)}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Exam Time
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.examTime || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Exam Time</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.examTime || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray- gray-500 font-medium">
-                        Reporting Time
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.ReportingTime || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Reporting Time</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.ReportingTime || "N/A"}</dd>
                     </div>
                   </dl>
                 </div>
@@ -1000,11 +1046,11 @@ export default function AdmitCardManagePage() {
         </div>
       )}
 
-      {/* Scanner Modal using UniversalScanner */}
+      {/* Responsive Scanner Modal */}
       {isScannerOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-3 sm:p-4">
           <div className="bg-white rounded-lg w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2 border-b">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
               <h3 className="text-sm font-semibold text-gray-800">
                 Scan QR / Barcode
               </h3>
@@ -1013,14 +1059,13 @@ export default function AdmitCardManagePage() {
                   setIsScannerOpen(false);
                   setScannerError("");
                 }}
-                className="text-gray-600 hover:text-gray-800"
+                className="text-gray-600 hover:text-gray-800 p-1"
               >
-                Close
+                <FiX className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4">
-              <div className="w-full h-80 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
-                {/* UniversalScanner is html5-qrcode based and handles start/stop itself */}
+              <div className="w-full h-64 sm:h-80 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
                 <UniversalScanner
                   onScan={(decodedText) => {
                     if (decodedText) handleScanResult(decodedText);
@@ -1029,10 +1074,7 @@ export default function AdmitCardManagePage() {
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Tip: Your browser will ask for camera permission. If it does
-                not, check your browser settings and make sure you are using
-                HTTPS or localhost. If camera doesn't open, try using a secure
-                (https) site or open on mobile.
+                Tip: Your browser will ask for camera permission. If it does not work, check browser settings and ensure you're using HTTPS or localhost.
               </p>
               {scannerError && (
                 <div className="text-xs text-red-600 mt-2">{scannerError}</div>

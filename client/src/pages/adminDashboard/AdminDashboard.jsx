@@ -53,7 +53,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="p-6 mt-20">
+    <div className=" mt-20">
       <Silder items={items} initialId="home" />
     </div>
   );

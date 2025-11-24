@@ -25,6 +25,7 @@
     "react": "^19.1.1",
     "react-barcode-scanner": "^4.0.0",
     "react-dom": "^19.1.1",
+    "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "react-is": "^19.2.0",
     "react-qr-barcode-scanner": "^2.1.19",
