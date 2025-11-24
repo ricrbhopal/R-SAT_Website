@@ -33,7 +33,7 @@ export default function AdmitCardPage() {
         setAdmitCard(card);
 
         // STEP-3: Generate QR URL
-        const scanUrl = `https://localhost:6501/api/admit-cards/scan-attendance/${card._id}`;
+        const scanUrl = `https://rsat.ricr.in/api/admit-cards/scan-attendance/${card._id}`;
         setQrUrl(scanUrl);
       } catch (err) {
         console.error(err);
