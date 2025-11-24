@@ -32,8 +32,9 @@ export default function AdmitCardPage() {
 
         setAdmitCard(card);
 
-        // STEP-3: Generate QR URL
-        const scanUrl = `https://rsat.ricr.in/api/admit-cards/scan-attendance/${card._id}`;
+        // STEP-3: Generate QR URL with random token
+        const randomToken = Math.random().toString(36).substring(2, 12);
+        const scanUrl = `https://rsat.ricr.in/api/admit-cards/scan-attendance/${card._id}?token=${randomToken}`;
         setQrUrl(scanUrl);
       } catch (err) {
         console.error(err);
@@ -52,7 +53,6 @@ export default function AdmitCardPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md border">
-
       {/* Header */}
       <div className="text-center mb-6">
         <img src="/logo.png" alt="RICR Logo" style={{ width: 100 }} className="mx-auto mb-3" />
@@ -103,8 +103,10 @@ export default function AdmitCardPage() {
           />
         )}
 
-        <p className="mt-2 text-sm text-gray-500">
-          Use any mobile scanner (Google Lens / Camera) to mark your attendance.
+        <p className="mt-2 text-sm text-red-600 font-semibold">
+          Attendance can only be marked using the official scanner provided by the exam center.<br />
+          Google Lens or any other mobile scanner will NOT work.<br />
+          Please use the authorized device at the exam center to scan this QR code.
         </p>
       </div>
     </div>
