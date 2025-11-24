@@ -10,7 +10,5 @@ const token = sessionStorage.getItem('token');
 if (token) setAuthToken(token);
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <App />
-  </StrictMode>,
 )
