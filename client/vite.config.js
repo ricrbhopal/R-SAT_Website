@@ -14,7 +14,5 @@ export default defineConfig({
     include: ['react-is', 'recharts'],
     exclude: ['nodemailer'],
   },
-  ssr: {
-    noExternal: ['react-is', 'recharts']
-  }
+
 });
