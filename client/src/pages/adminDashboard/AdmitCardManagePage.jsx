@@ -19,11 +19,14 @@ import {
   FiEdit,
   FiTrash2,
   FiSettings,
+  FiCamera, // added
 } from "react-icons/fi";
 import EditModal from "./modals/AdmitCard/EditModal.jsx";
 import DeleteModal from "./modals/AdmitCard/DeleteModels.jsx";
 import BulkEditModal from "./modals/AdmitCard/BulkEditModals.jsx";
 
+// Scanner component from library
+import QrBarcodeScanner from "react-qr-barcode-scanner";
 export default function AdmitCardManagePage() {
   const [students, setStudents] = useState([]);
   const [admitCards, setAdmitCards] = useState([]);
@@ -47,6 +50,10 @@ export default function AdmitCardManagePage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedAdmitCard, setSelectedAdmitCard] = useState(null);
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+
+  // NEW: scanner state
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState("");
 
   useEffect(() => {
     fetchAllStudents();
@@ -161,8 +168,6 @@ export default function AdmitCardManagePage() {
     setShowDetailsModal(true);
   };
 
-  
-
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     try {
@@ -176,8 +181,6 @@ export default function AdmitCardManagePage() {
     }
   };
 
-
-
   const filteredAdmitCards = admitCards.filter((card) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -187,10 +190,11 @@ export default function AdmitCardManagePage() {
       card.branch?.toLowerCase().includes(searchLower) ||
       card.year?.toString().includes(searchLower) ||
       card.venue?.toLowerCase().includes(searchLower) ||
-      card.examDate?.toLowerCase().includes(searchLower) ||
-      card.examTime?.toLowerCase().includes(searchLower) ||
-      card.ReportingTime?.toLowerCase().includes(searchLower) ||
-      card.status?.toLowerCase().includes(searchLower)
+      (card.examDate && card.examDate.toString().toLowerCase().includes(searchLower)) ||
+      (card.examTime && card.examTime.toLowerCase().includes(searchLower)) ||
+      (card.ReportingTime && card.ReportingTime.toLowerCase().includes(searchLower)) ||
+      card.status?.toLowerCase().includes(searchLower) ||
+      (card.RSAT && card.RSAT.toLowerCase().includes(searchLower))
     );
   });
 
@@ -229,6 +233,44 @@ export default function AdmitCardManagePage() {
     await fetchAllAdmitCards();
   };
 
+  // NEW: handle a successful scan
+  const handleScanResult = (scannedText) => {
+    if (!scannedText) return;
+    // If it looks like a URL, open in new tab
+    try {
+      const trimmed = scannedText.trim();
+      if (/^https?:\/\//i.test(trimmed)) {
+        window.open(trimmed, "_blank");
+      } else {
+        // otherwise put scanned text in search and switch to admitCards tab
+        setSearchTerm(trimmed);
+        setActiveTab("admitCards");
+
+        // optional: try to auto-open details if RSAT matches
+        const matched = admitCards.find(
+          (c) =>
+            (c.RSAT && c.RSAT.toString().toLowerCase() === trimmed.toLowerCase()) ||
+            (c._id && c._id.toString().toLowerCase() === trimmed.toLowerCase())
+        );
+        if (matched) {
+          // open details of first match
+          setSelectedCard(matched);
+          setShowDetailsModal(true);
+        }
+      }
+    } catch (err) {
+      console.error("Error processing scanned result:", err);
+    } finally {
+      setIsScannerOpen(false);
+      setScannerError("");
+    }
+  };
+
+  const handleScanError = (err) => {
+    console.error("Scanner error:", err);
+    setScannerError("Camera/permission error. Please allow camera access or try another device.");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -260,6 +302,13 @@ export default function AdmitCardManagePage() {
               >
                 <FiRefreshCw className="w-4 h-4" />
                 Refresh
+              </button>
+              <button
+                onClick={() => setIsScannerOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-sm"
+              >
+                <FiCamera className="w-4 h-4" />
+                Scan Admit Card
               </button>
             </div>
           </div>
@@ -503,7 +552,6 @@ export default function AdmitCardManagePage() {
                       `Generate ${students.length} Admit Cards`
                     )}
                   </button>
-
                 </div>
 
                 {message.text && (
@@ -717,6 +765,16 @@ export default function AdmitCardManagePage() {
                                   >
                                     <FiEye className="w-4 h-4" />
                                   </button>
+
+                                  {/* NEW: Scan button - opens scanner modal */}
+                                  <button
+                                    onClick={() => setIsScannerOpen(true)}
+                                    className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded transition-colors"
+                                    title="Scan QR (opens scanner)"
+                                  >
+                                    <FiCamera className="w-4 h-4" />
+                                  </button>
+
                                   <button
                                     onClick={() => handleEditClick(card)}
                                     className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
@@ -899,6 +957,45 @@ export default function AdmitCardManagePage() {
                   </dl>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scanner Modal - single button opens modal */}
+      {isScannerOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2 border-b">
+              <h3 className="text-sm font-semibold text-gray-800">Scan QR / Barcode</h3>
+              <button
+                onClick={() => {
+                  setIsScannerOpen(false);
+                  setScannerError("");
+                }}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="w-full h-[320px] bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                <QrBarcodeScanner
+                  onUpdate={(err, result) => {
+                    if (err) {
+                      // handle transient scanning errors
+                      return;
+                    }
+                    if (result) {
+                      handleScanResult(result?.text || result);
+                    }
+                  }}
+                  constraints={{ facingMode: "environment" }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Tip: Allow camera permission. If camera doesn't open, try using a secure (https) site or open on mobile.
+              </p>
             </div>
           </div>
         </div>
