@@ -15,6 +15,7 @@
     "crypto": "^1.0.1",
     "crypto-browserify": "^3.12.1",
     "file-saver": "^2.0.5",
+    "html5-qrcode": "^2.3.8",
     "jsbarcode": "^3.12.1",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.554.0",

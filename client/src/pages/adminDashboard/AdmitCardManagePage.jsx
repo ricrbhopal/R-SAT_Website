@@ -252,6 +252,7 @@ export default function AdmitCardManagePage() {
                 <FiSettings className="w-4 h-4" />
                 Bulk Edit
               </button>
+              
               <button
                 onClick={() => {
                   fetchAllStudents();
@@ -262,6 +263,7 @@ export default function AdmitCardManagePage() {
                 <FiRefreshCw className="w-4 h-4" />
                 Refresh
               </button>
+              <QRButton />
             </div>
           </div>
         </div>
@@ -902,7 +904,7 @@ export default function AdmitCardManagePage() {
               </div>
             </div>
           </div>
-          <QRButton />
+      
         </div>
       )}
     </div>
