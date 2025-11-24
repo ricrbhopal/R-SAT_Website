@@ -100,7 +100,7 @@ export default function AdmitCardPage() {
         <Detail label="Branch" value={admitCard.branch} />
         <Detail label="Year" value={admitCard.year} />
       </div>
-
+{/* //kjhnj */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Detail label="Venue" value={admitCard.venue} />
         <Detail label="Exam Date" value={admitCard.examDate ? new Date(admitCard.examDate).toLocaleDateString() : "-"} />
