@@ -33,7 +33,7 @@ export default function AdmitCardPage() {
         setAdmitCard(card);
 
         // STEP-3: Generate QR URL
-        const scanUrl = `http://localhost:6501/api/admit-cards/scan-attendance?id=${card._id}`;
+        const scanUrl = `http://localhost:6501/api/admit-cards/scan-attendance/${card._id}`;
         setQrUrl(scanUrl);
       } catch (err) {
         console.error(err);
@@ -47,15 +47,21 @@ export default function AdmitCardPage() {
   }, []);
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
-  if (error) return <div className="text-center text-red-500 py-10">{error}</div>;
-  if (!admitCard) return <div className="text-center py-10">No Admit Card Found.</div>;
+  if (error)
+    return <div className="text-center text-red-500 py-10">{error}</div>;
+  if (!admitCard)
+    return <div className="text-center py-10">No Admit Card Found.</div>;
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md border">
-
       {/* Header */}
       <div className="text-center mb-6">
-        <img src="/logo.png" alt="RICR Logo" style={{ width: 100 }} className="mx-auto mb-3" />
+        <img
+          src="/logo.png"
+          alt="RICR Logo"
+          style={{ width: 100 }}
+          className="mx-auto mb-3"
+        />
         <h1 className="text-2xl font-bold">RICR Scholarship Admission Test</h1>
         <p className="text-lg font-semibold">ADMIT CARD</p>
       </div>
@@ -73,7 +79,10 @@ export default function AdmitCardPage() {
       {/* Exam Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Detail label="Venue" value={admitCard.venue} />
-        <Detail label="Exam Date" value={new Date(admitCard.examDate).toLocaleDateString()} />
+        <Detail
+          label="Exam Date"
+          value={new Date(admitCard.examDate).toLocaleDateString()}
+        />
         <Detail label="Exam Time" value={admitCard.examTime} />
         <Detail label="Reporting Time" value={admitCard.ReportingTime} />
       </div>
@@ -91,7 +100,9 @@ export default function AdmitCardPage() {
 
       {/* QR Code */}
       <div className="text-center mt-8">
-        <h3 className="text-lg font-semibold mb-3">Scan QR to Mark Attendance</h3>
+        <h3 className="text-lg font-semibold mb-3">
+          Scan QR to Mark Attendance
+        </h3>
 
         {qrUrl && (
           <img

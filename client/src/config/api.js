@@ -123,7 +123,7 @@ export const AdmitCardAPI = {
   getAdmitCardById: (id) => api.get(`/admit-cards/${id}`),
   generatePresentToken: (id) => api.post(`/admit-cards/${id}/present-token`),
   markAttendanceWithToken: (data) => api.post("/admit-cards/mark-attendance", data),
-  scanAttendance: (id) => api.get(`/admit-cards/scan-attendance?id=${id}`),
+  scanAttendance: (id) => api.get(`/admit-cards/scan-attendance/${id}`),
 };
 
 export default api;

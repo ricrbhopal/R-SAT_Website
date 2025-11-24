@@ -79,29 +79,23 @@ export const markAttendanceWithToken = async (req, res, next) => {
 };
 
 
-
 export const scanAttendance = async (req, res) => {
   try {
-    const { id } = req.query;
-    if (!id) return res.status(400).send("Missing admitCardId");
+    const id = req.params.id;               // <- changed to params
+    if (!id) return res.status(400).json({ message: "Missing admitCardId" });
 
-    // Generate temporary token
-    const token = createPresentToken(id);
-
-    // Mark attendance using same logic
     const admit = await AdmitCard.findById(id);
-    if (!admit) return res.status(404).send("Admit card not found");
+    if (!admit) return res.status(404).json({ message: "Admit card not found" });
 
-    if (admit.present === true) {
-      return res.send("Attendance already marked.");
-    }
+    if (admit.present) return res.json({ message: "Attendance already marked" });
 
     admit.present = true;
+    admit.attendanceAt = new Date();
     await admit.save();
 
-    return res.send("Attendance marked successfully!");
+    return res.json({ message: "Attendance marked successfully" });
   } catch (err) {
     console.error(err);
-    return res.status(500).send("Error marking attendance.");
+    return res.status(500).json({ message: "Error marking attendance" });
   }
 };

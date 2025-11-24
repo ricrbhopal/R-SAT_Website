@@ -13,6 +13,6 @@ const router = express.Router();
 router.get("/:id", getAdmitCardById);
 router.post("/mark-attendance", markAttendanceWithToken);
 router.post("/:id/present-token", generatePresentToken)
-router.get("/scan-attendance", scanAttendance);
+router.get("/scan-attendance/:id", scanAttendance);
 
 export default router;
