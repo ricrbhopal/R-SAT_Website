@@ -18,6 +18,20 @@ export const setAuthToken = (token) => {
   }
 };
 
+
+// Add a request interceptor to include the token
+api.interceptors.request.use(
+  (config) => {
+    const token = sessionStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+
 export const AuthAPI = {
   sendOTP: (data) => api.post("/auth/send-otp", data),
   register: (data) => api.post("/auth/register", data),
@@ -96,9 +110,8 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
     api.put(`/admin/support/update-status/${queryId}`, { status }),
   AddSupportQueryResponse: (queryId, responder, message) =>
     api.put(`/admin/support/add-response/${queryId}`, { responder, message }),
-  getPublicAdmitCard: (idOrRsat) => api.get(`/public/admit/${encodeURIComponent(idOrRsat)}`),
-  
-
+  generatePresentToken: (id) => api.post(`/admin/${id}/present-token`),
+  markAttendanceWithToken: (data) => api.post("/admin/mark-attendance", data),
 
 
 };
@@ -108,7 +121,9 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
 export const AdmitCardAPI = {
 
   getAdmitCardById: (id) => api.get(`/admit-cards/${id}`),
-
+  generatePresentToken: (id) => api.post(`/admit-cards/${id}/present-token`),
+  markAttendanceWithToken: (data) => api.post("/admit-cards/mark-attendance", data),
+  scanAttendance: (id) => api.get(`/admit-cards/scan-attendance?id=${id}`),
 };
 
 export default api;

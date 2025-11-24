@@ -5,6 +5,7 @@ import SupportQuery from "../models/supportQueriesModel.js"; // आपका sch
 import {sendConfirmationEmail } from "../utils/emailService.js";
 // controllers/admitCardController.js
 import AdmitCard from "../models/admitCardmodel.js";
+import { verifyPresentToken } from '../utils/genAuthToken.js';
 import {sendAdmitCardEmail } from "../utils/emailService.js";
 import crypto from "crypto";
 import Student from "../models/authModel.js";
@@ -754,5 +755,58 @@ export const getPublicAdmitCard = async (req, res, next) => {
     return res.status(200).json({ success: true, data: payload });
   } catch (err) {
     next(err);
+  }
+};
+
+
+
+export const markAttendance = async (req, res) => {
+  try {
+    const { token, scannerUserId } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "Token required" });
+    }
+
+    let payload;
+    try {
+      payload = verifyPresentToken(token);
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid/expired token" });
+    }
+
+    if (payload.type !== "admit_present" || !payload.admitCardId) {
+      return res.status(400).json({ message: "Bad token payload" });
+    }
+
+    const admit = await AdmitCard.findById(payload.admitCardId);
+    if (!admit) return res.status(404).json({ message: "Admit card not found" });
+
+    // Already present
+    if (admit.present) {
+      return res.json({
+        ok: true,
+        alreadyPresent: true,
+        admitId: admit._id,
+      });
+    }
+
+    // Mark present now
+    admit.present = true;
+    admit.presentedAt = new Date();
+    if (scannerUserId) admit.presentedBy = scannerUserId;
+    admit.presentTokenUsed = token.slice(0, 32);
+
+    await admit.save();
+
+    return res.json({
+      ok: true,
+      admitId: admit._id,
+      presentedAt: admit.presentedAt,
+    });
+
+  } catch (error) {
+    console.error("Attendance Mark Error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };

@@ -1,27 +1,49 @@
 import express from "express";
-import { getAllUsers , deleteUser,putUserDetails, getUserById,getRefferedUsers ,
-    deleteRefferedUser,putRefferedUserDetails,
-    getRefferedUserById,
-    putDemoClassDetails,
-    deleteDemoClass,
-    getDemoClassById,
-    getAllDemoClasses,
-    AddSupportQueryResponse,
-    UpdateSupportQueryStatus,
-    GetStudentSupportQueries,
-    GetAllSupportQueries,
-     bulkCreateAdmitCards,
+import {
+  getAllUsers,
+  deleteUser,
+  putUserDetails,
+  getUserById,
+  getRefferedUsers,
+  deleteRefferedUser,
+  putRefferedUserDetails,
+  getRefferedUserById,
+  putDemoClassDetails,
+  deleteDemoClass,
+  getDemoClassById,
+  getAllDemoClasses,
+  AddSupportQueryResponse,
+  UpdateSupportQueryStatus,
+  GetStudentSupportQueries,
+  GetAllSupportQueries,
+  bulkCreateAdmitCards,
   getAllAdmitCards,
   getAdmitCardById,
   updateAdmitCard,
   deleteAdmitCard,
   updateAdmitCardStatus,
   bulkUpdateAdmitCards,
-   getPublicAdmitCard
-
+  getPublicAdmitCard,
 } from "../controller/adminController.js";
-
+import rateLimit from "express-rate-limit";
+import {  } from "../middleware/authMiddleware.js";
 const router = express.Router();
+
+/**
+ * Rate limiter for marking attendance
+ * adjust windowMs / max to your needs
+ */
+const markLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 30, // max 30 requests per IP per window
+  message: {
+    success: false,
+    message:
+      "Too many attendance requests from this IP, please try again later.",
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 // GET /admin/users -> Get all users (admin only)
 router.get("/users", getAllUsers);
@@ -56,7 +78,6 @@ router.put("/support/update-status/:queryId", UpdateSupportQueryStatus);
 // PUT /admin/support/add-response/:queryId -> Add response to support query (admin only)
 router.put("/support/add-response/:queryId", AddSupportQueryResponse);
 
-
 router.post("/bulk", bulkCreateAdmitCards);
 router.get("/all", getAllAdmitCards);
 router.get("/:id", getAdmitCardById);
@@ -65,5 +86,6 @@ router.put("/:id", updateAdmitCard); // Update a single admit card
 router.delete("/:id", deleteAdmitCard);
 router.post("/:id/status", updateAdmitCardStatus); // change status (issue)
 router.get("/admit/:idOrRsat", getPublicAdmitCard);
+
 
 export default router;

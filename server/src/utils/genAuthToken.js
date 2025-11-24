@@ -24,3 +24,16 @@ export const generateAuthToken = (user, team, res) => {
 
   return token;
 };
+
+
+export function createPresentToken(admitCardId) {
+  return jwt.sign(
+    { type: 'admit_present', admitCardId },
+    process.env.JWT_SECRET,
+    { expiresIn: '10m' }
+  );
+}
+
+export function verifyPresentToken(token) {
+  return jwt.verify(token, process.env.JWT_SECRET);
+}
