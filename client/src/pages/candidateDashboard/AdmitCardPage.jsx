@@ -1,74 +1,119 @@
-// src/pages/admin/AdminMarkPage.jsx
-import React, { useState } from "react";
-import { AdmitCardAPI } from "../../config/api.js"; // your api wrapper
+// src/pages/AdmitCardPage.jsx
+import React, { useEffect, useState } from "react";
+import { AdmitCardAPI, AuthAPI } from "../../config/api.js";
 
-export default function AdminMarkPage() {
-  const [idOrUrl, setIdOrUrl] = useState("");
-  const [status, setStatus] = useState("");
+export default function AdmitCardPage() {
+  const [admitCard, setAdmitCard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [qrUrl, setQrUrl] = useState("");
 
-  const extractId = (value) => {
-    // if a full URL is pasted, try to get last path or query param
-    try {
-      const u = new URL(value);
-      // check path last segment
-      const parts = u.pathname.split("/").filter(Boolean);
-      const last = parts[parts.length - 1];
-      if (/^[0-9a-fA-F]{24}$/.test(last)) return last;
-      // try query param id
-      if (u.searchParams.get("id")) return u.searchParams.get("id");
-    } catch (e) {
-      // not a URL, maybe just ID
-    }
-    return value.trim();
-  };
+  useEffect(() => {
+    const loadAdmitCard = async () => {
+      try {
+        // STEP-1: Get profile
+        const profileRes = await AuthAPI.getStudentProfile();
+        const profile = profileRes?.data?.student || profileRes?.data || {};
+        const student_ID = profile.student_ID;
 
-  const handleMark = async () => {
-    setStatus("Processing...");
-    try {
-      const id = extractId(idOrUrl);
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
-        setStatus("Invalid id or URL. Paste admit-card URL or its id.");
-        return;
+        if (!student_ID) {
+          setError("Student ID not found in profile.");
+          return;
+        }
+
+        // STEP-2: Get Admit Card
+        const response = await AdmitCardAPI.getAdmitCardById(student_ID);
+        const card = response?.data?.data || response?.data || response;
+
+        if (!card) {
+          setError("Admit card not found.");
+          return;
+        }
+
+        setAdmitCard(card);
+
+        // STEP-3: Generate QR URL
+        const scanUrl = `http://localhost:6501/api/admit-cards/scan-attendance?id=${card._id}`;
+        setQrUrl(scanUrl);
+      } catch (err) {
+        console.error(err);
+        setError("Could not load admit card.");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // 1) generate present token — Admin API call (requires admin auth cookie/token)
-      const tokenRes = await AdmitCardAPI.generatePresentToken(id);
-      const presentToken = tokenRes?.data?.token;
-      if (!presentToken) {
-        setStatus("Failed to get token. Are you logged in as admin?");
-        return;
-      }
+    loadAdmitCard();
+  }, []);
 
-      // 2) mark attendance with token
-      const markRes = await AdmitCardAPI.markAttendanceWithToken({ token: presentToken });
-      if (markRes?.data?.ok) {
-        setStatus(markRes.data.alreadyPresent ? "Already marked" : "Marked successfully");
-      } else {
-        setStatus(markRes?.data?.message || "Marking failed");
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus("Error occurred. Check console.");
-    }
-  };
+  if (loading) return <div className="text-center py-10">Loading...</div>;
+  if (error) return <div className="text-center text-red-500 py-10">{error}</div>;
+  if (!admitCard) return <div className="text-center py-10">No Admit Card Found.</div>;
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h2 className="text-xl font-bold mb-4">Admin — Scan / Paste AdmitCard URL or ID</h2>
+    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md border">
 
-      <textarea
-        value={idOrUrl}
-        onChange={(e) => setIdOrUrl(e.target.value)}
-        placeholder="Paste scanned QR URL or admitCard id here"
-        className="w-full border p-2 mb-3"
-        rows={3}
-      />
+      {/* Header */}
+      <div className="text-center mb-6">
+        <img src="/logo.png" alt="RICR Logo" style={{ width: 100 }} className="mx-auto mb-3" />
+        <h1 className="text-2xl font-bold">RICR Scholarship Admission Test</h1>
+        <p className="text-lg font-semibold">ADMIT CARD</p>
+      </div>
 
-      <button onClick={handleMark} className="px-4 py-2 bg-blue-600 text-white rounded">
-        Mark Attendance (Admin)
-      </button>
+      {/* Student Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Detail label="Applicant" value={admitCard.ApplicantName} />
+        <Detail label="R-SAT ID" value={admitCard.RSAT} />
+        <Detail label="Contact" value={admitCard.contact} />
+        <Detail label="College" value={admitCard.college} />
+        <Detail label="Branch" value={admitCard.branch} />
+        <Detail label="Year" value={admitCard.year} />
+      </div>
 
-      <div className="mt-3 text-sm">{status}</div>
+      {/* Exam Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Detail label="Venue" value={admitCard.venue} />
+        <Detail label="Exam Date" value={new Date(admitCard.examDate).toLocaleDateString()} />
+        <Detail label="Exam Time" value={admitCard.examTime} />
+        <Detail label="Reporting Time" value={admitCard.ReportingTime} />
+      </div>
+
+      {/* Instructions */}
+      <div className="mt-6 border-t pt-4">
+        <h3 className="text-lg font-bold mb-2">Instructions:</h3>
+        <ul className="list-disc list-inside text-gray-700 text-sm">
+          <li>Admit Card must be printed.</li>
+          <li>Carry valid Photo ID.</li>
+          <li>No gadgets allowed in exam hall.</li>
+          <li>Follow all instructions from the invigilator.</li>
+        </ul>
+      </div>
+
+      {/* QR Code */}
+      <div className="text-center mt-8">
+        <h3 className="text-lg font-semibold mb-3">Scan QR to Mark Attendance</h3>
+
+        {qrUrl && (
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+              qrUrl
+            )}`}
+            alt="QR Code"
+            className="mx-auto border p-2"
+          />
+        )}
+
+        <p className="mt-2 text-sm text-gray-500">
+          Use any mobile scanner (Google Lens / Camera) to mark your attendance.
+        </p>
+      </div>
     </div>
   );
 }
+
+const Detail = ({ label, value }) => (
+  <div>
+    <p className="text-sm text-gray-500">{label}</p>
+    <p className="text-lg font-bold text-gray-900">{value || "-"}</p>
+  </div>
+);

@@ -23,7 +23,6 @@ import {
 import EditModal from "./modals/AdmitCard/EditModal.jsx";
 import DeleteModal from "./modals/AdmitCard/DeleteModels.jsx";
 import BulkEditModal from "./modals/AdmitCard/BulkEditModals.jsx";
-import QRButton from "./AdminQRScanner.jsx"
 
 export default function AdmitCardManagePage() {
   const [students, setStudents] = useState([]);
@@ -252,7 +251,6 @@ export default function AdmitCardManagePage() {
                 <FiSettings className="w-4 h-4" />
                 Bulk Edit
               </button>
-              
               <button
                 onClick={() => {
                   fetchAllStudents();
@@ -263,7 +261,6 @@ export default function AdmitCardManagePage() {
                 <FiRefreshCw className="w-4 h-4" />
                 Refresh
               </button>
-              <QRButton />
             </div>
           </div>
         </div>
@@ -904,7 +901,6 @@ export default function AdmitCardManagePage() {
               </div>
             </div>
           </div>
-      
         </div>
       )}
     </div>
