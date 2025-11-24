@@ -1,53 +1,51 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 
 export default function UniversalScanner({ onScan }) {
-  const scannerRef = useRef(null);
-
   useEffect(() => {
-    const html5QrCode = new Html5Qrcode("reader");
+    const id = "reader-box";
+    const scanner = new Html5Qrcode(id);
 
-    // Get available cameras first
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length) {
-          const cameraId = devices[0].id; // open rear camera
-          html5QrCode.start(
-            cameraId,
-            {
-              fps: 10,
-              qrbox: 250,
-            },
-            (decodedText) => {
-              console.log("SCAN RESULT: ", decodedText);
-              onScan(decodedText);
-            },
-            (error) => {
-              console.log("SCAN ERROR: ", error);
-            }
-          );
+    let mounted = true;
+
+    async function startScanner() {
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (!mounted) return;
+
+        if (!devices || devices.length === 0) {
+          console.error("NO CAMERA FOUND!");
+          return;
         }
-      })
-      .catch((err) => {
-        console.error("CAMERA ERROR: ", err);
-      });
+
+        const camId = devices[0].id;
+
+        await scanner.start(
+          camId,
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (text) => onScan(text),
+          () => {}
+        );
+      } catch (err) {
+        console.error("SCANNER ERROR:", err);
+      }
+    }
+
+    startScanner();
 
     return () => {
-      html5QrCode.stop().catch(() => {});
+      mounted = false;
+      scanner
+        .stop()
+        .then(() => scanner.clear())
+        .catch(() => {});
     };
   }, []);
 
   return (
-    <div>
-      <h3>Scan Any QR / Barcode</h3>
-      <div
-        id="reader"
-        style={{
-          width: "100%",
-          maxWidth: "350px",
-          margin: "auto",
-        }}
-      ></div>
-    </div>
+    <div
+      id="reader-box"
+      style={{ width: "300px", height: "300px", margin: "auto" }}
+    ></div>
   );
 }
