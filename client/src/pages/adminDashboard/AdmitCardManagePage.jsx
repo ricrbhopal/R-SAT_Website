@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+// AdmitCardManagePage.jsx
+import React, { useEffect, useState, useRef } from "react";
 import { AdminAPI } from "../../config/api";
 import {
   FiCheckCircle,
   FiAlertCircle,
   FiEye,
-  FiDownload,
-  FiMail,
   FiUser,
   FiCalendar,
   FiClock,
@@ -14,19 +13,18 @@ import {
   FiFileText,
   FiSend,
   FiSearch,
-  FiFilter,
   FiRefreshCw,
   FiEdit,
   FiTrash2,
   FiSettings,
-  FiCamera, // added
+  FiCamera,
 } from "react-icons/fi";
 import EditModal from "./modals/AdmitCard/EditModal.jsx";
 import DeleteModal from "./modals/AdmitCard/DeleteModels.jsx";
 import BulkEditModal from "./modals/AdmitCard/BulkEditModals.jsx";
 
-// Scanner component from library
-import QrBarcodeScanner from "react-qr-barcode-scanner";
+import { Html5Qrcode } from "html5-qrcode";
+
 export default function AdmitCardManagePage() {
   const [students, setStudents] = useState([]);
   const [admitCards, setAdmitCards] = useState([]);
@@ -51,9 +49,11 @@ export default function AdmitCardManagePage() {
   const [selectedAdmitCard, setSelectedAdmitCard] = useState(null);
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
 
-  // NEW: scanner state
+  // Scanner-related state & refs
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannerError, setScannerError] = useState("");
+  const scannerRef = useRef(null);
+  const html5ElementId = "html5qrscanner";
 
   useEffect(() => {
     fetchAllStudents();
@@ -65,8 +65,7 @@ export default function AdmitCardManagePage() {
     setError("");
     try {
       const res = await AdminAPI.getAllStudents();
-      console.log("Students API Response:", res);
-
+      // expecting res.data to be array
       if (res && Array.isArray(res.data)) {
         setStudents(res.data);
       } else {
@@ -88,8 +87,6 @@ export default function AdmitCardManagePage() {
     setError("");
     try {
       const res = await AdminAPI.getAllAdmitCards();
-      console.log("Admit Cards API Response:", res);
-
       if (res && res.data && Array.isArray(res.data.data)) {
         const formattedAdmitCards = res.data.data.map((card) => ({
           _id: card._id,
@@ -190,9 +187,11 @@ export default function AdmitCardManagePage() {
       card.branch?.toLowerCase().includes(searchLower) ||
       card.year?.toString().includes(searchLower) ||
       card.venue?.toLowerCase().includes(searchLower) ||
-      (card.examDate && card.examDate.toString().toLowerCase().includes(searchLower)) ||
+      (card.examDate &&
+        card.examDate.toString().toLowerCase().includes(searchLower)) ||
       (card.examTime && card.examTime.toLowerCase().includes(searchLower)) ||
-      (card.ReportingTime && card.ReportingTime.toLowerCase().includes(searchLower)) ||
+      (card.ReportingTime &&
+        card.ReportingTime.toLowerCase().includes(searchLower)) ||
       card.status?.toLowerCase().includes(searchLower) ||
       (card.RSAT && card.RSAT.toLowerCase().includes(searchLower))
     );
@@ -233,27 +232,23 @@ export default function AdmitCardManagePage() {
     await fetchAllAdmitCards();
   };
 
-  // NEW: handle a successful scan
+  // scanning result handler (reused by scanner)
   const handleScanResult = (scannedText) => {
     if (!scannedText) return;
-    // If it looks like a URL, open in new tab
     try {
       const trimmed = scannedText.trim();
       if (/^https?:\/\//i.test(trimmed)) {
         window.open(trimmed, "_blank");
       } else {
-        // otherwise put scanned text in search and switch to admitCards tab
         setSearchTerm(trimmed);
         setActiveTab("admitCards");
 
-        // optional: try to auto-open details if RSAT matches
         const matched = admitCards.find(
           (c) =>
             (c.RSAT && c.RSAT.toString().toLowerCase() === trimmed.toLowerCase()) ||
             (c._id && c._id.toString().toLowerCase() === trimmed.toLowerCase())
         );
         if (matched) {
-          // open details of first match
           setSelectedCard(matched);
           setShowDetailsModal(true);
         }
@@ -261,29 +256,101 @@ export default function AdmitCardManagePage() {
     } catch (err) {
       console.error("Error processing scanned result:", err);
     } finally {
+      // close scanner UI
       setIsScannerOpen(false);
       setScannerError("");
     }
   };
 
-  const handleScanError = (err) => {
-    console.error("Scanner error:", err);
-    setScannerError("Camera/permission error. Please allow camera access or try another device.");
+  // --- html5-qrcode start / stop logic ---
+  const startHtml5Scanner = async () => {
+    setScannerError("");
+    try {
+      const html5Qr = new Html5Qrcode(html5ElementId, { verbose: false });
+      scannerRef.current = html5Qr;
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 300, height: 200 },
+        rememberLastUsedCamera: true,
+      };
+
+      const devices = await Html5Qrcode.getCameras();
+      const preferred = devices && devices.length
+        ? devices.find((d) => /back|rear|environment/i.test(d.label)) || devices[0]
+        : null;
+      const cameraId = preferred ? preferred.id : null;
+
+      if (!cameraId) {
+        throw new Error("No camera device found");
+      }
+
+      await html5Qr.start(
+        cameraId,
+        config,
+        (decodedText /*, decodedResult */) => {
+          handleScanResult(decodedText);
+        },
+        (errorMessage) => {
+          // transient scan failure - ignore or set status if needed
+        }
+      );
+    } catch (err) {
+      console.error("html5-qrcode start error:", err);
+      // handle known errors
+      if (err && err.name === "NotAllowedError") {
+        setScannerError("Camera permission denied. Allow camera access and try again.");
+      } else if (err && err.name === "NotFoundError") {
+        setScannerError("No camera found on this device.");
+      } else if (typeof err === "string" && err.toLowerCase().includes("secure")) {
+        setScannerError("Camera requires secure context (https or localhost).");
+      } else {
+        setScannerError(err?.message || "Unable to start camera. Check permissions and secure context.");
+      }
+      // cleanup if partially created
+      try {
+        if (scannerRef.current) {
+          await scannerRef.current.clear();
+          scannerRef.current = null;
+        }
+      } catch (e) {
+        scannerRef.current = null;
+      }
+    }
   };
+
+  const stopHtml5Scanner = async () => {
+    try {
+      if (scannerRef.current) {
+        await scannerRef.current.stop();
+        await scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+    } catch (e) {
+      console.warn("Error stopping scanner:", e);
+      scannerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (isScannerOpen) startHtml5Scanner();
+    else stopHtml5Scanner();
+
+    return () => {
+      stopHtml5Scanner();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScannerOpen]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
+        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Admit Card Management
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Manage student admit cards and examination details
-              </p>
+              <h1 className="text-2xl font-bold text-gray-900">Admit Card Management</h1>
+              <p className="text-gray-600 mt-1">Manage student admit cards and examination details</p>
             </div>
             <div className="flex items-center gap-3 mt-4 sm:mt-0">
               <button
@@ -314,7 +381,7 @@ export default function AdmitCardManagePage() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center">
@@ -323,45 +390,32 @@ export default function AdmitCardManagePage() {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Students</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.totalStudents}
-                </p>
+                <p className="text-xl font-bold text-gray-900">{stats.totalStudents}</p>
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <FiFileText className="w-5 h-5 text-green-600" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">
-                  Cards Generated
-                </p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.cardsGenerated}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Cards Generated</p>
+                <p className="text-xl font-bold text-gray-900">{stats.cardsGenerated}</p>
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <FiCheckCircle className="w-5 h-5 text-purple-600" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">
-                  Cards Issued
-                </p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.cardsIssued}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Cards Issued</p>
+                <p className="text-xl font-bold text-gray-900">{stats.cardsIssued}</p>
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center">
               <div className="p-2 bg-orange-100 rounded-lg">
@@ -369,17 +423,14 @@ export default function AdmitCardManagePage() {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Emails Sent</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {stats.emailsSent}
-                </p>
+                <p className="text-xl font-bold text-gray-900">{stats.emailsSent}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content */}
         <div className="bg-white rounded-lg border border-gray-200">
-          {/* Tab Navigation */}
           <div className="border-b border-gray-200">
             <nav className="flex -mb-px">
               <button
@@ -415,19 +466,13 @@ export default function AdmitCardManagePage() {
             </nav>
           </div>
 
-          {/* Tab Content */}
           <div className="p-6">
-            {/* Generate Cards Tab */}
+            {/* Generate Tab */}
             {activeTab === "generate" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    Generate Admit Cards
-                  </h2>
-                  <p className="text-gray-600 mb-6">
-                    Create admit cards for all registered students with exam
-                    details.
-                  </p>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Generate Admit Cards</h2>
+                  <p className="text-gray-600 mb-6">Create admit cards for all registered students with exam details.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -488,9 +533,7 @@ export default function AdmitCardManagePage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Initial Status
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Initial Status</label>
                     <select
                       name="status"
                       value={form.status}
@@ -507,10 +550,7 @@ export default function AdmitCardManagePage() {
                   <div className="flex items-start">
                     <FiAlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 shrink-0" />
                     <div>
-                      <p className="text-sm text-blue-800">
-                        This will generate admit cards for all{" "}
-                        <strong>{students.length}</strong> registered students.
-                      </p>
+                      <p className="text-sm text-blue-800">This will generate admit cards for all <strong>{students.length}</strong> registered students.</p>
                     </div>
                   </div>
                 </div>
@@ -520,31 +560,14 @@ export default function AdmitCardManagePage() {
                     onClick={handleBulkCreate}
                     disabled={saving}
                     className={`flex-1 py-2 px-4 rounded-lg font-medium text-white transition-colors ${
-                      saving
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700"
+                      saving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                     }`}
                   >
                     {saving ? (
                       <span className="flex items-center justify-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                         Generating...
                       </span>
@@ -555,19 +578,9 @@ export default function AdmitCardManagePage() {
                 </div>
 
                 {message.text && (
-                  <div
-                    className={`p-3 rounded-lg border ${
-                      message.type === "success"
-                        ? "bg-green-50 border-green-200 text-green-800"
-                        : "bg-red-50 border-red-200 text-red-800"
-                    }`}
-                  >
+                  <div className={`p-3 rounded-lg border ${message.type === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800"}`}>
                     <div className="flex items-center">
-                      {message.type === "success" ? (
-                        <FiCheckCircle className="w-4 h-4 mr-2" />
-                      ) : (
-                        <FiAlertCircle className="w-4 h-4 mr-2" />
-                      )}
+                      {message.type === "success" ? <FiCheckCircle className="w-4 h-4 mr-2" /> : <FiAlertCircle className="w-4 h-4 mr-2" />}
                       <span className="text-sm">{message.text}</span>
                     </div>
                   </div>
@@ -579,9 +592,7 @@ export default function AdmitCardManagePage() {
             {activeTab === "students" && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Registered Students
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Registered Students</h2>
                   <div className="mt-2 sm:mt-0">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -598,7 +609,7 @@ export default function AdmitCardManagePage() {
 
                 {loading ? (
                   <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
                   </div>
                 ) : students.length > 0 ? (
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -606,50 +617,23 @@ export default function AdmitCardManagePage() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Student ID
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Name
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Contact
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              College
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Branch
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Year
-                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {students.map((student) => (
                             <tr key={student._id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {student.student_ID}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                <div className="flex items-center">
-                                  <FiUser className="w-4 h-4 text-gray-400 mr-2" />
-                                  {student.fullName}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                {student.phoneNo}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                {student.college}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                {student.branch}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                {student.year}
-                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{student.student_ID}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900"><div className="flex items-center"><FiUser className="w-4 h-4 text-gray-400 mr-2" />{student.fullName}</div></td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.phoneNo}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.college}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.branch}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.year}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -659,12 +643,8 @@ export default function AdmitCardManagePage() {
                 ) : (
                   <div className="text-center py-8">
                     <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-4 text-sm font-medium text-gray-900">
-                      No students found
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      No students are currently registered.
-                    </p>
+                    <h3 className="mt-4 text-sm font-medium text-gray-900">No students found</h3>
+                    <p className="mt-1 text-sm text-gray-500">No students are currently registered.</p>
                   </div>
                 )}
               </div>
@@ -674,9 +654,7 @@ export default function AdmitCardManagePage() {
             {activeTab === "admitCards" && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Admit Cards
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Admit Cards</h2>
                   <div className="mt-2 sm:mt-0 flex flex-col sm:flex-row gap-2">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -693,7 +671,7 @@ export default function AdmitCardManagePage() {
 
                 {loading ? (
                   <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
                   </div>
                 ) : filteredAdmitCards.length > 0 ? (
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -701,18 +679,10 @@ export default function AdmitCardManagePage() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Student
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              College & Branch
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Exam Details
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Actions
-                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College & Branch</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Details</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -720,74 +690,37 @@ export default function AdmitCardManagePage() {
                             <tr key={card._id} className="hover:bg-gray-50">
                               <td className="px-4 py-3">
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {card.ApplicantName}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {card.contact}
-                                  </div>
-                                  <div className="text-xs text-gray-400">
-                                    Year: {card.year}
-                                  </div>
+                                  <div className="text-sm font-medium text-gray-900">{card.ApplicantName}</div>
+                                  <div className="text-sm text-gray-500">{card.contact}</div>
+                                  <div className="text-xs text-gray-400">Year: {card.year}</div>
                                 </div>
                               </td>
                               <td className="px-4 py-3">
-                                <div className="text-sm text-gray-900">
-                                  {card.college}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {card.branch}
-                                </div>
+                                <div className="text-sm text-gray-900">{card.college}</div>
+                                <div className="text-sm text-gray-500">{card.branch}</div>
                               </td>
                               <td className="px-4 py-3">
                                 <div className="text-sm text-gray-900">
-                                  <div className="flex items-center gap-1">
-                                    <FiCalendar className="w-4 h-4" />
-                                    {formatDate(card.examDate)}
-                                  </div>
-                                  <div className="text-sm text-gray-500 mt-1">
-                                    <div className="flex items-center gap-1">
-                                      <FiClock className="w-4 h-4" />
-                                      {card.examTime}
-                                    </div>
-                                  </div>
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    {card.venue}
-                                  </div>
+                                  <div className="flex items-center gap-1"><FiCalendar className="w-4 h-4" />{formatDate(card.examDate)}</div>
+                                  <div className="text-sm text-gray-500 mt-1"><div className="flex items-center gap-1"><FiClock className="w-4 h-4" />{card.examTime}</div></div>
+                                  <div className="text-xs text-gray-400 mt-1">{card.venue}</div>
                                 </div>
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => handleViewDetails(card)}
-                                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                                    title="View Details"
-                                  >
+                                  <button onClick={() => handleViewDetails(card)} className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors" title="View Details">
                                     <FiEye className="w-4 h-4" />
                                   </button>
 
-                                  {/* NEW: Scan button - opens scanner modal */}
-                                  <button
-                                    onClick={() => setIsScannerOpen(true)}
-                                    className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded transition-colors"
-                                    title="Scan QR (opens scanner)"
-                                  >
+                                  <button onClick={() => setIsScannerOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded transition-colors" title="Scan QR (opens scanner)">
                                     <FiCamera className="w-4 h-4" />
                                   </button>
 
-                                  <button
-                                    onClick={() => handleEditClick(card)}
-                                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
-                                    title="Edit"
-                                  >
+                                  <button onClick={() => handleEditClick(card)} className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors" title="Edit">
                                     <FiEdit className="w-4 h-4" />
                                   </button>
 
-                                  <button
-                                    onClick={() => handleDeleteClick(card)}
-                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                                    title="Delete"
-                                  >
+                                  <button onClick={() => handleDeleteClick(card)} className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors" title="Delete">
                                     <FiTrash2 className="w-4 h-4" />
                                   </button>
                                 </div>
@@ -801,14 +734,8 @@ export default function AdmitCardManagePage() {
                 ) : (
                   <div className="text-center py-8">
                     <FiFileText className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-4 text-sm font-medium text-gray-900">
-                      No admit cards found
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {admitCards.length === 0
-                        ? "Generate admit cards using the Generate Cards tab."
-                        : "No admit cards match your search criteria."}
-                    </p>
+                    <h3 className="mt-4 text-sm font-medium text-gray-900">No admit cards found</h3>
+                    <p className="mt-1 text-sm text-gray-500">{admitCards.length === 0 ? "Generate admit cards using the Generate Cards tab." : "No admit cards match your search criteria."}</p>
                   </div>
                 )}
               </div>
@@ -818,25 +745,9 @@ export default function AdmitCardManagePage() {
       </div>
 
       {/* Modals */}
-      <EditModal
-        isOpen={isEditModalOpen}
-        onClose={handleModalClose}
-        admitCard={selectedAdmitCard}
-        onUpdate={refreshAdmitCards}
-      />
-
-      <DeleteModal
-        isOpen={isDeleteModalOpen}
-        onClose={handleModalClose}
-        admitCardId={selectedAdmitCard?._id}
-        onDelete={refreshAdmitCards}
-      />
-
-      <BulkEditModal
-        isOpen={isBulkEditModalOpen}
-        onClose={handleBulkEditClose}
-        onUpdate={refreshAdmitCards}
-      />
+      <EditModal isOpen={isEditModalOpen} onClose={handleModalClose} admitCard={selectedAdmitCard} onUpdate={refreshAdmitCards} />
+      <DeleteModal isOpen={isDeleteModalOpen} onClose={handleModalClose} admitCardId={selectedAdmitCard?._id} onDelete={refreshAdmitCards} />
+      <BulkEditModal isOpen={isBulkEditModalOpen} onClose={handleBulkEditClose} onUpdate={refreshAdmitCards} />
 
       {/* Details Modal */}
       {showDetailsModal && selectedCard && (
@@ -844,25 +755,10 @@ export default function AdmitCardManagePage() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Admit Card Details
-                </h3>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                <h3 className="text-lg font-semibold text-gray-900">Admit Card Details</h3>
+                <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -870,89 +766,49 @@ export default function AdmitCardManagePage() {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
-                    Student Information
-                  </h4>
+                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Student Information</h4>
                   <dl className="space-y-3">
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Full Name
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.ApplicantName || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Full Name</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.ApplicantName || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Contact
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.contact || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Contact</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.contact || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        College
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.college || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">College</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.college || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Branch
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.branch || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Branch</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.branch || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Year
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.year || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Year</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.year || "N/A"}</dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
-                    Examination Details
-                  </h4>
+                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Examination Details</h4>
                   <dl className="space-y-3">
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Venue
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.venue || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Venue</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.venue || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Exam Date
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {formatDate(selectedCard.examDate)}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Exam Date</dt>
+                      <dd className="text-sm text-gray-900">{formatDate(selectedCard.examDate)}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Exam Time
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.examTime || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Exam Time</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.examTime || "N/A"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">
-                        Reporting Time
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedCard.ReportingTime || "N/A"}
-                      </dd>
+                      <dt className="text-xs text-gray-500 font-medium">Reporting Time</dt>
+                      <dd className="text-sm text-gray-900">{selectedCard.ReportingTime || "N/A"}</dd>
                     </div>
                   </dl>
                 </div>
@@ -962,7 +818,7 @@ export default function AdmitCardManagePage() {
         </div>
       )}
 
-      {/* Scanner Modal - single button opens modal */}
+      {/* Scanner Modal */}
       {isScannerOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-md overflow-hidden">
@@ -978,24 +834,20 @@ export default function AdmitCardManagePage() {
                 Close
               </button>
             </div>
+
             <div className="p-4">
-              <div className="w-full h-[320px] bg-gray-100 rounded overflow-hidden flex items-center justify-center">
-                <QrBarcodeScanner
-                  onUpdate={(err, result) => {
-                    if (err) {
-                      // handle transient scanning errors
-                      return;
-                    }
-                    if (result) {
-                      handleScanResult(result?.text || result);
-                    }
-                  }}
-                  constraints={{ facingMode: "environment" }}
-                />
+              <div className="w-full h-80 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                {/* html5-qrcode renders into this div */}
+                <div id={html5ElementId} style={{ width: "100%", height: "100%" }} />
               </div>
+
               <p className="text-xs text-gray-500 mt-2">
-                Tip: Allow camera permission. If camera doesn't open, try using a secure (https) site or open on mobile.
+                Tip: When you click 'Scan Admit Card', your browser should ask for camera permission. If it does not, check your browser settings and make sure you are using HTTPS or localhost. If camera doesn't open, try using a secure (https) site or open on mobile.
               </p>
+
+              {scannerError && (
+                <div className="text-xs text-red-600 mt-2">{scannerError}</div>
+              )}
             </div>
           </div>
         </div>
