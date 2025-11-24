@@ -54,3 +54,13 @@ export const protect = async (req, res, next) => {
     next(err);
   }
 };
+
+
+
+// server/src/middleware/isAdmin.js
+export default function isAdmin(req, res, next) {
+  // Example: req.user set by auth middleware (JWT)
+  if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+  if (req.user.role !== "admin") return res.status(403).json({ message: "Admin only" });
+  next();
+}

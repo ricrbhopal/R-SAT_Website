@@ -28,53 +28,53 @@ export const getAdmitCardById = async (req, res, next) => {
   }
 };
 
-/**
- * Generate a present token for a given admit card
- * POST /api/admitcards/:id/present-token
- * Returns: { token }
- */
-export const generatePresentToken = async (req, res, next) => {
+export const generatePresentToken = async (req, res) => {
   try {
-    const { id } = req.params;
-    const admitCard = await AdmitCard.findById(id);
-    if (!admitCard) return res.status(404).json({ message: "Admit card not found" });
-    const token = createPresentToken(admitCard._id);
-    res.status(200).json({ token });
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ message: "Missing id" });
+
+    const admit = await AdmitCard.findById(id);
+    if (!admit) return res.status(404).json({ message: "Admit card not found" });
+
+    // create short-lived token (server-side secret)
+    const token = createPresentToken(id);
+
+    // Optionally store token audit or return directly
+    return res.json({ ok: true, token });
   } catch (err) {
-    next(err);
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
-/**
- * Mark attendance using present token
- * POST /api/admitcards/mark-attendance
- * Body: { token }
- */
-export const markAttendanceWithToken = async (req, res, next) => {
+export const markAttendanceWithToken = async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(400).json({ message: "Token required" });
+    if (!token) return res.status(400).json({ message: "Missing token" });
+
     let payload;
     try {
-      payload = verifyPresentToken(token);
+      payload = verifyPresentToken(token); // will throw if invalid/expired
     } catch (err) {
-      return res.status(401).json({ message: "Invalid/expired token" });
+      return res.status(400).json({ message: "Invalid or expired token" });
     }
-    if (payload.type !== "admit_present" || !payload.admitCardId) {
-      return res.status(400).json({ message: "Bad token payload" });
-    }
-    const admit = await AdmitCard.findById(payload.admitCardId);
+
+    const id = payload.admitCardId;
+    const admit = await AdmitCard.findById(id);
     if (!admit) return res.status(404).json({ message: "Admit card not found" });
+
     if (admit.present) {
-      return res.json({ ok: true, alreadyPresent: true, admitId: admit._id });
+      return res.json({ ok: true, alreadyPresent: true, message: "Attendance already marked" });
     }
+
     admit.present = true;
-    admit.presentedAt = new Date();
-    admit.presentTokenUsed = token.slice(0, 32);
+    admit.attendanceAt = new Date();
     await admit.save();
-    return res.json({ ok: true, admitId: admit._id, presentedAt: admit.presentedAt });
+
+    return res.json({ ok: true, message: "Attendance marked successfully" });
   } catch (err) {
-    next(err);
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
