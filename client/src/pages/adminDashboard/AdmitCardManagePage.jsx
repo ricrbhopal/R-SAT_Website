@@ -239,11 +239,9 @@ export default function AdmitCardManagePage() {
     if (!scannedText) return;
     try {
       const trimmed = scannedText.trim();
-      // If it's a QR URL for attendance marking, try to mark attendance via API
-      const attendanceUrlMatch = trimmed.match(/\/scan-attendance\/(\w+)/);
-      if (/^https?:\/\//i.test(trimmed) && attendanceUrlMatch) {
-        // Extract admitCardId from URL
-        const admitCardId = attendanceUrlMatch[1];
+      // Only handle URLs that match the expected attendance scan format
+      const expectedBase = "https://rsat.ricr.in/api/admit-cards/scan-attendance/";
+      if (trimmed.startsWith(expectedBase)) {
         // Mark attendance using fetch with official scanner header
         fetch(trimmed, {
           method: "GET",
