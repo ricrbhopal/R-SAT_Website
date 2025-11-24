@@ -19,7 +19,8 @@ import {
   FiEdit,
   FiTrash2,
   FiSettings,
-  FiCamera, // added
+  FiCamera,
+  FiXCircle,
 } from "react-icons/fi";
 import EditModal from "./modals/AdmitCard/EditModal.jsx";
 import DeleteModal from "./modals/AdmitCard/DeleteModels.jsx";
@@ -31,8 +32,6 @@ import UniversalScanner from "./modals/AdmitCard/scancer.jsx";
 export default function AdmitCardManagePage() {
   const [students, setStudents] = useState([]);
   const [admitCards, setAdmitCards] = useState([]);
-  // Attendance tab state
-  const [attendanceSearch, setAttendanceSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -109,6 +108,7 @@ export default function AdmitCardManagePage() {
           ReportingTime: card.ReportingTime,
           status: card.status,
           emailSent: card.emailSent,
+          present: typeof card.present === 'boolean' ? card.present : false,
           createdAt: card.createdAt,
           updatedAt: card.updatedAt,
         }));
@@ -193,9 +193,11 @@ export default function AdmitCardManagePage() {
       card.branch?.toLowerCase().includes(searchLower) ||
       card.year?.toString().includes(searchLower) ||
       card.venue?.toLowerCase().includes(searchLower) ||
-      (card.examDate && card.examDate.toString().toLowerCase().includes(searchLower)) ||
+      (card.examDate &&
+        card.examDate.toString().toLowerCase().includes(searchLower)) ||
       (card.examTime && card.examTime.toLowerCase().includes(searchLower)) ||
-      (card.ReportingTime && card.ReportingTime.toLowerCase().includes(searchLower)) ||
+      (card.ReportingTime &&
+        card.ReportingTime.toLowerCase().includes(searchLower)) ||
       card.status?.toLowerCase().includes(searchLower) ||
       (card.RSAT && card.RSAT.toLowerCase().includes(searchLower))
     );
@@ -207,10 +209,6 @@ export default function AdmitCardManagePage() {
     cardsIssued: admitCards.filter((card) => card.status === "issued").length,
     emailsSent: admitCards.filter((card) => card.emailSent).length,
   };
-
-  // Attendance records
-  const pendingAttendance = admitCards.filter(card => !card.present);
-  const savedAttendance = admitCards.filter(card => card.present);
 
   const handleEditClick = (card) => {
     setSelectedAdmitCard(card);
@@ -246,26 +244,29 @@ export default function AdmitCardManagePage() {
     try {
       const trimmed = scannedText.trim();
       // Only handle URLs that match the expected attendance scan format
-      const expectedBase = "https://rsat.ricr.in/api/admit-cards/scan-attendance/";
+      const expectedBase =
+        "https://rsat.ricr.in/api/admit-cards/scan-attendance/";
       if (trimmed.startsWith(expectedBase)) {
         // Mark attendance using fetch with official scanner header
         fetch(trimmed, {
           method: "GET",
           headers: {
-            "x-official-scanner": "true"
-          }
+            "x-official-scanner": "true",
+          },
         })
           .then(async (res) => {
             const data = await res.json();
             if (res.status === 403) {
-              setScannerError("Attendance can only be marked using the official scanner. Unauthorized scan detected.");
-              alert("Attendance can only be marked using the official scanner. Unauthorized scan detected.");
+              setScannerError(
+                "Attendance can only be marked using the official scanner. Unauthorized scan detected."
+              );
+              alert(
+                "Attendance can only be marked using the official scanner. Unauthorized scan detected."
+              );
             } else if (data.message) {
               alert(data.message);
             } else {
               alert("Attendance marked successfully.");
-              // Refresh admit cards so attendance tab updates
-              await fetchAllAdmitCards();
             }
           })
           .catch((err) => {
@@ -280,7 +281,8 @@ export default function AdmitCardManagePage() {
         setActiveTab("admitCards");
         const matched = admitCards.find(
           (c) =>
-            (c.RSAT && c.RSAT.toString().toLowerCase() === trimmed.toLowerCase()) ||
+            (c.RSAT &&
+              c.RSAT.toString().toLowerCase() === trimmed.toLowerCase()) ||
             (c._id && c._id.toString().toLowerCase() === trimmed.toLowerCase())
         );
         if (matched) {
@@ -300,7 +302,9 @@ export default function AdmitCardManagePage() {
 
   const handleScanError = (err) => {
     console.error("Scanner error:", err);
-    setScannerError("Camera/permission error. Please allow camera access or try another device.");
+    setScannerError(
+      "Camera/permission error. Please allow camera access or try another device."
+    );
   };
 
   return (
@@ -310,8 +314,12 @@ export default function AdmitCardManagePage() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admit Card Management</h1>
-              <p className="text-gray-600 mt-1">Manage student admit cards and examination details</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Admit Card Management
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Manage student admit cards and examination details
+              </p>
             </div>
             <div className="flex items-center gap-3 mt-4 sm:mt-0">
               <button
@@ -352,7 +360,9 @@ export default function AdmitCardManagePage() {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Students</p>
-                <p className="text-xl font-bold text-gray-900">{stats.totalStudents}</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {stats.totalStudents}
+                </p>
               </div>
             </div>
           </div>
@@ -363,8 +373,12 @@ export default function AdmitCardManagePage() {
                 <FiFileText className="w-5 h-5 text-green-600" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Cards Generated</p>
-                <p className="text-xl font-bold text-gray-900">{stats.cardsGenerated}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Cards Generated
+                </p>
+                <p className="text-xl font-bold text-gray-900">
+                  {stats.cardsGenerated}
+                </p>
               </div>
             </div>
           </div>
@@ -375,8 +389,12 @@ export default function AdmitCardManagePage() {
                 <FiCheckCircle className="w-5 h-5 text-purple-600" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Cards Issued</p>
-                <p className="text-xl font-bold text-gray-900">{stats.cardsIssued}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Cards Issued
+                </p>
+                <p className="text-xl font-bold text-gray-900">
+                  {stats.cardsIssued}
+                </p>
               </div>
             </div>
           </div>
@@ -388,7 +406,9 @@ export default function AdmitCardManagePage() {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Emails Sent</p>
-                <p className="text-xl font-bold text-gray-900">{stats.emailsSent}</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {stats.emailsSent}
+                </p>
               </div>
             </div>
           </div>
@@ -429,16 +449,6 @@ export default function AdmitCardManagePage() {
               >
                 Admit Cards ({admitCards.length})
               </button>
-              <button
-                onClick={() => setActiveTab("attendance")}
-                className={`py-3 px-6 text-center border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === "attendance"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Attendance
-              </button>
             </nav>
           </div>
 
@@ -446,10 +456,16 @@ export default function AdmitCardManagePage() {
           <div className="p-6">
             {/* Generate Cards Tab */}
             {activeTab === "generate" && (
-              <div className="space-y-6">{/* ... same as before ... */}
+              <div className="space-y-6">
+                {/* ... same as before ... */}
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Generate Admit Cards</h2>
-                  <p className="text-gray-600 mb-6">Create admit cards for all registered students with exam details.</p>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Generate Admit Cards
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    Create admit cards for all registered students with exam
+                    details.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -510,7 +526,9 @@ export default function AdmitCardManagePage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Initial Status</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Initial Status
+                    </label>
                     <select
                       name="status"
                       value={form.status}
@@ -527,7 +545,10 @@ export default function AdmitCardManagePage() {
                   <div className="flex items-start">
                     <FiAlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 shrink-0" />
                     <div>
-                      <p className="text-sm text-blue-800">This will generate admit cards for all <strong>{students.length}</strong> registered students.</p>
+                      <p className="text-sm text-blue-800">
+                        This will generate admit cards for all{" "}
+                        <strong>{students.length}</strong> registered students.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -549,8 +570,19 @@ export default function AdmitCardManagePage() {
                           fill="none"
                           viewBox="0 0 24 24"
                         >
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Generating...
                       </span>
@@ -561,11 +593,13 @@ export default function AdmitCardManagePage() {
                 </div>
 
                 {message.text && (
-                  <div className={`p-3 rounded-lg border ${
-                    message.type === "success"
-                      ? "bg-green-50 border-green-200 text-green-800"
-                      : "bg-red-50 border-red-200 text-red-800"
-                  }`}>
+                  <div
+                    className={`p-3 rounded-lg border ${
+                      message.type === "success"
+                        ? "bg-green-50 border-green-200 text-green-800"
+                        : "bg-red-50 border-red-200 text-red-800"
+                    }`}
+                  >
                     <div className="flex items-center">
                       {message.type === "success" ? (
                         <FiCheckCircle className="w-4 h-4 mr-2" />
@@ -581,9 +615,12 @@ export default function AdmitCardManagePage() {
 
             {/* Students Tab */}
             {activeTab === "students" && (
-              <div className="space-y-4">{/* ... same as before ... */}
+              <div className="space-y-4">
+                {/* ... same as before ... */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Registered Students</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Registered Students
+                  </h2>
                   <div className="mt-2 sm:mt-0">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -608,28 +645,50 @@ export default function AdmitCardManagePage() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Student ID
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Contact
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              College
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Branch
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Year
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {students.map((student) => (
                             <tr key={student._id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{student.student_ID}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {student.student_ID}
+                              </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                 <div className="flex items-center">
                                   <FiUser className="w-4 h-4 text-gray-400 mr-2" />
                                   {student.fullName}
                                 </div>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.phoneNo}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.college}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.branch}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.year}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {student.phoneNo}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {student.college}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {student.branch}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {student.year}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -639,8 +698,12 @@ export default function AdmitCardManagePage() {
                 ) : (
                   <div className="text-center py-8">
                     <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-4 text-sm font-medium text-gray-900">No students found</h3>
-                    <p className="mt-1 text-sm text-gray-500">No students are currently registered.</p>
+                    <h3 className="mt-4 text-sm font-medium text-gray-900">
+                      No students found
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      No students are currently registered.
+                    </p>
                   </div>
                 )}
               </div>
@@ -648,113 +711,12 @@ export default function AdmitCardManagePage() {
 
             {/* Admit Cards Tab */}
             {activeTab === "admitCards" && (
-              <div className="space-y-4">{/* ... same as before ... */}
-                            {activeTab === "attendance" && (
-                              <div className="space-y-6">
-                                <h2 className="text-lg font-semibold text-gray-900">Attendance Records</h2>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                                  <div className="flex gap-2 items-center">
-                                    <input
-                                      type="text"
-                                      placeholder="Search by name, college, branch..."
-                                      value={attendanceSearch}
-                                      onChange={e => setAttendanceSearch(e.target.value)}
-                                      className="pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-64"
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <h3 className="text-md font-semibold text-gray-800 mb-2">Pending Attendance</h3>
-                                  <div className="border border-gray-200 rounded-lg overflow-x-auto mb-6">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                      <thead className="bg-gray-50">
-                                        <tr>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Date</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="bg-white divide-y divide-gray-200">
-                                        {pendingAttendance
-                                          .filter(card => {
-                                            const searchLower = attendanceSearch.toLowerCase();
-                                            return (
-                                              card.ApplicantName?.toLowerCase().includes(searchLower) ||
-                                              card.college?.toLowerCase().includes(searchLower) ||
-                                              card.branch?.toLowerCase().includes(searchLower) ||
-                                              card.year?.toString().includes(searchLower)
-                                            );
-                                          })
-                                          .map(card => (
-                                            <tr key={card._id} className="hover:bg-gray-50">
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{card.ApplicantName}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.college}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.branch}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.year}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{formatDate(card.examDate)}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-yellow-600">Pending</td>
-                                            </tr>
-                                          ))}
-                                        {pendingAttendance.length === 0 && (
-                                          <tr>
-                                            <td colSpan={6} className="text-center py-4 text-gray-500">No pending attendance records.</td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                                <div>
-                                  <h3 className="text-md font-semibold text-gray-800 mb-2">Saved Attendance</h3>
-                                  <div className="border border-gray-200 rounded-lg overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                      <thead className="bg-gray-50">
-                                        <tr>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Date</th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="bg-white divide-y divide-gray-200">
-                                        {savedAttendance
-                                          .filter(card => {
-                                            const searchLower = attendanceSearch.toLowerCase();
-                                            return (
-                                              card.ApplicantName?.toLowerCase().includes(searchLower) ||
-                                              card.college?.toLowerCase().includes(searchLower) ||
-                                              card.branch?.toLowerCase().includes(searchLower) ||
-                                              card.year?.toString().includes(searchLower)
-                                            );
-                                          })
-                                          .map(card => (
-                                            <tr key={card._id} className="hover:bg-gray-50">
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{card.ApplicantName}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.college}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.branch}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{card.year}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{formatDate(card.examDate)}</td>
-                                              <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600">Saved</td>
-                                            </tr>
-                                          ))}
-                                        {savedAttendance.length === 0 && (
-                                          <tr>
-                                            <td colSpan={6} className="text-center py-4 text-gray-500">No saved attendance records.</td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+              <div className="space-y-4">
+                {/* ... same as before ... */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Admit Cards</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Admit Cards
+                  </h2>
                   <div className="mt-2 sm:mt-0 flex flex-col sm:flex-row gap-2">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -782,12 +744,13 @@ export default function AdmitCardManagePage() {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College & Branch</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Details</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {filteredAdmitCards.map((card) => (
-                            <tr key={card._id} className="hover:bg-gray-50">
+                            <tr className="hover:bg-gray-50" key={card._id}>
                               <td className="px-4 py-3">
                                 <div>
                                   <div className="text-sm font-medium text-gray-900">{card.ApplicantName}</div>
@@ -814,6 +777,19 @@ export default function AdmitCardManagePage() {
                                   <div className="text-xs text-gray-400 mt-1">{card.venue}</div>
                                 </div>
                               </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                {card.present ? (
+                                  <span className="flex items-center text-green-600 gap-1">
+                                    <FiCheckCircle className="w-5 h-5" />
+                                    <span>Present</span>
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center text-red-500 gap-1">
+                                    <FiXCircle className="w-5 h-5" />
+                                    <span>Absent</span>
+                                  </span>
+                                )}
+                              </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-1">
                                   <button
@@ -823,9 +799,6 @@ export default function AdmitCardManagePage() {
                                   >
                                     <FiEye className="w-4 h-4" />
                                   </button>
-
-                    
-
                                   <button
                                     onClick={() => handleEditClick(card)}
                                     className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
@@ -833,7 +806,6 @@ export default function AdmitCardManagePage() {
                                   >
                                     <FiEdit className="w-4 h-4" />
                                   </button>
-
                                   <button
                                     onClick={() => handleDeleteClick(card)}
                                     className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
@@ -852,8 +824,14 @@ export default function AdmitCardManagePage() {
                 ) : (
                   <div className="text-center py-8">
                     <FiFileText className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-4 text-sm font-medium text-gray-900">No admit cards found</h3>
-                    <p className="mt-1 text-sm text-gray-500">{admitCards.length === 0 ? "Generate admit cards using the Generate Cards tab." : "No admit cards match your search criteria."}</p>
+                    <h3 className="mt-4 text-sm font-medium text-gray-900">
+                      No admit cards found
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {admitCards.length === 0
+                        ? "Generate admit cards using the Generate Cards tab."
+                        : "No admit cards match your search criteria."}
+                    </p>
                   </div>
                 )}
               </div>
@@ -889,13 +867,25 @@ export default function AdmitCardManagePage() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Admit Card Details</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Admit Card Details
+                </h3>
                 <button
                   onClick={() => setShowDetailsModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -903,49 +893,104 @@ export default function AdmitCardManagePage() {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Student Information</h4>
+                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
+                    Student Information
+                  </h4>
                   <dl className="space-y-3">
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">Full Name</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.ApplicantName || "N/A"}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        Full Name
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.ApplicantName || "N/A"}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">Contact</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.contact || "N/A"}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        Contact
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.contact || "N/A"}
+                      </dd>
+                        <dd className="text-sm text-gray-900">
+                        {typeof selectedCard.present === 'boolean' ? (
+                          selectedCard.present ? (
+                            <span className="flex items-center text-green-600 gap-1">
+                              <FiCheckCircle className="w-4 h-4" />
+                              <span>Present</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center text-red-500 gap-1">
+                              <FiXCircle className="w-4 h-4" />
+                              <span>Absent</span>
+                            </span>
+                          )
+                        ) : "N/A"}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">College</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.college || "N/A"}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        College
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.college || "N/A"}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">Branch</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.branch || "N/A"}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        Branch
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.branch || "N/A"}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">Year</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.year || "N/A"}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        Year
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.year || "N/A"}
+                      </dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Examination Details</h4>
+                  <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
+                    Examination Details
+                  </h4>
                   <dl className="space-y-3">
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">Venue</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.venue || "N/A"}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        Venue
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.venue || "N/A"}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">Exam Date</dt>
-                      <dd className="text-sm text-gray-900">{formatDate(selectedCard.examDate)}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        Exam Date
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {formatDate(selectedCard.examDate)}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-500 font-medium">Exam Time</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.examTime || "N/A"}</dd>
+                      <dt className="text-xs text-gray-500 font-medium">
+                        Exam Time
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.examTime || "N/A"}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray- gray-500 font-medium">Reporting Time</dt>
-                      <dd className="text-sm text-gray-900">{selectedCard.ReportingTime || "N/A"}</dd>
+                      <dt className="text-xs text-gray- gray-500 font-medium">
+                        Reporting Time
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {selectedCard.ReportingTime || "N/A"}
+                      </dd>
                     </div>
                   </dl>
                 </div>
@@ -960,7 +1005,9 @@ export default function AdmitCardManagePage() {
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 border-b">
-              <h3 className="text-sm font-semibold text-gray-800">Scan QR / Barcode</h3>
+              <h3 className="text-sm font-semibold text-gray-800">
+                Scan QR / Barcode
+              </h3>
               <button
                 onClick={() => {
                   setIsScannerOpen(false);
@@ -981,8 +1028,15 @@ export default function AdmitCardManagePage() {
                   preferredCameraId={null}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-2">Tip: Your browser will ask for camera permission. If it does not, check your browser settings and make sure you are using HTTPS or localhost. If camera doesn't open, try using a secure (https) site or open on mobile.</p>
-              {scannerError && <div className="text-xs text-red-600 mt-2">{scannerError}</div>}
+              <p className="text-xs text-gray-500 mt-2">
+                Tip: Your browser will ask for camera permission. If it does
+                not, check your browser settings and make sure you are using
+                HTTPS or localhost. If camera doesn't open, try using a secure
+                (https) site or open on mobile.
+              </p>
+              {scannerError && (
+                <div className="text-xs text-red-600 mt-2">{scannerError}</div>
+              )}
             </div>
           </div>
         </div>
