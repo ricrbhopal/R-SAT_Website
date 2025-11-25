@@ -13,6 +13,7 @@ import Support from "../candidateDashboard/QueriesPage.jsx";
 import Reffered from "./RefferedPage.jsx";
 import AdmitCard from "./AdmitCardPage.jsx";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 export default function CandidateDashboard() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function CandidateDashboard() {
   useEffect(() => {
     const token = sessionStorage.getItem("token");
     if (!token) {
-      alert("Please login first to access the dashboard.");
+      toast.error("Please login first to access the dashboard.");
       navigate("/RegistrationForm");
     }
   }, [navigate]);
@@ -112,8 +113,12 @@ export default function CandidateDashboard() {
       <div className="max-w-7xl mx-auto mt-6">
         {/* Header */}
         <div className="mb-6 px-4 sm:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Candidate Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome back! Here's your exam preparation overview</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Candidate Dashboard
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Welcome back! Here's your exam preparation overview
+          </p>
         </div>
 
         {/* IMPORTANT CHANGE: Quick action cards shown horizontally at the TOP on desktop and remain horizontally scrollable on small screens. */}
@@ -131,8 +136,12 @@ export default function CandidateDashboard() {
                         : "bg-white border-gray-200 hover:shadow-md"
                     }`}
               >
-                <div className={`p-2 rounded-lg ${action.accent}`}>{action.icon}</div>
-                <div className="text-sm font-medium text-gray-900">{action.title}</div>
+                <div className={`p-2 rounded-lg ${action.accent}`}>
+                  {action.icon}
+                </div>
+                <div className="text-sm font-medium text-gray-900">
+                  {action.title}
+                </div>
               </button>
             ))}
           </div>
@@ -143,7 +152,9 @@ export default function CandidateDashboard() {
           <main className="flex-1">
             <div className="bg-white rounded-2xl ">
               <div className="flex   mb-4">
-                <div className="text-sm text-gray-500">{selectedAction?.desc}</div>
+                <div className="text-sm text-gray-500">
+                  {selectedAction?.desc}
+                </div>
               </div>
 
               <div className="mt-4">{selectedAction?.content}</div>
