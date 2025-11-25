@@ -417,9 +417,7 @@ export const DeleteSupportQuery = async (req, res, next) => {
 /** helper: generate short unique RSAT */
 const genRSAT = () => "RSAT-" + crypto.randomBytes(4).toString("hex").toUpperCase();
 
-/**
- * Bulk create admit cards and send emails (uses sendAdmitCardEmail)
- */
+
 export const bulkCreateAdmitCards = async (req, res) => {
   try {
     const { venue, examDate, examTime, ReportingTime } = req.body;

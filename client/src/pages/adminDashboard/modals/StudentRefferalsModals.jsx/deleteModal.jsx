@@ -73,27 +73,19 @@ export default function DeleteModalPage({ studentId, initialData = null, onClose
 
   const handleDelete = async () => {
     if (!studentId && !student?._id) {
-      setError("No student specified for deletion.");
+      setError("No referral specified for deletion.");
       return;
     }
     setLoading(true);
     setError("");
     try {
       const idToDelete = studentId ?? student._id;
-      // prefer AdminAPI.deleteStudent or AdminAPI.deleteRefferedUser depending on your API naming
-      if (typeof AdminAPI.deleteStudent === "function") {
-        await AdminAPI.deleteStudent(idToDelete);
-      } else if (typeof AdminAPI.deleteRefferedUser === "function") {
-        await AdminAPI.deleteRefferedUser(idToDelete);
-      } else {
-        // fallback: raw DELETE
-        await AdminAPI.delete?.(`/admin/reffered-users/${idToDelete}`);
-      }
-      // optionally you might want to show toast here
+      // Always use AdminAPI.deleteRefferedUser for referrals
+      await AdminAPI.deleteRefferedUser(idToDelete);
       onClose?.();
     } catch (err) {
-      console.error("[DeleteModal] Error deleting student:", err);
-      setError("Failed to delete student. Please try again.");
+      console.error("[DeleteModal] Error deleting referral:", err);
+      setError("Failed to delete referral. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +106,7 @@ export default function DeleteModalPage({ studentId, initialData = null, onClose
           </svg>
         </button>
 
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Delete Student</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Delete Referral</h2>
 
         {loading ? (
           <p className="text-gray-600">Loading...</p>
@@ -123,8 +115,12 @@ export default function DeleteModalPage({ studentId, initialData = null, onClose
         ) : (
           <>
             <p className="text-gray-700 mb-6">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold">{student?.fullName || student?.referredName || "this record"}</span>?
+              Are you sure you want to delete this referral record?
+              <br />
+              <span className="font-semibold">{student?.fullName || student?.referredName || student?.refCode || "(no name)"}</span>
+              <br />
+              <span className="text-xs text-gray-500">You can delete any referral, even if the referred user has not filled the form.</span>
+              <br />
               This action cannot be undone.
             </p>
 
