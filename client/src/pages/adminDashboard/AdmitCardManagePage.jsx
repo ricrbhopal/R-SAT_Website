@@ -23,6 +23,8 @@ import {
   FiXCircle,
   FiMenu,
   FiX,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
 import EditModal from "./modals/AdmitCard/EditModal.jsx";
 import DeleteModal from "./modals/AdmitCard/DeleteModels.jsx";
@@ -55,6 +57,8 @@ export default function AdmitCardManagePage() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannerError, setScannerError] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedStudent, setExpandedStudent] = useState(null);
+  const [expandedAdmitCard, setExpandedAdmitCard] = useState(null);
 
   useEffect(() => {
     fetchAllStudents();
@@ -301,13 +305,21 @@ export default function AdmitCardManagePage() {
     );
   };
 
+  const toggleStudentExpand = (studentId) => {
+    setExpandedStudent(expandedStudent === studentId ? null : studentId);
+  };
+
+  const toggleAdmitCardExpand = (cardId) => {
+    setExpandedAdmitCard(expandedAdmitCard === cardId ? null : cardId);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center justify-between sm:block">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center justify-between w-full sm:w-auto">
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   Admit Card Management
@@ -319,17 +331,17 @@ export default function AdmitCardManagePage() {
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="sm:hidden p-2 rounded-lg border border-gray-300 bg-white"
+                className="sm:hidden p-2 rounded-lg border border-gray-300 bg-white shadow-sm"
               >
                 {mobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
               </button>
             </div>
             
             {/* Action Buttons - Desktop */}
-            <div className="hidden sm:flex items-center gap-3 mt-4 sm:mt-0">
+            <div className="hidden sm:flex items-center gap-3">
               <button
                 onClick={handleBulkEditClick}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm shadow-sm"
               >
                 <FiSettings className="w-4 h-4" />
                 Bulk Edit
@@ -339,14 +351,14 @@ export default function AdmitCardManagePage() {
                   fetchAllStudents();
                   fetchAllAdmitCards();
                 }}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm shadow-sm"
               >
                 <FiRefreshCw className="w-4 h-4" />
                 Refresh
               </button>
               <button
                 onClick={() => setIsScannerOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                className="flex items-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-sm shadow-sm"
               >
                 <FiCamera className="w-4 h-4" />
                 Scan
@@ -355,10 +367,10 @@ export default function AdmitCardManagePage() {
 
             {/* Action Buttons - Mobile */}
             {mobileMenuOpen && (
-              <div className="sm:hidden flex flex-col gap-2 mt-4 p-4 bg-white border border-gray-200 rounded-lg">
+              <div className="sm:hidden flex flex-col gap-2 w-full bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
                 <button
                   onClick={handleBulkEditClick}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  className="flex items-center justify-center gap-2 px-4 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
                   <FiSettings className="w-4 h-4" />
                   Bulk Edit
@@ -369,35 +381,35 @@ export default function AdmitCardManagePage() {
                     fetchAllAdmitCards();
                     setMobileMenuOpen(false);
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  className="flex items-center justify-center gap-2 px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                 >
                   <FiRefreshCw className="w-4 h-4" />
-                  Refresh
+                  Refresh Data
                 </button>
                 <button
                   onClick={() => setIsScannerOpen(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  className="flex items-center justify-center gap-2 px-4 py-3 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-sm"
                 >
                   <FiCamera className="w-4 h-4" />
-                  Scan Admit Card
+                  Scan QR Code
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards - Mobile Optimized */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {[
-            { label: "Students", value: stats.totalStudents, icon: FiUsers, color: "blue" },
-            { label: "Cards Generated", value: stats.cardsGenerated, icon: FiFileText, color: "green" },
-            { label: "Cards Issued", value: stats.cardsIssued, icon: FiCheckCircle, color: "purple" },
-            { label: "Emails Sent", value: stats.emailsSent, icon: FiSend, color: "orange" },
+            { label: "Students", value: stats.totalStudents, icon: FiUsers, color: "blue", bgColor: "bg-blue-50", textColor: "text-blue-600" },
+            { label: "Cards Generated", value: stats.cardsGenerated, icon: FiFileText, color: "green", bgColor: "bg-green-50", textColor: "text-green-600" },
+            { label: "Cards Issued", value: stats.cardsIssued, icon: FiCheckCircle, color: "purple", bgColor: "bg-purple-50", textColor: "text-purple-600" },
+            { label: "Emails Sent", value: stats.emailsSent, icon: FiSend, color: "orange", bgColor: "bg-orange-50", textColor: "text-orange-600" },
           ].map((stat, index) => (
-            <div key={index} className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+            <div key={index} className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 shadow-sm">
               <div className="flex items-center">
-                <div className={`p-2 bg-${stat.color}-100 rounded-lg`}>
-                  <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${stat.color}-600`} />
+                <div className={`p-2 ${stat.bgColor} rounded-lg`}>
+                  <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.textColor}`} />
                 </div>
                 <div className="ml-3">
                   <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.label}</p>
@@ -409,25 +421,34 @@ export default function AdmitCardManagePage() {
         </div>
 
         {/* Main Content Area */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          {/* Tab Navigation */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          {/* Tab Navigation - Mobile Optimized */}
           <div className="border-b border-gray-200 overflow-x-auto">
             <nav className="flex min-w-max sm:min-w-0">
               {[
-                { id: "generate", label: "Generate Cards" },
-                { id: "students", label: `Students (${students.length})` },
-                { id: "admitCards", label: `Admit Cards (${admitCards.length})` },
+                { id: "generate", label: "Generate Cards", icon: FiFileText },
+                { id: "students", label: `Students`, count: students.length, icon: FiUsers },
+                { id: "admitCards", label: `Admit Cards`, count: admitCards.length, icon: FiCheckCircle },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 sm:flex-none py-3 px-4 sm:px-6 text-center border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-2 py-3 px-4 sm:px-6 text-center border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex-1 sm:flex-none ${
                     activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
+                      ? "border-blue-500 text-blue-600 bg-blue-50"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }`}
                 >
-                  {tab.label}
+                  <tab.icon className="w-4 h-4 sm:hidden" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  {tab.count !== undefined && (
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>
@@ -536,7 +557,7 @@ export default function AdmitCardManagePage() {
                   <button
                     onClick={handleBulkCreate}
                     disabled={saving}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium text-white transition-colors text-sm sm:text-base ${
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium text-white transition-colors text-sm sm:text-base shadow-sm ${
                       saving
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700"
@@ -597,9 +618,9 @@ export default function AdmitCardManagePage() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Registered Students
+                    Registered Students ({students.length})
                   </h2>
-                  <div className="w-full sm:w-auto">
+                  <div className="w-full sm:w-64">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                       <input
@@ -618,9 +639,59 @@ export default function AdmitCardManagePage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
                 ) : students.length > 0 ? (
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="space-y-3">
+                    {/* Mobile Cards */}
+                    <div className="lg:hidden space-y-3">
+                      {students.map((student) => (
+                        <div key={student._id} className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                          <div 
+                            className="p-4 flex justify-between items-center cursor-pointer"
+                            onClick={() => toggleStudentExpand(student._id)}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-blue-100 p-2 rounded-lg">
+                                <FiUser className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <h3 className="font-medium text-gray-900 text-sm">{student.fullName}</h3>
+                                <p className="text-xs text-gray-500">{student.student_ID}</p>
+                              </div>
+                            </div>
+                            {expandedStudent === student._id ? (
+                              <FiChevronUp className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <FiChevronDown className="w-4 h-4 text-gray-400" />
+                            )}
+                          </div>
+                          
+                          {expandedStudent === student._id && (
+                            <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <span className="text-gray-500 text-xs">Contact:</span>
+                                  <div className="font-medium text-gray-900">{student.phoneNo}</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 text-xs">College:</span>
+                                  <div className="font-medium text-gray-900 truncate">{student.college}</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 text-xs">Branch:</span>
+                                  <div className="font-medium text-gray-900">{student.branch}</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 text-xs">Year:</span>
+                                  <div className="font-medium text-gray-900">{student.year}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
                     {/* Desktop Table */}
-                    <div className="hidden lg:block overflow-x-auto">
+                    <div className="hidden lg:block border border-gray-200 rounded-lg overflow-hidden">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
@@ -673,41 +744,6 @@ export default function AdmitCardManagePage() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Mobile Cards */}
-                    <div className="lg:hidden divide-y divide-gray-200">
-                      {students.map((student) => (
-                        <div key={student._id} className="p-4 hover:bg-gray-50">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center">
-                              <FiUser className="w-4 h-4 text-gray-400 mr-2" />
-                              <span className="font-medium text-gray-900">{student.fullName}</span>
-                            </div>
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              {student.student_ID}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                            <div>
-                              <span className="text-gray-500">Contact:</span>
-                              <div>{student.phoneNo}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">College:</span>
-                              <div className="truncate">{student.college}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Branch:</span>
-                              <div>{student.branch}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Year:</span>
-                              <div>{student.year}</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -728,9 +764,9 @@ export default function AdmitCardManagePage() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Admit Cards
+                    Admit Cards ({admitCards.length})
                   </h2>
-                  <div className="w-full sm:w-auto">
+                  <div className="w-full sm:w-64">
                     <div className="relative">
                       <FiSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                       <input
@@ -749,9 +785,95 @@ export default function AdmitCardManagePage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
                 ) : filteredAdmitCards.length > 0 ? (
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="space-y-3">
+                    {/* Mobile Cards */}
+                    <div className="lg:hidden space-y-3">
+                      {filteredAdmitCards.map((card) => (
+                        <div key={card._id} className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                          <div 
+                            className="p-4 flex justify-between items-center cursor-pointer"
+                            onClick={() => toggleAdmitCardExpand(card._id)}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className={`p-2 rounded-lg ${
+                                card.present ? 'bg-green-100' : 'bg-red-100'
+                              }`}>
+                                {card.present ? (
+                                  <FiCheckCircle className="w-4 h-4 text-green-600" />
+                                ) : (
+                                  <FiXCircle className="w-4 h-4 text-red-600" />
+                                )}
+                              </div>
+                              <div>
+                                <h3 className="font-medium text-gray-900 text-sm">{card.ApplicantName}</h3>
+                                <p className="text-xs text-gray-500">{card.college}</p>
+                              </div>
+                            </div>
+                            {expandedAdmitCard === card._id ? (
+                              <FiChevronUp className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <FiChevronDown className="w-4 h-4 text-gray-400" />
+                            )}
+                          </div>
+                          
+                          {expandedAdmitCard === card._id && (
+                            <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <span className="text-gray-500 text-xs">Contact:</span>
+                                    <div className="font-medium text-gray-900">{card.contact}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500 text-xs">Branch:</span>
+                                    <div className="font-medium text-gray-900">{card.branch}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500 text-xs">Year:</span>
+                                    <div className="font-medium text-gray-900">{card.year}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500 text-xs">Date:</span>
+                                    <div className="font-medium text-gray-900">{formatDate(card.examDate)}</div>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <span className="text-gray-500 text-xs">Venue:</span>
+                                    <div className="font-medium text-gray-900 text-xs">{card.venue}</div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex gap-2 pt-3 border-t border-gray-100">
+                                  <button
+                                    onClick={() => handleViewDetails(card)}
+                                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded text-sm border border-blue-200"
+                                  >
+                                    <FiEye className="w-3 h-3" />
+                                    View
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditClick(card)}
+                                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded text-sm border border-green-200"
+                                  >
+                                    <FiEdit className="w-3 h-3" />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteClick(card)}
+                                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded text-sm border border-red-200"
+                                  >
+                                    <FiTrash2 className="w-3 h-3" />
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
                     {/* Desktop Table */}
-                    <div className="hidden lg:block overflow-x-auto">
+                    <div className="hidden lg:block border border-gray-200 rounded-lg overflow-hidden">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
@@ -834,81 +956,6 @@ export default function AdmitCardManagePage() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Mobile Cards */}
-                    <div className="lg:hidden divide-y divide-gray-200">
-                      {filteredAdmitCards.map((card) => (
-                        <div key={card._id} className="p-4 hover:bg-gray-50">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h3 className="font-medium text-gray-900">{card.ApplicantName}</h3>
-                              <p className="text-sm text-gray-500">{card.contact}</p>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-gray-500">Year {card.year}</div>
-                              {card.present ? (
-                                <span className="inline-flex items-center text-green-600 text-xs">
-                                  <FiCheckCircle className="w-3 h-3 mr-1" />
-                                  Present
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center text-red-500 text-xs">
-                                  <FiXCircle className="w-3 h-3 mr-1" />
-                                  Absent
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                            <div>
-                              <span className="text-gray-500">College:</span>
-                              <div className="font-medium">{card.college}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Branch:</span>
-                              <div className="font-medium">{card.branch}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Date:</span>
-                              <div className="font-medium">{formatDate(card.examDate)}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Time:</span>
-                              <div className="font-medium">{card.examTime}</div>
-                            </div>
-                            <div className="col-span-2">
-                              <span className="text-gray-500">Venue:</span>
-                              <div className="font-medium text-xs">{card.venue}</div>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 pt-3 border-t border-gray-100">
-                            <button
-                              onClick={() => handleViewDetails(card)}
-                              className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded text-sm"
-                            >
-                              <FiEye className="w-3 h-3" />
-                              View
-                            </button>
-                            <button
-                              onClick={() => handleEditClick(card)}
-                              className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded text-sm"
-                            >
-                              <FiEdit className="w-3 h-3" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClick(card)}
-                              className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded text-sm"
-                            >
-                              <FiTrash2 className="w-3 h-3" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -954,18 +1001,16 @@ export default function AdmitCardManagePage() {
       {showDetailsModal && selectedCard && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Admit Card Details
-                </h3>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                >
-                  <FiX className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-              </div>
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Admit Card Details
+              </h3>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+              >
+                <FiX className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
             </div>
             <div className="p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -1071,11 +1116,11 @@ export default function AdmitCardManagePage() {
                   preferredCameraId={null}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500 mt-2 text-center">
                 Tip: Your browser will ask for camera permission. If it does not work, check browser settings and ensure you're using HTTPS or localhost.
               </p>
               {scannerError && (
-                <div className="text-xs text-red-600 mt-2">{scannerError}</div>
+                <div className="text-xs text-red-600 mt-2 text-center">{scannerError}</div>
               )}
             </div>
           </div>
