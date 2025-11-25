@@ -12,8 +12,19 @@ import Demo from "../candidateDashboard/BookDemoPage.jsx";
 import Support from "../candidateDashboard/QueriesPage.jsx";
 import Reffered from "./RefferedPage.jsx";
 import AdmitCard from "./AdmitCardPage.jsx";
+import { useNavigate } from "react-router-dom";
 
 export default function CandidateDashboard() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      alert("Please login first to access the dashboard.");
+      navigate("/RegistrationForm");
+    }
+  }, [navigate]);
+
   // quickActions declared inside component so we can reference it when initializing selection
   const quickActions = [
     {

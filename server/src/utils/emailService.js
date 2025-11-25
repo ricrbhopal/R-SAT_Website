@@ -874,7 +874,7 @@ export const sendAdmitCardEmail = async (student, admits, opts = {}) => {
   }
 
   const attachFiles = Array.isArray(opts.attachFiles) ? opts.attachFiles : [];
-  const dashboardPath = opts.dashboardPath || "/student/dashboard";
+  const dashboardPath ="/candidate/dashboard";
   const sendIndividually = opts.sendIndividually === true;
   const subject = "Your R-SAT Admit Card is Now Available";
   const sentTo = [];
@@ -885,7 +885,7 @@ export const sendAdmitCardEmail = async (student, admits, opts = {}) => {
     const venue = admit.venue || "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)";
     const examTime = admit.examTime || "10:00 AM";
     const reportingTime = admit.ReportingTime || "9:30 AM";
-    const dashboardUrl = `${process.env.APP_BASE_URL || "https://ricr.in"}${dashboardPath}`;
+  const dashboardUrl = `${process.env.FRONTEND_BASE_URL || "https://rsat.ricr.in/candidate/dashboard"}`;
     return `
       <!DOCTYPE html>
       <html lang="en">
