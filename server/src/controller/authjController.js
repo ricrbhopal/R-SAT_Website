@@ -145,21 +145,21 @@ export const Register = async (req, res, next) => {
       return next(error);
     }
 
-    // Auto-generate student_ID like RICR-RS-0001, ensure uniqueness
+    // Auto-generate student_ID with globally unique sequence number
     let nextNumber = 1;
     let student_ID = "";
-    let exists = true;
-    const lastStudent = await Student.findOne({}).sort({ createdAt: -1 }).lean();
-    if (lastStudent && lastStudent.student_ID) {
-      const match = lastStudent.student_ID.match(/RICR-RS-(\d+)/);
-      if (match) nextNumber = parseInt(match[1], 10) + 1;
+    // Find all student_IDs and extract their sequence numbers
+    const allStudents = await Student.find({}, { student_ID: 1 }).lean();
+    const usedNumbers = new Set();
+    allStudents.forEach(s => {
+      const match = s.student_ID && s.student_ID.match(/(\d{4})$/);
+      if (match) usedNumbers.add(parseInt(match[1], 10));
+    });
+    // Find the lowest unused sequence number
+    while (usedNumbers.has(nextNumber)) {
+      nextNumber++;
     }
-    // Loop to ensure unique student_ID
-    do {
-      student_ID = `RICR-RS-${nextNumber.toString().padStart(4, "0")}`;
-      exists = await Student.exists({ student_ID });
-      if (exists) nextNumber++;
-    } while (exists);
+    student_ID = `RICR-RS-${nextNumber.toString().padStart(4, "0")}`;
 
     // Create student document
     const newStudent = await Student.create({

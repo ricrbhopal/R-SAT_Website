@@ -148,12 +148,22 @@ export const registerWithReferral = async (req, res, next) => {
     const existEmail = await Student.findOne({ mail_ID });
     if (existEmail) return res.status(400).json({ message: "Email already registered" });
 
-    const lastStudent = await Student.findOne().sort({ createdAt: -1 }).select("student_ID");
-    const lastSegment = lastStudent?.student_ID?.split("-").pop() ?? "0000";
-    const lastNumber = parseInt(lastSegment, 10);
-    const nextNumber = Number.isFinite(lastNumber) ? lastNumber + 1 : 1;
-    const newIdNumber = nextNumber.toString().padStart(4, "0");
-    const student_ID = `RCR-RSR-${newIdNumber}`;
+    // Auto-generate student_ID with globally unique sequence number
+    let nextNumber = 1;
+    let student_ID = "";
+    let exists = true;
+    // Find all student_IDs and extract their sequence numbers
+    const allStudents = await Student.find({}, { student_ID: 1 }).lean();
+    const usedNumbers = new Set();
+    allStudents.forEach(s => {
+      const match = s.student_ID && s.student_ID.match(/(\d{4})$/);
+      if (match) usedNumbers.add(parseInt(match[1], 10));
+    });
+    // Find the lowest unused sequence number
+    while (usedNumbers.has(nextNumber)) {
+      nextNumber++;
+    }
+    student_ID = `RCR-RSR-${nextNumber.toString().padStart(4, "0")}`;
 
     const newStudent = await Student.create({
       student_ID,
