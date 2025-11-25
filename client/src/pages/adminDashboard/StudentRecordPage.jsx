@@ -56,20 +56,18 @@ export default function StudentRecordPage() {
     const dataToExport = filteredStudents.map((student, index) => ({
       "S.No": index + 1,
       "Student Name": student.name || student.fullName || "Unknown",
-      "R-SAT ID": student.email || student.student_ID || "-",
-      "Password": student.phone || (student.dob ? student.dob.split("T")[0] : "-"),
-      "Student Year": student.className || student.year || student.grade || "-",
-      "Phone": student.phoneNo || student.mobile || "-",
+      "R-SAT ID": student.student_ID || student.email || "-",
+      "Email": student.mail_ID || student.email || "-",
+      "Phone": student.phoneNo || student.phone || student.mobile || "-",
+      "Date of Birth": student.dob ? (typeof student.dob === "string" ? student.dob.split("T")[0] : student.dob) : "-",
+      "College": student.college || "-",
+      "Branch": student.branch || "-",
+      "Year": student.year || student.className || student.grade || "-",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Students Data");
-    
-    // Auto-size columns
-    const maxWidth = dataToExport.reduce((w, r) => Math.max(w, r['Student Name'].length), 10);
-    worksheet['!cols'] = [{ wch: maxWidth }];
-    
     XLSX.writeFile(workbook, `students-data-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
