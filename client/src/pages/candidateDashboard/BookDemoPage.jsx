@@ -1,105 +1,132 @@
 // src/components/DemoSlotBooking.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { AuthAPI } from "../../config/api.js";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { DemoAPI } from "../..//config/api.js"; // updated import
+import { DemoAPI } from "../../config/api.js";
 
 export default function DemoSlotBooking() {
-  const [step, setStep] = useState(1); // 1=contact,2=verify,3=done
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasExistingBooking, setHasExistingBooking] = useState(false);
+
   const [form, setForm] = useState({
     studentName: "",
     email: "",
     phone: "",
     collegeName: "",
     year: "",
-    demoSlot: "", // NOTE: demoSlot (consistent)
-    emailOTP: "",
-    phoneOTP: "",
+    demoSlot: "",
     type: "",
   });
 
-  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await AuthAPI.getStudentProfile();
+        const profile = response?.data?.student || response?.data || {};
+        setForm((prev) => ({
+          ...prev,
+          studentName: profile.fullName || "",
+          collegeName: profile.college || "",
+          phone: profile.phoneNo || "",
+          email: profile.mail_ID || "",
+          year: profile.year || "",
+        }));
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const update = (key, value) => setForm((s) => ({ ...s, [key]: value }));
 
-  const sendOTPs = async () => {
-    if (!form.studentName || !form.email || !form.phone) {
-      toast.error("Please fill name, email, and phone before requesting OTP.");
-      return;
+  const validateForm = () => {
+    if (!form.demoSlot || form.demoSlot.trim() === "") {
+      toast.error("❌ Please select Preferred Demo Slot.");
+      return false;
     }
-    try {
-      setLoading(true);
-      const payload = {
-        studentName: form.studentName,
-        email: form.email,
-        phone: form.phone,
-      };
-      const res = await DemoAPI.sendDemoOTP(payload);
-      toast.success(res?.data?.message || "OTPs sent to Email and Phone");
-      setStep(2);
-    } catch (err) {
-      console.error("sendOTPs error:", err);
-      toast.error(err?.response?.data?.message || "Failed to send OTPs. Check console.");
-    } finally {
-      setLoading(false);
+    if (!form.type || form.type.trim() === "") {
+      toast.error("❌ Please select Demo Type.");
+      return false;
     }
+    
+    // Check other required fields
+    const required = ["studentName", "email", "phone", "collegeName", "year"];
+    for (const f of required) {
+      if (!form[f] || (typeof form[f] === "string" && form[f].trim() === "")) {
+        toast.error(`❌ Please fill all required fields.`);
+        return false;
+      }
+    }
+    return true;
   };
 
   const bookSlot = async () => {
-    // basic validation
-    const required = [
-      "studentName",
-      "email",
-      "phone",
-      "collegeName",
-      "year",
-      "demoSlot",
-      "type",
-    ];
-    for (const f of required) {
-      if (!form[f]) {
-        toast.error("Please fill all required fields before booking.");
-        return;
-      }
+    if (!validateForm()) {
+      return;
     }
 
     try {
       setLoading(true);
       const res = await DemoAPI.bookDemoSlot(form);
-      toast.success(res?.data?.message || "Demo slot booked successfully!");
-      setStep(3);
+
+      // If backend returns alreadyBooked
+      if (res?.data?.alreadyBooked) {
+        setHasExistingBooking(true);
+        toast.info("ℹ️ You have already booked a demo slot.");
+        setStep(2);
+        return;
+      }
+
+      setHasExistingBooking(false);
+      toast.success("✅ Demo slot booked successfully!");
+      setStep(2);
     } catch (err) {
       console.error("bookSlot error:", err);
-      toast.error(err?.response?.data?.message || "Booking failed. Check console.");
+
+      const serverData = err?.response?.data;
+      
+      // Handle duplicate booking
+      if (err?.response?.status === 409 && serverData?.alreadyBooked) {
+        setHasExistingBooking(true);
+        toast.info("ℹ️ You have already booked a demo slot.");
+        setStep(2);
+        return;
+      }
+
+      // Mongo duplicate key
+      if (serverData?.code === 11000 || err?.code === 11000) {
+        setHasExistingBooking(true);
+        toast.info("ℹ️ You have already booked a demo slot. Please contact admin if you want to change.");
+        setStep(2);
+        return;
+      }
+
+      toast.error("❌ Booking failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const resendOTP = async () => {
-    await sendOTPs();
-  };
-
   const resetForm = () => {
-    setForm({
-      studentName: "",
-      email: "",
-      phone: "",
-      collegeName: "",
-      year: "",
+    setForm(prev => ({
+      ...prev,
       demoSlot: "",
       type: "",
-    });
+    }));
     setStep(1);
+    setHasExistingBooking(false);
   };
 
   return (
-    <div className="bg-linear-to-br py-6 px-4 sm:px-6 lg:px-8">
+    <div className="bg-white py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="rounded-2xl mt-12 overflow-hidden">
-          <div className="text-center p-6 sm:p-8 rounded-2xl">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-[#125785]">
+        <div className="rounded-2xl mt-8 overflow-hidden shadow-sm border">
+          <div className="text-center p-6 sm:p-8 bg-gradient-to-r from-white to-gray-50">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-[#125785]">
               Book Your Demo Session
             </h1>
             <p className="text-sm sm:text-base text-gray-600">
@@ -107,101 +134,82 @@ export default function DemoSlotBooking() {
             </p>
           </div>
 
-          {/* PROGRESS UI (same as you had) */}
-          <div className="px-4 sm:px-8 py-4">
-            <div className="hidden sm:flex items-center justify-between max-w-md mx-auto">
-              {[1, 2, 3].map((stepNumber) => (
-                <div key={stepNumber} className="flex items-center">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-semibold transition-all duration-300 ${
-                      step >= stepNumber
-                        ? "bg-[#125785] border-[#125785] text-white shadow-lg scale-110"
-                        : "bg-white border-gray-300 text-gray-400"
-                    }`}
-                  >
-                    {stepNumber}
-                  </div>
-                  {stepNumber < 3 && (
-                    <div
-                      className={`w-36 h-1 mx-2 transition-all duration-500 ${
-                        step > stepNumber ? "bg-[#125785]" : "bg-gray-200"
-                      }`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="sm:hidden flex items-center justify-between px-4">
-              {[1, 2, 3].map((s) => (
-                <div key={s} className="flex-1 text-center">
-                  <div
-                    className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
-                      step >= s
-                        ? "bg-[#125785] text-white"
-                        : "bg-white text-gray-400 border border-gray-200"
-                    }`}
-                  >
-                    {s}
-                  </div>
-                  <div
-                    className={`text-xs mt-1 ${
-                      step >= s ? "text-[#125785]" : "text-gray-400"
-                    }`}
-                  >
-                    {s === 1 ? "Contact" : s === 2 ? "Verify" : "Done"}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="justify-between max-w-md mx-auto mt-3 text-sm hidden sm:flex">
-              <span className={`font-medium ${step >= 1 ? "text-[#125785]" : "text-gray-400"}`}>Contact Info</span>
-              <span className={`font-medium ${step >= 2 ? "text-[#125785]" : "text-gray-400"}`}>Verify & Details</span>
-              <span className={`font-medium ${step >= 3 ? "text-[#125785]" : "text-gray-400"}`}>Confirmed</span>
-            </div>
-          </div>
-
           <div className="p-6 sm:p-8">
-            {/* STEP 1 */}
+            {/* STEP 1 - Form */}
             {step === 1 && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700">Student Name <span className="text-red-500">*</span></label>
-                    <input value={form.studentName} onChange={(e)=>update("studentName", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Enter your full name" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Student Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={form.studentName}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter your full name"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></label>
-                    <input value={form.email} onChange={(e)=>update("email", e.target.value)} type="email" className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="your.email@example.com" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={form.email}
+                      readOnly
+                      type="email"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-blue-500"
+                      placeholder="your.email@example.com"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700">Phone Number <span className="text-red-500">*</span></label>
-                    <input value={form.phone} onChange={(e)=>update("phone", e.target.value)} type="tel" className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="10 digit mobile number" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={form.phone}
+                      readOnly
+                      type="tel"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-blue-500"
+                      placeholder="10 digit mobile number"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">College/University <span className="text-red-500">*</span></label>
-                    <input value={form.collegeName} onChange={(e)=>update("collegeName", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Your institution name" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      College/University <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={form.collegeName}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-blue-500"
+                      placeholder="Your institution name"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Academic Year <span className="text-red-500">*</span></label>
-                    <select value={form.year} onChange={(e)=>update("year", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
-                      <option value="">Select your year</option>
-                      <option>1st Year</option>
-                      <option>2nd Year</option>
-                      <option>3rd Year</option>
-                      <option>4th Year</option>
-                      <option>Passed Out</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Academic Year <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={form.year}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-blue-500"
+                      placeholder="Academic Year"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Preferred Demo Slot <span className="text-red-500">*</span></label>
-                    <select value={form.demoSlot} onChange={(e)=>update("demoSlot", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Demo Slot <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.demoSlot}
+                      onChange={(e) => update("demoSlot", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
                       <option value="">Select a preferred slot</option>
                       <option value="2025-11-17 11:00 AM">17-11-2025 11:00 AM</option>
                       <option value="2025-11-18 02:00 PM">18-11-2025 02:00 PM</option>
@@ -212,8 +220,14 @@ export default function DemoSlotBooking() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Demo Type <span className="text-red-500">*</span></label>
-                    <select value={form.type} onChange={(e)=>update("type", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Demo Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.type}
+                      onChange={(e) => update("type", e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
                       <option value="">Select Demo Type</option>
                       <option value="online">Online</option>
                       <option value="offline">Offline</option>
@@ -221,135 +235,102 @@ export default function DemoSlotBooking() {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                  <button onClick={bookSlot} disabled={loading} className="flex-1 bg-linear-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:opacity-95 transition">
-                    {loading ? "Processing..." : "Submit"}
+                <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                  <button
+                    onClick={bookSlot}
+                    disabled={loading}
+                    className="flex-1  bg-blue-200  text-blue-600 cursor-pointer py-3 px-4 rounded-xl font-semibold hover:opacity-95 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      "Book Demo Session"
+                    )}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* STEP 2 */}
+            {/* STEP 2 - Confirmation */}
             {step === 2 && (
-              <div className="space-y-6">
-                <div className="text-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">Almost There!</h2>
-                  <p className="text-sm text-gray-500">Verify your identity and complete your booking</p>
+              <div className="text-center py-6 sm:py-8">
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  hasExistingBooking ? "bg-blue-100" : "bg-green-100"
+                }`}>
+                  {hasExistingBooking ? (
+                    <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Student Name</label>
-                    <input value={form.studentName} readOnly className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50" />
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-3">
+                  {hasExistingBooking ? "Already Booked! ℹ️" : "Booking Confirmed! 🎉"}
+                </h2>
+                
+                <p className="text-gray-600 text-sm sm:text-base mb-6 max-w-2xl mx-auto">
+                  {hasExistingBooking 
+                    ? "You have already booked a demo slot. Contact admin if you need to make changes."
+                    : "Your demo session has been scheduled. Confirmation details have been sent to your email and phone."
+                  }
+                </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 sm:p-6 max-w-md mx-auto mb-6 text-left">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-gray-600">Name:</span></div>
+                    <div><span className="font-medium">{form.studentName}</span></div>
+                    
+                    <div><span className="text-gray-600">Demo Slot:</span></div>
+                    <div><span className="font-medium">{form.demoSlot}</span></div>
+                    
+                    <div><span className="text-gray-600">Institution:</span></div>
+                    <div><span className="font-medium">{form.collegeName}</span></div>
+                    
+                    <div><span className="text-gray-600">Phone:</span></div>
+                    <div><span className="font-medium">{form.phone}</span></div>
+                    
+                    <div><span className="text-gray-600">Email:</span></div>
+                    <div><span className="font-medium">{form.email}</span></div>
+                    
+                    <div><span className="text-gray-600">Year:</span></div>
+                    <div><span className="font-medium">{form.year}</span></div>
+                    
+                    <div><span className="text-gray-600">Type:</span></div>
+                    <div><span className="font-medium capitalize">{form.type}</span></div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <input value={form.email} readOnly className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <input value={form.phone} readOnly className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">College/University <span className="text-red-500">*</span></label>
-                    <input value={form.collegeName} onChange={(e)=>update("collegeName", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Your institution name" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Academic Year <span className="text-red-500">*</span></label>
-                    <select value={form.year} onChange={(e)=>update("year", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
-                      <option value="">Select your year</option>
-                      <option>1st Year</option>
-                      <option>2nd Year</option>
-                      <option>3rd Year</option>
-                      <option>4th Year</option>
-                      <option>Passed Out</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Preferred Demo Slot <span className="text-red-500">*</span></label>
-                    <select value={form.demoSlot} onChange={(e)=>update("demoSlot", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
-                      <option value="">Select a preferred slot</option>
-                      <option value="2025-11-17 11:00 AM">17-11-2025 11:00 AM</option>
-                      <option value="2025-11-18 02:00 PM">18-11-2025 02:00 PM</option>
-                      <option value="2025-11-19 11:00 AM">19-11-2025 11:00 AM</option>
-                      <option value="2025-11-20 02:00 PM">20-11-2025 02:00 PM</option>
-                      <option value="2025-11-21 11:00 AM">21-11-2025 11:00 AM</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Demo Type <span className="text-red-500">*</span></label>
-                    <select value={form.type} onChange={(e)=>update("type", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
-                      <option value="">Select Demo Type</option>
-                      <option value="online">Online</option>
-                      <option value="offline">Offline</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email Verification Code <span className="text-red-500">*</span></label>
-                    <input value={form.emailOTP} onChange={(e)=>update("emailOTP", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl text-center font-mono text-lg" placeholder="000000" maxLength={6}/>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone Verification Code <span className="text-red-500">*</span></label>
-                    <input value={form.phoneOTP} onChange={(e)=>update("phoneOTP", e.target.value)} className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl text-center font-mono text-lg" placeholder="000000" maxLength={6}/>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                  <button onClick={bookSlot} disabled={loading} className="flex-1 bg-linear-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:opacity-95 transition">
-                    {loading ? "Processing..." : "Verify & Confirm Booking"}
-                  </button>
-                  <button onClick={resendOTP} disabled={loading} className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-xl hover:border-blue-500 transition">Resend Codes</button>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between text-sm">
-                  <button onClick={() => setStep(1)} className="text-blue-600 hover:underline">← Back to Contact Info</button>
-                  <button onClick={resetForm} className="text-red-600 hover:underline">Start Over</button>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3 */}
-            {step === 3 && (
-              <div className="text-center py-8">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Booking Confirmed! 🎉</h2>
-                <p className="text-gray-600 mb-4">Your demo session has been successfully scheduled. Confirmation details have been sent to your email and phone.</p>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-md mx-auto mb-4 text-left">
-                  <div className="flex justify-between"><span className="text-gray-600 text-sm">Name:</span><span className="font-medium">{form.studentName}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Demo Slot:</span><span className="font-medium">{form.demoSlot}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Institution:</span><span className="font-medium">{form.collegeName}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Student ID:</span><span className="font-medium">{form.student_ID}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Phone Number:</span><span className="font-medium">{form.phoneNo}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Email:</span><span className="font-medium">{form.mail_ID}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Branch:</span><span className="font-medium">{form.branch}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Year:</span><span className="font-medium">{form.year}</span></div>
-                  <div className="flex justify-between mt-2"><span className="text-gray-600 text-sm">Date of Birth:</span><span className="font-medium">{form.dob}</span></div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button onClick={resetForm} className="bg-linear-to-r from-blue-600 to-purple-700 text-white py-2 px-4 rounded-xl font-semibold">Book Another Session</button>
-                  <button onClick={() => window.location.reload()} className="mt-2 sm:mt-0 text-gray-700">Go to Dashboard</button>
+                  {!hasExistingBooking && (
+                    <button
+                      onClick={resetForm}
+                      className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-2 px-6 rounded-xl font-semibold hover:opacity-90 transition"
+                    >
+                      Book Another Session
+                    </button>
+                  )}
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="border border-gray-300 text-gray-700 py-2 px-6 rounded-xl font-semibold hover:bg-gray-50 transition"
+                  >
+                    Go to Dashboard
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="text-center mt-6 text-sm text-gray-500">Secure demo booking system • Your information is protected</div>
+        <div className="text-center mt-6 text-sm text-gray-500">
+          Secure demo booking system • Your information is protected
+        </div>
       </div>
     </div>
   );

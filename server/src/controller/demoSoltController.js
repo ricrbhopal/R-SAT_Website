@@ -6,13 +6,14 @@ import { sendConfirmationEmail } from "../utils/emailService.js";
 export const BookDemoSlot = async (req, res, next) => {
   try {
     const { studentName, email, phone, collegeName, year, demoSlot, type } = req.body;
-    if (!studentName || !email || !phone || !type || !collegeName || !year || !demoSlot) {
-      const error = new Error('All fields are required for booking demo slot');
-      error.statusCode = 400;
-      return next(error);
+
+    // Basic validation
+    if (!studentName || !email || !phone || !collegeName || !year || !demoSlot || !type) {
+      return res.status(400).json({ message: "All fields are required for booking demo slot" });
     }
 
-    await Demo.create({
+    // Create booking (no unique checks - allows multiple bookings for same email)
+    const booking = await Demo.create({
       studentName,
       email,
       phone,
@@ -20,21 +21,31 @@ export const BookDemoSlot = async (req, res, next) => {
       year,
       demoSlot,
       type,
-    }); 
-
-    // Send confirmation email
-    await sendConfirmationEmail({
-      to: email,
-      subject: 'Demo Slot Booking Confirmation',
-      studentName,
-      demoSlot,
-      type,
-      collegeName,
-      year,
     });
 
-    res.status(200).json({ message: 'Demo slot booked successfully' });
+    // Try to send confirmation email but don't fail the request if email fails
+    try {
+      await sendConfirmationEmail({
+        to: email,
+        subject: "Demo Slot Booking Confirmation",
+        studentName,
+        demoSlot,
+        type,
+        collegeName,
+        year,
+      });
+    } catch (emailErr) {
+      // optional: log the error for debugging, but keep response successful
+      console.error("Confirmation email failed:", emailErr);
+    }
+
+    return res.status(201).json({
+      message: "Demo slot booked successfully",
+      booking, // created booking object
+    });
   } catch (error) {
+    // If somehow a duplicate index still exists at DB level, you may see 11000.
+    // But we won't specially block it here; just pass to error middleware.
     next(error);
   }
 };
