@@ -145,14 +145,21 @@ export const Register = async (req, res, next) => {
       return next(error);
     }
 
-    // Auto-generate student_ID like RICR-RS-0001
-    const lastStudent = await Student.findOne({}).sort({ createdAt: -1 }).lean();
+    // Auto-generate student_ID like RICR-RS-0001, ensure uniqueness
     let nextNumber = 1;
+    let student_ID = "";
+    let exists = true;
+    const lastStudent = await Student.findOne({}).sort({ createdAt: -1 }).lean();
     if (lastStudent && lastStudent.student_ID) {
       const match = lastStudent.student_ID.match(/RICR-RS-(\d+)/);
       if (match) nextNumber = parseInt(match[1], 10) + 1;
     }
-    const student_ID = `RICR-RS-${nextNumber.toString().padStart(4, "0")}`;
+    // Loop to ensure unique student_ID
+    do {
+      student_ID = `RICR-RS-${nextNumber.toString().padStart(4, "0")}`;
+      exists = await Student.exists({ student_ID });
+      if (exists) nextNumber++;
+    } while (exists);
 
     // Create student document
     const newStudent = await Student.create({
