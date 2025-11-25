@@ -331,7 +331,7 @@ export default function UniversalScanner({
           </div>
           {/* Confirmation dialog */}
           {showConfirm && (
-            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+            <div className="absolute inset-0  bg-black/40 bg-blur-sm flex items-center justify-center z-50">
               <div className="bg-white rounded-lg shadow-lg p-6 max-w-xs w-full text-center">
                 <div className="text-lg font-semibold mb-2">Scan Successful</div>
                 <div className="text-gray-700 mb-4">Do you want to confirm this scan?</div>

@@ -42,6 +42,12 @@ const resultDistribution = [
   { name: "Absent", value: 120, color: "#F59E0B" },
 ];
 
+const queryDistribution = [
+  { name: "Technical", value: 45, color: "#8B5CF6" },
+  { name: "Payment", value: 30, color: "#F59E0B" },
+  { name: "General", value: 25, color: "#3B82F6" },
+];
+
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) return null;
   return (
@@ -58,9 +64,15 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function OverView() {
   const [timeRange, setTimeRange] = useState("7days");
+  const [containerReady, setContainerReady] = useState(false);
+
+  // Ensure containers are properly sized
+  React.useEffect(() => {
+    setContainerReady(true);
+  }, []);
 
   return (
-    <div className="space-y-4 md:space-y-6 p-3 md:p-4 lg:p-6">
+    <div className="space-y-4 md:space-y-6 p-3 md:p-4 lg:p-6 min-w-0">
       {/* Header Section */}
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
@@ -92,150 +104,161 @@ export default function OverView() {
       </header>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 min-w-0">
         {/* Area Chart - Registration Trend */}
-        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm min-w-0">
           <div className="flex items-center gap-2 mb-3 md:mb-4">
             <FiTrendingUp className="text-blue-500 text-lg md:text-xl" />
             <h3 className="font-semibold text-sm md:text-base text-gray-900">Registration Trend</h3>
           </div>
-          <div className="w-full h-[280px] sm:h-[300px] md:h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={performanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 12 }}
-                  axisLine={false}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  axisLine={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area 
-                  type="monotone" 
-                  dataKey="registrations" 
-                  stroke="#3B82F6" 
-                  fill="#3B82F6" 
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="w-full h-[280px] sm:h-[300px] md:h-[320px] min-h-[200px]">
+            {containerReady && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <AreaChart 
+                  data={performanceData} 
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="registrations" 
+                    stroke="#3B82F6" 
+                    fill="#3B82F6" 
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         {/* Bar Chart - Referrals */}
-        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm min-w-0">
           <div className="flex items-center gap-2 mb-3 md:mb-4">
             <FiShare2 className="text-green-500 text-lg md:text-xl" />
             <h3 className="font-semibold text-sm md:text-base text-gray-900">Referrals</h3>
           </div>
-          <div className="w-full h-[240px] sm:h-[260px] md:h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={referralData} 
-                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 11 }}
-                  interval={0}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                  axisLine={false}
-                />
-                <YAxis 
-                  tick={{ fontSize: 11 }}
-                  axisLine={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  wrapperStyle={{ 
-                    fontSize: '12px',
-                    paddingTop: '10px'
-                  }}
-                />
-                <Bar 
-                  dataKey="Clicks" 
-                  fill="#10B981" 
-                  radius={[4, 4, 0, 0]}
-                  name="Clicks"
-                />
-                <Bar 
-                  dataKey="Registrations" 
-                  fill="#3B82F6" 
-                  radius={[4, 4, 0, 0]}
-                  name="Registrations"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full h-[240px] sm:h-[260px] md:h-[280px] min-h-[200px]">
+            {containerReady && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <BarChart 
+                  data={referralData} 
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 11 }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }}
+                    axisLine={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ 
+                      fontSize: '12px',
+                      paddingTop: '10px'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="Clicks" 
+                    fill="#10B981" 
+                    radius={[4, 4, 0, 0]}
+                    name="Clicks"
+                  />
+                  <Bar 
+                    dataKey="Registrations" 
+                    fill="#3B82F6" 
+                    radius={[4, 4, 0, 0]}
+                    name="Registrations"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         {/* Pie Chart - Query Distribution */}
-        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm min-w-0">
           <div className="flex items-center gap-2 mb-3 md:mb-4">
             <FiMessageSquare className="text-orange-500 text-lg md:text-xl" />
             <h3 className="font-semibold text-sm md:text-base text-gray-900">Query Distribution</h3>
           </div>
-          <div className="w-full h-[200px] sm:h-[220px] md:h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie 
-                  data={resultDistribution} 
-                  dataKey="value" 
-                  cx="50%" 
-                  cy="50%" 
-                  innerRadius={window.innerWidth < 640 ? 30 : 40} 
-                  outerRadius={window.innerWidth < 640 ? 60 : 80} 
-                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {resultDistribution.map((entry, idx) => (
-                    <Cell key={idx} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  wrapperStyle={{ 
-                    fontSize: '12px',
-                    paddingTop: '10px'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="w-full h-[200px] sm:h-[220px] md:h-[240px] min-h-[150px]">
+            {containerReady && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <PieChart>
+                  <Pie 
+                    data={queryDistribution} 
+                    dataKey="value" 
+                    cx="50%" 
+                    cy="50%" 
+                    innerRadius={typeof window !== 'undefined' && window.innerWidth < 640 ? 30 : 40} 
+                    outerRadius={typeof window !== 'undefined' && window.innerWidth < 640 ? 60 : 80} 
+                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {queryDistribution.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ 
+                      fontSize: '12px',
+                      paddingTop: '10px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         {/* Pie Chart - Results Distribution */}
-        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm min-w-0">
           <div className="flex items-center gap-2 mb-3 md:mb-4">
             <FiAward className="text-purple-500 text-lg md:text-xl" />
             <h3 className="font-semibold text-sm md:text-base text-gray-900">Results</h3>
           </div>
-          <div className="w-full h-[200px] sm:h-[220px] md:h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie 
-                  data={resultDistribution} 
-                  dataKey="value" 
-                  cx="50%" 
-                  cy="50%" 
-                  outerRadius={window.innerWidth < 640 ? 60 : 80} 
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {resultDistribution.map((entry, idx) => (
-                    <Cell key={idx} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="w-full h-[200px] sm:h-[220px] md:h-[240px] min-h-[150px]">
+            {containerReady && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <PieChart>
+                  <Pie 
+                    data={resultDistribution} 
+                    dataKey="value" 
+                    cx="50%" 
+                    cy="50%" 
+                    outerRadius={typeof window !== 'undefined' && window.innerWidth < 640 ? 60 : 80} 
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {resultDistribution.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Summary Stats */}

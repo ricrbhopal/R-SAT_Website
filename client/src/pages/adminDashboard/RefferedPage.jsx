@@ -90,7 +90,6 @@ export default function ReferredPage() {
       setLoading(true);
       const params = { page, limit: pageSize, q: query };
       const response = await AdminAPI.getRefferedUsers(params);
-      console.log("Fetched raw resp:", response);
 
       // Ensure the data is extracted correctly
       if (response && response.data) {
@@ -123,22 +122,18 @@ export default function ReferredPage() {
     setSelectedUser(null);
   };
   const handleEdit = (user) => {
-    console.log("Edit button clicked for user:", user);
     setSelectedUser(user);
     setShowEditModal(true);
   };
   const handleDelete = (user) => {
-    console.log("Delete button clicked for user:", user);
     setSelectedUser(user);
     setShowDeleteModal(true);
   };
   const handleCloseEditModal = () => {
-    console.log("Closing Edit Modal");
     setShowEditModal(false);
     setSelectedUser(null);
   };
   const handleCloseDeleteModal = () => {
-    console.log("Closing Delete Modal");
     setShowDeleteModal(false);
     setSelectedUser(null);
   };
@@ -187,7 +182,6 @@ export default function ReferredPage() {
     return { totalReferrals, todayReferrals };
   }, [total, referredUsers]);
 
-  console.log("Referred Users State:", referredUsers); // Debugging log to verify state
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6">

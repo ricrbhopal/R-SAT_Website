@@ -66,7 +66,6 @@ export default function AdmitCardManagePage() {
     setError("");
     try {
       const res = await AdminAPI.getAllStudents();
-      console.log("Students API Response:", res);
 
       if (res && Array.isArray(res.data)) {
         setStudents(res.data);
@@ -89,7 +88,6 @@ export default function AdmitCardManagePage() {
     setError("");
     try {
       const res = await AdminAPI.getAllAdmitCards();
-      console.log("Admit Cards API Response:", res);
 
       if (res && res.data && Array.isArray(res.data.data)) {
         const formattedAdmitCards = res.data.data.map((card) => ({
