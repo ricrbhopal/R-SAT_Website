@@ -105,6 +105,18 @@ const AuthRegister = () => {
       const res = await AuthAPI.register(payload);
       setMessage(res?.data?.message || "Registered successfully");
       setTab("login");
+      // Clear registration form fields after success
+      setForm({
+        fullName: "",
+        mail_ID: "",
+        phoneNo: "",
+        college: "",
+        branch: "",
+        year: "",
+        PaymentAddress: "",
+        dob: "",
+        phoneOTP: "",
+      });
     } catch (err) {
       setError(
         err?.response?.data?.message || err.message || "Registration failed"
