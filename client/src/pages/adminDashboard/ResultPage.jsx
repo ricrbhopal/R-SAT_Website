@@ -346,6 +346,44 @@ export default function ResultPage() {
     setRows(copy);
   };
 
+  // Fetch all results from backend and show all in the table
+  const fetchAllResults = async () => {
+    setLoading(true);
+    try {
+      const allResultsResp = await AdminAPI.getAllResultsWithStudentDetails();
+      const allResults = allResultsResp.data || [];
+      // Map backend results to table rows
+      const mappedRows = allResults.map((result) => {
+        const student = result.student_ID || {};
+        const customId = typeof student.student_ID === 'string' ? student.student_ID : (student.student_ID || student.studentId || student.id || result.student_ID || '');
+        return {
+          student_ID: customId,
+          fullName: student.fullName || student.name || student.fullname || '',
+          A: result.A,
+          B: result.B,
+          C: result.C,
+          D: result.D,
+          total: result.total,
+          percentage: Number(result.percentage).toFixed(2),
+          scholarShip: (() => {
+            const percentage = result.percentage;
+            if (percentage >= 95) return "100% Scholarship";
+            if (percentage >= 85) return "50% Scholarship";
+            if (percentage >= 75) return "25% Scholarship";
+            if (percentage >= 60) return "10% Scholarship";
+            return "No Scholarship";
+          })(),
+          status: 'created'
+        };
+      });
+      setRows(mappedRows);
+      toast.success('All results loaded from DB.');
+    } catch (err) {
+      toast.error('Failed to fetch all results from DB.');
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-semibold mb-4">Result Management</h2>
@@ -362,6 +400,9 @@ export default function ResultPage() {
         </button>
         <button className="px-4 py-2 rounded bg-gray-600 text-white" onClick={fetchStudents} disabled={loading}>
           Refresh Students
+        </button>
+        <button className="px-4 py-2 rounded bg-purple-700 text-white" onClick={fetchAllResults} disabled={loading}>
+          Fetch All Results
         </button>
       </div>
 
@@ -382,9 +423,9 @@ export default function ResultPage() {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={r.student_ID} className={r.status==='error'? 'bg-red-50' : r.status==='saving' ? 'bg-yellow-50' : ''}>
-                <td className="px-3 py-2">{r.student_ID}</td>
-                <td className="px-3 py-2">{r.fullName}</td>
+              <tr key={String(r.student_ID) || i} className={r.status==='error'? 'bg-red-50' : r.status==='saving' ? 'bg-yellow-50' : ''}>
+                <td className="px-3 py-2">{typeof r.student_ID === 'object' ? (r.student_ID.student_ID || r.student_ID._id || JSON.stringify(r.student_ID)) : String(r.student_ID)}</td>
+                <td className="px-3 py-2">{typeof r.fullName === 'object' ? (r.fullName.fullName || r.fullName.name || JSON.stringify(r.fullName)) : String(r.fullName)}</td>
                 <td className="px-3 py-2"><input value={r.A} onChange={(e)=>updateCell(i,'A',e.target.value)} style={{width:70}} /></td>
                 <td className="px-3 py-2"><input value={r.B} onChange={(e)=>updateCell(i,'B',e.target.value)} style={{width:70}} /></td>
                 <td className="px-3 py-2"><input value={r.C} onChange={(e)=>updateCell(i,'C',e.target.value)} style={{width:70}} /></td>
