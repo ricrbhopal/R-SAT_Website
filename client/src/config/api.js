@@ -78,24 +78,31 @@ export const ReferralAPI = {
 
 
 export const AdminAPI = {
+  // User Router
   getAllStudents: () => api.get("/admin/users"),
   getStudentById: (studentId) => api.get(`/admin/user/${studentId}`),
   updateStudent: (studentId, studentData) =>
     api.put(`/admin/user/${studentId}`, studentData),
 
   deleteStudent: (studentId) => api.delete(`/admin/user/${studentId}`),
+
+
+  // Referred User Router
   getRefferedUsers: () => api.get("/admin/reffered-users"),
   deleteRefferedUser: (userId) => api.delete(`/admin/reffered-user/${userId}`),
   putRefferedUserDetails: (userId, userData) =>
     api.put(`/admin/reffered-user/${userId}`, userData),
 
   getRefferedUserById: (userId) => api.get(`/admin/reffered-user/${userId}`),
+
+  // Demo Class Router
   getAllDemoClasses: () => api.get("/admin/demo-classes"),
   getDemoClassById: (demoClassId) => api.get(`/admin/demo-class/${demoClassId}`),
   putDemoClassDetails: (demoClassId, demoClassData) =>
     api.put(`/admin/demo-class/${demoClassId}`, demoClassData),
   deleteDemoClass: (demoClassId) => api.delete(`/admin/demo-class/${demoClassId}`),
 
+  // Admit Card Router
 bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
   bulkUpdateAdmitCards: (data) => api.put("/admin/bulk-update", data),
     getAllAdmitCards: () => api.get("/admin/all"),
@@ -104,14 +111,30 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
   deleteAdmitCard: (id) => api.delete(`/admin/${id}`),
   updateAdmitCardStatus: (id, status) =>
     api.put(`/admin/${id}/status`, { status }),
+
+
+  // Support Query Router
   GetAllSupportQueries: () => api.get("/admin/support/all-queries"),
   GetStudentSupportQueries: () => api.get("/admin/support/student-queries"),
   UpdateSupportQueryStatus: (queryId, status) =>
     api.put(`/admin/support/update-status/${queryId}`, { status }),
   AddSupportQueryResponse: (queryId, responder, message) =>
     api.put(`/admin/support/add-response/${queryId}`, { responder, message }),
+
+
+  // Attendance Router
   generatePresentToken: (id) => api.post(`/admin/${id}/present-token`),
   markAttendanceWithToken: (data) => api.post("/admin/mark-attendance", data),
+
+
+  // Result Router
+  getAllResultsWithStudentDetails: () => api.get("/admin/results/all-with-student-details"),
+  deleteResult: (id) => api.delete(`/admin/results/${id}`),
+  updateResult: (id, data) => api.put(`/admin/results/${id}`, data),
+  getResultByStudentId: (studentId) => api.get(`/admin/results/student/${studentId}`),
+  getAllResults: () => api.get("/admin/results/all"),
+  createResult: (data) => api.post("/admin/results/create", data),
+
 
 
 };

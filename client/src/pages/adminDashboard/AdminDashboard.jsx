@@ -12,6 +12,7 @@ import { CiLink } from "react-icons/ci";
 import {FaChalkboardTeacher} from "react-icons/fa";
 import { MdOutlineSupportAgent } from "react-icons/md";
 import AdmitCard from "./AdmitCardManagePage.jsx";
+import ResultPage from "./ResultPage.jsx";
 export default function AdminDashboard() {
   const items = [
     {
@@ -49,6 +50,12 @@ export default function AdminDashboard() {
       title: "Admit Card",
       icon: <MdOutlineDashboard />,
       node: <AdmitCard />,
+    },
+    {
+      id: "results",
+      title: "Results",
+      icon: <MdOutlineDashboard />,
+      node: <ResultPage />,
     },
   ];
 
