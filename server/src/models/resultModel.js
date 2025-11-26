@@ -6,6 +6,10 @@ const resultSchema = new mongoose.Schema({
     ref: "Student",
     required: true,
   },
+  student_ID_custom: {
+    type: String,
+    required: false,
+  },
   A: { type: Number, required: true },
   B: { type: Number, required: true },
   C: { type: Number, required: true },

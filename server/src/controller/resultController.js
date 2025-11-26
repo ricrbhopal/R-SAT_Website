@@ -125,9 +125,15 @@ export const getAllResultsWithStudentDetails = async (req, res) => {
   try {
     const results = await Result.find().populate(
       "student_ID",
-      "fullName email phoneNo collegeName year"
+      "student_ID fullName email phoneNo collegeName year"
     );
-    res.status(200).json(results);
+    // Map each result to include readable student_ID
+    const mappedResults = results.map(r => {
+      const obj = r.toObject();
+      obj.student_ID = obj.student_ID?.student_ID || obj.student_ID; // Use custom ID if available
+      return obj;
+    });
+    res.status(200).json(mappedResults);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

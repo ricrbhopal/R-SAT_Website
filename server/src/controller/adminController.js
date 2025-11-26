@@ -921,15 +921,20 @@ export const updateResult = async (req, res) => {
 };
 
 // Delete result by ID
+// Delete result by ID
 export const deleteResult = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('[DELETE RESULT] Attempting to delete result with id:', id);
     const deletedResult = await Result.findByIdAndDelete(id);
     if (!deletedResult) {
+      console.log('[DELETE RESULT] Result not found for id:', id);
       return res.status(404).json({ message: "Result not found" });
     }
-    res.status(200).json({ message: "Result deleted successfully" });
+    console.log('[DELETE RESULT] Deleted result:', deletedResult);
+    res.status(200).json({ message: "Result deleted successfully", deletedResult });
   } catch (error) {
+    console.error('[DELETE RESULT] Server error:', error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -937,11 +942,25 @@ export const deleteResult = async (req, res) => {
 // GET ALL RESULTS WITH STUDENT DETAILS
 export const getAllResultsWithStudentDetails = async (req, res) => {
   try {
+    // Fetch results and populate student details
     const results = await Result.find().populate(
       "student_ID",
-      "fullName email phoneNo collegeName year"
+      "student_ID fullName email phoneNo collegeName year"
     );
-    res.status(200).json(results);
+    // Map each result to include custom RSAT ID
+    const mappedResults = results.map(result => {
+      let customId = "";
+      if (result.student_ID && result.student_ID.student_ID) {
+        customId = result.student_ID.student_ID;
+      } else if (result.student_ID) {
+        customId = result.student_ID;
+      }
+      return {
+        ...result.toObject(),
+        student_ID: customId,
+      };
+    });
+    res.status(200).json(mappedResults);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

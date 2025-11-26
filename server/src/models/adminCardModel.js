@@ -8,6 +8,10 @@ const admitCardSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    RSAT: {
+      type: mongoose.Schema.Types.String,
+      required: true,
+    },
     status: {
       type: String,
       enum: ["active", "Inactive"],
