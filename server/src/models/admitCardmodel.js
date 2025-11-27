@@ -20,6 +20,8 @@ const AdmitCardSchema = new mongoose.Schema({
   presentedAt: { type: Date },
   presentedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // who scanned
   presentTokenUsed: { type: String }, // optional: store token id/nonce
+  downloadedAt: { type: Date },
+  downloadCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 export default mongoose.model('AdmitCard', AdmitCardSchema);

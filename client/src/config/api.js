@@ -147,6 +147,7 @@ export const AdmitCardAPI = {
   generatePresentToken: (id) => api.post(`/admit-cards/${id}/present-token`),
   markAttendanceWithToken: (data) => api.post("/admit-cards/mark-attendance", data),
   scanAttendance: (id) => api.get(`/admit-cards/scan-attendance/${id}`),
+  downloadAdmitCard: (id) => api.get(`/admit-cards/${id}/download`, { responseType: 'blob' }),
 };
 
 export default api;
