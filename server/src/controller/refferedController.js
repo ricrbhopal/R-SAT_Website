@@ -83,7 +83,7 @@ export const createReferral = async (req, res, next) => {
       refCode,
     });
 
-    const frontendBase = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendBase = process.env.FRONTEND_URL || "https://rsat.ricr.in/";
     const link = `${frontendBase}/candidateDashboard/RefferedRegisterationPage?ref=${encodeURIComponent(
       refCode
     )}${referrerStudentID ? `&studentId=${encodeURIComponent(referrerStudentID)}` : ""}`;

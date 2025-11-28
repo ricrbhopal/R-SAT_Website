@@ -266,7 +266,13 @@ export default function Slider({
         </ul>
 
         {/* Logout Button - Sticky at bottom on mobile */}
-        <div className={`${isMobile ? 'sticky bottom-0 bg-gradient-to-b from-gray-200 to-gray-50/80 pb-4' : 'mt-6'}`}>
+        <div
+          className={`${
+            isMobile
+              ? "sticky bottom-0 bg-gradient-to-b from-gray-200 to-gray-50/80 pb-4"
+              : "mt-6"
+          }`}
+        >
           <button
             className="w-full flex items-center gap-3 px-3 md:px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 border border-red-100 bg-gradient-to-r from-red-50 to-white text-red-600 font-semibold hover:bg-red-100 hover:text-red-700 shadow-sm"
             onClick={async () => {
