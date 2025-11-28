@@ -313,7 +313,7 @@ export default function UniversalScanner({
             </div>
           </div>
         </div>
-
+{/* fdasfdsadfdsa */}
         {/* Viewer area */}
         <div className="w-full rounded overflow-hidden bg-black flex items-center justify-center" style={{ height: 360 }}>
           {/* The actual scanner will render here */}
