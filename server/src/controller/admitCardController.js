@@ -26,7 +26,7 @@ export const getAdmitCardById = async (req, res, next) => {
     next(err);
   }
 };
-// lkjmkl
+
 export const generatePresentToken = async (req, res) => {
   try {
     const id = req.params.id;
