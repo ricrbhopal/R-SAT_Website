@@ -358,10 +358,7 @@ export default function StudentRecordPage() {
                         <span className="text-gray-500">R-SAT ID:</span>
                         <p className="font-medium">{email}</p>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Year:</span>
-                        <p className="font-medium">{cls}</p>
-                      </div>
+                  
                       <div className="col-span-2">
                         <span className="text-gray-500">Password:</span>
                         <p className="font-medium">{phone}</p>

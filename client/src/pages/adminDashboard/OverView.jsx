@@ -149,7 +149,7 @@ export default function OverView() {
     {
       title: "Total Students",
       value: userStats.total || 0,
-      icon: <FiUsers className="text-2xl" />,
+      icon: <FiUsers className="text-xl sm:text-2xl" />,
       color: COLORS.blue,
       trend: getTrend(userStats.total, lastWeekStats.users),
       description: "Active registered students",
@@ -159,7 +159,7 @@ export default function OverView() {
     {
       title: "Referred Users",
       value: userStats.referred || 0,
-      icon: <FiTrendingUp className="text-2xl" />,
+      icon: <FiTrendingUp className="text-xl sm:text-2xl" />,
       color: COLORS.emerald,
       trend: getTrend(userStats.referred, lastWeekStats.referred),
       description: "Users from referral program",
@@ -169,7 +169,7 @@ export default function OverView() {
     {
       title: "Admit Cards",
       value: admitStats.total || 0,
-      icon: <FiAward className="text-2xl" />,
+      icon: <FiAward className="text-xl sm:text-2xl" />,
       color: COLORS.violet,
       trend: getTrend(admitStats.total, lastWeekStats.admit),
       description: "Generated admit cards",
@@ -179,7 +179,7 @@ export default function OverView() {
     {
       title: "Support Queries",
       value: supportStats.total || 0,
-      icon: <FiMessageSquare className="text-2xl" />,
+      icon: <FiMessageSquare className="text-xl sm:text-2xl" />,
       color: COLORS.amber,
       trend: getTrend(supportStats.total, lastWeekStats.support),
       description: "Pending support tickets",
@@ -202,27 +202,6 @@ export default function OverView() {
     { name: "Failed", value: resultStats.failed || 0, color: COLORS.rose.primary },
   ];
 
-  // Quick actions with enhanced colors
-  const quickActions = [
-    { 
-      title: "View Reports", 
-      icon: <FiBarChart2 />, 
-      gradient: "bg-gradient-to-r from-blue-500 to-cyan-500",
-      hover: "hover:from-blue-600 hover:to-cyan-600"
-    },
-    { 
-      title: "Export Data", 
-      icon: <FiDownload />, 
-      gradient: "bg-gradient-to-r from-emerald-500 to-green-500",
-      hover: "hover:from-emerald-600 hover:to-green-600"
-    },
-    { 
-      title: "Monitor Progress", 
-      icon: <FiEye />, 
-      gradient: "bg-gradient-to-r from-violet-500 to-purple-500",
-      hover: "hover:from-violet-600 hover:to-purple-600"
-    }
-  ];
 
   // Calculate success rate safely
   const successRate = resultStats.total > 0 
@@ -230,32 +209,31 @@ export default function OverView() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/10 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/10 p-4 sm:p-6">
       {/* Enhanced Header */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-br from-blue-500 to-cyan-500  bg-clip-text text-transparent">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-br from-blue-500 to-cyan-500 bg-clip-text text-transparent">
               Dashboard Overview
             </h1>
-            <p className="text-gray-600 mt-2 font-medium">
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base font-medium">
               Welcome back! Here's what's happening with your platform today.
             </p>
           </div>
-       
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex justify-center items-center py-16 sm:py-20">
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600"></div>
         </div>
       ) : error ? (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-6 text-center shadow-lg">
-          <div className="text-red-600 text-lg font-bold">{error}</div>
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center shadow-lg">
+          <div className="text-red-600 text-base sm:text-lg font-bold">{error}</div>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-4 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
+            className="mt-3 sm:mt-4 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white px-4 sm:px-6 py-2 rounded-lg sm:rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 text-sm sm:text-base"
           >
             Try Again
           </button>
@@ -263,68 +241,69 @@ export default function OverView() {
       ) : (
         <>
           {/* Enhanced Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             {statsCards.map((stat, index) => (
               <div 
                 key={index} 
-                className={`bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border ${stat.border} p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 ${stat.gradient}`}
+                className={`bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border ${stat.border} p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 ${stat.gradient}`}
               >
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-semibold">{stat.title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-600 text-xs sm:text-sm font-semibold truncate">{stat.title}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">
                       {(stat.value || 0).toLocaleString()}
                     </p>
-                    <div className={`flex items-center gap-1 text-sm font-medium mt-1 ${
+                    <div className={`flex items-center gap-1 text-xs sm:text-sm font-medium mt-1 ${
                       stat.trend.isPositive ? "text-emerald-600" : stat.trend.isNeutral ? "text-gray-500" : "text-rose-600"
                     }`}>
                       {stat.trend.isPositive ? <FiArrowUp className="text-xs" /> : 
                        stat.trend.isNeutral ? <span className="w-2"></span> : <FiArrowDown className="text-xs" />}
-                      {stat.trend.value} from last week
+                      <span className="truncate">{stat.trend.value} from last week</span>
                     </div>
                   </div>
-                  <div className={`bg-gradient-to-br ${stat.color.gradient} text-white p-3 rounded-xl shadow-lg`}>
+                  <div className={`bg-gradient-to-br ${stat.color.gradient} text-white p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-lg flex-shrink-0 ml-3`}>
                     {stat.icon}
                   </div>
                 </div>
-                <p className="text-gray-500 text-xs mt-4 font-medium">{stat.description}</p>
+                <p className="text-gray-500 text-xs mt-3 sm:mt-4 font-medium truncate">{stat.description}</p>
               </div>
             ))}
           </div>
 
           {/* Enhanced Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
             {/* Enhanced Bar Chart */}
-            <div className="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
                 <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-xl shadow-lg">
-                    <FiTrendingUp className="text-white text-xl" />
+                  <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-lg sm:rounded-xl shadow-lg">
+                    <FiTrendingUp className="text-white text-lg sm:text-xl" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">Platform Overview</h2>
-                    <p className="text-gray-600 text-sm font-medium">Key metrics and performance indicators</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">Platform Overview</h2>
+                    <p className="text-gray-600 text-xs sm:text-sm font-medium">Key metrics and performance indicators</p>
                   </div>
                 </div>
-                <select className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 font-medium shadow-sm">
+                <select className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg sm:rounded-xl px-3 py-2 text-xs sm:text-sm text-gray-700 font-medium shadow-sm w-full sm:w-auto">
                   <option>Last 7 days</option>
                   <option>Last 30 days</option>
                   <option>Last 90 days</option>
                 </select>
               </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={barData}>
+              <ResponsiveContainer width="100%" height={250} className="text-xs sm:text-sm">
+                <BarChart data={barData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 600 }}
+                    tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }}
+                    interval={0}
                   />
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 600 }}
+                    tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -332,13 +311,14 @@ export default function OverView() {
                       border: 'none', 
                       boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
                       background: 'white',
-                      fontWeight: '600'
+                      fontWeight: '600',
+                      fontSize: '12px'
                     }}
                   />
                   <Bar 
                     dataKey="value" 
-                    radius={[8, 8, 0, 0]}
-                    barSize={40}
+                    radius={[6, 6, 0, 0]}
+                    barSize={30}
                   >
                     {barData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -349,19 +329,19 @@ export default function OverView() {
             </div>
 
             {/* Enhanced Pie Chart & Quick Actions */}
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-6 lg:space-y-8">
               {/* Enhanced Pie Chart */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-gradient-to-br from-emerald-500 to-green-500 p-2 rounded-xl shadow-lg">
-                    <FiAward className="text-white text-xl" />
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                  <div className="bg-gradient-to-br from-emerald-500 to-green-500 p-2 rounded-lg sm:rounded-xl shadow-lg">
+                    <FiAward className="text-white text-lg sm:text-xl" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">Results Analysis</h2>
-                    <p className="text-gray-600 text-sm font-medium">Student performance breakdown</p>
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900">Results Analysis</h2>
+                    <p className="text-gray-600 text-xs sm:text-sm font-medium">Student performance breakdown</p>
                   </div>
                 </div>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={180} className="text-xs">
                   <PieChart>
                     <Pie
                       data={pieData}
@@ -369,7 +349,7 @@ export default function OverView() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={80}
+                      outerRadius={70}
                       label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                       labelLine={false}
                     >
@@ -377,16 +357,18 @@ export default function OverView() {
                         <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Legend />
+                    <Legend 
+                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                    />
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-xl border border-gray-200">
-                  <div className="flex justify-between text-sm font-semibold">
+                <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-lg sm:rounded-xl border border-gray-200">
+                  <div className="flex justify-between text-xs sm:text-sm font-semibold">
                     <span className="text-gray-600">Total Results:</span>
                     <span className="text-gray-900">{resultStats.total || 0}</span>
                   </div>
-                  <div className="flex justify-between text-sm font-semibold mt-2">
+                  <div className="flex justify-between text-xs sm:text-sm font-semibold mt-1 sm:mt-2">
                     <span className="text-gray-600">Success Rate:</span>
                     <span className="text-emerald-600">
                       {successRate}%
@@ -395,6 +377,7 @@ export default function OverView() {
                 </div>
               </div>
 
+    
             </div>
           </div>
 
