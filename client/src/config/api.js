@@ -120,6 +120,8 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
     api.put(`/admin/support/update-status/${queryId}`, { status }),
   AddSupportQueryResponse: (queryId, responder, message) =>
     api.put(`/admin/support/add-response/${queryId}`, { responder, message }),
+  DeleteSupportQuery: (queryId) =>
+    api.delete(`/admin/support/delete-query/${queryId}`),
 
 
   // Attendance Router

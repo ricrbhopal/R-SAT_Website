@@ -30,6 +30,17 @@ export default function UniversalScanner({
   const [trackSupportsTorch, setTrackSupportsTorch] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [scanResult, setScanResult] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle responsive breakpoints
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // helper: attempt to get the active video track element
   const getActiveVideoTrack = () => {
@@ -84,12 +95,15 @@ export default function UniversalScanner({
         isRunningRef.current = false;
       }
 
+      // Responsive QR box size
+      const qrboxSize = isMobile ? 200 : 260;
+
       // start with given camera id
       await scanner.start(
         camId,
         {
           fps,
-          qrbox: { width: 260, height: 260 },
+          qrbox: { width: qrboxSize, height: qrboxSize },
         },
         (decodedText) => {
           try {
@@ -215,36 +229,50 @@ export default function UniversalScanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCamera, fps]);
 
+  // Responsive QR box size
+  const qrboxSize = isMobile ? 200 : 260;
+
   // UI
   return (
-    <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden relative">
+    <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden relative border border-gray-200">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b">
-        <div className="flex items-center gap-3">
-          <div className="bg-gray-100 rounded p-2">
+      <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+        <div className="flex items-center gap-4">
+          <div className="bg-white rounded-xl p-3 shadow-sm">
             <svg
-              className="w-5 h-5 text-gray-700"
+              className="w-6 h-6 text-blue-600"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
+              strokeWidth="2"
             >
               <path d="M3 7h18M12 3v4M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
             </svg>
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-800">QR / Barcode Scanner</div>
-            <div className="text-xs text-gray-500">{status === "running" ? "Ready — point camera at QR code" : status === "starting" ? "Starting camera..." : status === "no-camera" ? "No camera found" : status === "error" ? "Error" : "Idle"}</div>
+            <div className="text-lg font-bold text-gray-900">QR / Barcode Scanner</div>
+            <div className={`text-sm font-medium ${
+              status === "running" ? "text-green-600" :
+              status === "starting" ? "text-blue-600" :
+              status === "no-camera" ? "text-yellow-600" :
+              status === "error" ? "text-red-600" : "text-gray-600"
+            }`}>
+              {status === "running" ? "✓ Ready — point camera at QR code" : 
+               status === "starting" ? "🔄 Starting camera..." : 
+               status === "no-camera" ? "⚠️ No camera found" : 
+               status === "error" ? "❌ Error" : "⏸️ Idle"}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {onClose && (
             <button
               onClick={async () => {
                 await stopScanner();
                 onClose();
               }}
-              className="text-gray-600 hover:text-gray-800 text-sm px-2 py-1 rounded"
+              className="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-white/50 rounded-xl transition-all duration-200 font-medium text-sm"
               title="Close"
             >
               Close
@@ -254,13 +282,13 @@ export default function UniversalScanner({
       </div>
 
       {/* Controls + viewer */}
-      <div className="p-4 space-y-3">
+      <div className="p-6 space-y-4">
         {/* Controls */}
-        <div className="flex gap-2 items-center">
-          <div className="flex-1">
-            <label className="text-xs text-gray-500">Camera</label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Camera</label>
             <select
-              className="mt-1 block w-full rounded border px-2 py-1 text-sm"
+              className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
               value={selectedCamera || ""}
               onChange={(e) => setSelectedCamera(e.target.value)}
             >
@@ -276,100 +304,164 @@ export default function UniversalScanner({
             </select>
           </div>
 
-          <div style={{ minWidth: 92 }}>
-            <label className="text-xs text-gray-500">FPS</label>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">FPS</label>
             <select
-              className="mt-1 block w-full rounded border px-2 py-1 text-sm"
+              className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
               value={fps}
               onChange={(e) => setFps(Number(e.target.value))}
             >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={20}>20</option>
+              <option value={5}>5 FPS</option>
+              <option value={10}>10 FPS</option>
+              <option value={15}>15 FPS</option>
+              <option value={20}>20 FPS</option>
             </select>
           </div>
 
-          <div style={{ minWidth: 90 }}>
-            <label className="text-xs text-gray-500">&nbsp;</label>
-            <div className="mt-1">
-              <button
-                onClick={async () => {
-                  try {
-                    if (trackSupportsTorch) {
-                      await toggleTorch();
-                    } else {
-                      setErrorMsg("Torch not supported for this camera.");
-                    }
-                  } catch (e) {
-                    console.error(e);
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Flash</label>
+            <button
+              onClick={async () => {
+                try {
+                  if (trackSupportsTorch) {
+                    await toggleTorch();
+                  } else {
+                    setErrorMsg("Torch not supported for this camera.");
                   }
-                }}
-                className={`w-full text-sm px-2 py-1 rounded border ${torchOn ? "bg-yellow-50 border-yellow-300" : "bg-white border-gray-200"}`}
-                title="Toggle Torch"
-              >
-                {torchOn ? "Torch ON" : "Torch"}
-              </button>
-            </div>
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              className={`w-full text-sm px-4 py-3 rounded-xl border-2 transition-all duration-200 font-semibold ${
+                torchOn 
+                  ? "bg-yellow-500 border-yellow-500 text-white shadow-lg shadow-yellow-500/25" 
+                  : "bg-white border-gray-200 text-gray-700 hover:border-yellow-400 hover:bg-yellow-50"
+              }`}
+              title="Toggle Torch"
+            >
+              {torchOn ? "🔦 Flash ON" : "⚡ Flash"}
+            </button>
           </div>
         </div>
 
         {/* Viewer area */}
-        <div className="w-full rounded overflow-hidden bg-black flex items-center justify-center" style={{ height: 360 }}>
+        <div className="w-full rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 to-black flex items-center justify-center relative" style={{ height: isMobile ? 300 : 400 }}>
           {/* The actual scanner will render here */}
           <div id={containerId} style={{ width: "100%", height: "100%" }} />
+          
           {/* overlay guide box */}
-          <div className="pointer-events-none absolute w-full max-w-md">
-            <div className="mx-auto mt-20" style={{ maxWidth: 480 }}>
-              <div className="relative">
-                <div className="border-2 border-dashed border-gray-300 rounded-md w-[260px] h-[260px] mx-auto" style={{ marginTop: 20 }} />
-                <div className="absolute inset-0 flex items-start justify-center">
-                  <div className="mt-8 text-xs text-white/90 bg-black/30 px-2 rounded">Align QR inside the box</div>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="relative">
+              <div 
+                className="border-2 border-dashed border-white/30 rounded-xl backdrop-blur-sm bg-black/20"
+                style={{ width: qrboxSize, height: qrboxSize }}
+              />
+              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                <div className="text-white/90 bg-black/50 px-3 py-2 rounded-lg text-sm font-medium backdrop-blur-sm">
+                  📷 Align QR inside the box
                 </div>
               </div>
+              
+              {/* Animated scanning line */}
+              {status === "running" && (
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-scan" />
+              )}
             </div>
           </div>
+
           {/* Confirmation dialog */}
           {showConfirm && (
-            <div className="absolute inset-0  bg-black/40 bg-blur-sm flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-lg p-6 max-w-xs w-full text-center">
-                <div className="text-lg font-semibold mb-2">Scan Successful</div>
-                <div className="text-gray-700 mb-4">Do you want to confirm this scan?</div>
-                <div className="mb-4 break-words text-xs text-gray-500">{scanResult}</div>
-                <button
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                  onClick={() => {
-                    setShowConfirm(false);
-                    if (onScan) onScan(scanResult);
-                  }}
-                >
-                  OK
-                </button>
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full transform animate-scale-in">
+                <div className="text-center mb-2">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 mb-2">Scan Successful!</div>
+                  <div className="text-gray-600 mb-4">Do you want to confirm this scan?</div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-xl p-4 mb-6 max-h-32 overflow-y-auto">
+                  <div className="text-sm text-gray-700 break-all font-mono">{scanResult}</div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200"
+                    onClick={() => setShowConfirm(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg shadow-blue-500/25"
+                    onClick={() => {
+                      setShowConfirm(false);
+                      if (onScan) onScan(scanResult);
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* status / errors */}
-        <div className="flex items-center justify-between">
-          <div className="text-xs text-gray-500">
-            {status === "running" ? "Scanning..." : status === "starting" ? "Starting camera..." : status === "no-camera" ? "No camera detected" : status === "error" ? "Error: " + errorMsg : "Awaiting start"}
+        {/* Status bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${
+              status === "running" ? "bg-green-500 animate-pulse" :
+              status === "starting" ? "bg-blue-500 animate-pulse" :
+              status === "error" ? "bg-red-500" : "bg-gray-400"
+            }`} />
+            <div className="text-sm text-gray-700">
+              {status === "running" ? "Scanning actively..." : 
+               status === "starting" ? "Initializing camera..." : 
+               status === "no-camera" ? "No camera device detected" : 
+               status === "error" ? `Error: ${errorMsg}` : "Ready to start"}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {errorMsg && <div className="text-xs text-red-600">{errorMsg}</div>}
+          
+          <div className="flex items-center gap-3">
+            {errorMsg && (
+              <div className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded-lg">
+                ⚠️ {errorMsg}
+              </div>
+            )}
             <button
-              className="text-sm px-3 py-1 rounded border bg-gray-50"
+              className="px-5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
               onClick={async () => {
                 setErrorMsg("");
                 await stopScanner();
                 if (selectedCamera) await startScanner(selectedCamera);
               }}
             >
-              Restart
+              🔄 Restart
             </button>
           </div>
         </div>
       </div>
+
+      {/* Add CSS for scanning animation */}
+      <style jsx>{`
+        @keyframes scan {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(${qrboxSize}px); }
+        }
+        .animate-scan {
+          animation: scan 2s ease-in-out infinite;
+        }
+        @keyframes scale-in {
+          0% { transform: scale(0.9); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-scale-in {
+          animation: scale-in 0.2s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

@@ -76,14 +76,12 @@ const SupportManager = () => {
     }
   };
 
+  const [deleteModalQuery, setDeleteModalQuery] = useState(null);
   const deleteQuery = async (queryId) => {
-    if (!window.confirm("Are you sure you want to delete this query? This action cannot be undone.")) {
-      return;
-    }
-
     try {
       const response = await AdminAPI.DeleteSupportQuery(queryId);
       toast.success(response.data.message);
+      setDeleteModalQuery(null);
       fetchQueries();
     } catch (error) {
       console.error("Error deleting query:", error);
@@ -136,11 +134,16 @@ const SupportManager = () => {
     }
   };
 
-  const filteredQueries = queries.filter(query =>
-    query.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    query.studentId.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    query.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredQueries = queries.filter(query => {
+    const search = searchTerm.toLowerCase();
+    return (
+      (query.subject && query.subject.toLowerCase().includes(search)) ||
+      (query.studentId.fullName && query.studentId.fullName.toLowerCase().includes(search)) ||
+      (query.status && query.status.toLowerCase().includes(search)) ||
+      (query.createdAt && query.createdAt.toLowerCase().includes(search)) ||
+      (query.updatedAt && query.updatedAt.toLowerCase().includes(search))
+    );
+  });
 
   if (loading) {
     return (
@@ -160,7 +163,7 @@ const SupportManager = () => {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Support Queries</h1>
+              <h1 className="text-3xl font-bold    text-rose-800">Support Queries</h1>
               <p className="text-gray-600 mt-2">Manage and respond to student support requests</p>
             </div>
             <div className="mt-4 md:mt-0">
@@ -172,7 +175,7 @@ const SupportManager = () => {
                     placeholder="Search queries..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-64"
+                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 w-full sm:w-64 outline-none "
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,17 +184,7 @@ const SupportManager = () => {
                   </div>
                 </div>
 
-                {/* Filter */}
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="all">All Status</option>
-                  <option value="open">Open</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
-                </select>
+
               </div>
             </div>
           </div>
@@ -272,7 +265,7 @@ const SupportManager = () => {
                     <tr key={query.id} className="hover:bg-gray-50 transition duration-150">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                          <div className="shrink-0 h-10 w-10 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                             <span className="text-white font-semibold text-sm">
                               {query.studentId.fullName?.charAt(0)?.toUpperCase() || 'S'}
                             </span>
@@ -294,7 +287,9 @@ const SupportManager = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(query.createdAt).toLocaleDateString()}
+                        <div>
+                          <div><span className="font-semibold">Created:</span> {query.createdAt || "N/A"}</div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
@@ -327,7 +322,7 @@ const SupportManager = () => {
                             Resolve
                           </button>
                           <button
-                            onClick={() => deleteQuery(query.id)}
+                            onClick={() => setDeleteModalQuery(query)}
                             className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg text-xs font-medium transition duration-200 flex items-center"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -335,6 +330,32 @@ const SupportManager = () => {
                             </svg>
                             Delete
                           </button>
+                                                      {/* Delete Confirmation Modal */}
+                                                      {deleteModalQuery && (
+                                                        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 ">
+                                                          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mb-60">
+                                                            <div className="px-6 py-5 border-b border-gray-200 rounded-t-2xl">
+                                                              <h3 className="text-xl font-semibold text-gray-900">Delete Support Query</h3>
+                                                              <p className="text-gray-600 mt-2">Are you sure you want to delete this query? </p>
+                                                              <p>This action cannot be undone.</p>
+                                                            </div>
+                                                            <div className="px-6 py-6 flex gap-4">
+                                                              <button
+                                                                onClick={() => setDeleteModalQuery(null)}
+                                                                className="flex-1 bg-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-400 transition duration-200 font-medium cursor-pointer"
+                                                              >
+                                                                Cancel
+                                                              </button>
+                                                              <button
+                                                                onClick={() => deleteQuery(deleteModalQuery.id)}
+                                                                className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition duration-200 font-medium cursor-pointer"
+                                                              >
+                                                                Delete
+                                                              </button>
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      )}
                         </div>
                       </td>
                     </tr>
@@ -356,14 +377,14 @@ const SupportManager = () => {
 
       {/* View Query Modal */}
       {viewQuery && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
+        <div className="fixed inset-0 bg-black/40 bg-blur-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mb-30 h-160">
+            <div className="px-6 py-4 border-b border-gray-200 bg-linear-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-semibold text-gray-900">Query Details</h3>
                 <button
                   onClick={() => setViewQuery(null)}
-                  className="text-gray-400 hover:text-gray-600 transition duration-200 p-2 hover:bg-white rounded-lg"
+                  className="text-gray-400 hover:text-gray-600 transition duration-200 p-2 hover:bg-white rounded-lg cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -380,7 +401,7 @@ const SupportManager = () => {
               </div>
               <DetailItem label="Subject" value={viewQuery.subject} icon="💭" />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <label className="text-sm font-medium text-gray-700 mb-2 items-center">
                   <span className="mr-2">📝</span>
                   Description
                 </label>
@@ -390,7 +411,7 @@ const SupportManager = () => {
               </div>
               {viewQuery.imageUrl && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <label className="text-sm font-medium text-gray-700 mb-2 items-center">
                     <span className="mr-2">🖼️</span>
                     Attachment
                   </label>
@@ -416,14 +437,14 @@ const SupportManager = () => {
 
       {/* Respond to Query Modal */}
       {responseQuery && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-2xl">
+        <div className="fixed inset-0 bg-black/40 bg-blur-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mb-60 ">
+            <div className="px-6 py-4 border-b border-gray-200 bg-linear-to-r from-green-50 to-emerald-50 rounded-t-2xl">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-semibold text-gray-900">Respond to Query</h3>
                 <button
                   onClick={() => setResponseQuery(null)}
-                  className="text-gray-400 hover:text-gray-600 transition duration-200 p-2 hover:bg-white rounded-lg"
+                  className="text-gray-400 hover:text-gray-600 transition duration-200 p-2 hover:bg-white rounded-lg cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -444,13 +465,13 @@ const SupportManager = () => {
             <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex space-x-3">
               <button
                 onClick={() => setResponseQuery(null)}
-                className="flex-1 bg-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-400 transition duration-200 font-medium"
+                className="flex-1 bg-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-400 transition duration-200 font-medium cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={submitResponse}
-                className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition duration-200 font-medium flex items-center justify-center"
+                className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition cursor-pointer duration-200 font-medium flex items-center justify-center"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -467,7 +488,7 @@ const SupportManager = () => {
 
 const DetailItem = ({ label, value, icon }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+    <label className="text-sm font-medium text-gray-700 mb-1 items-center">
       <span className="mr-2">{icon}</span>
       {label}
     </label>

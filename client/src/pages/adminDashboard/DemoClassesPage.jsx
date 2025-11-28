@@ -73,11 +73,11 @@ const DemoClassesPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen  py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Demo Classes</h1>
+          <h1 className="text-3xl font-bold  border-amber-200 text-amber-800">Demo Classes</h1>
           <p className="text-gray-600 mt-2">
             Manage and view all demo class registrations
           </p>
@@ -87,8 +87,8 @@ const DemoClassesPage = () => {
         <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           {demoClasses.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200  shadow-md ">
+                <thead className="bg-gray-50  justify-content-center">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Student Name
@@ -136,14 +136,14 @@ const DemoClassesPage = () => {
                           <div className="flex space-x-2">
                             <button
                               onClick={() => handleViewDetails(demoClass)}
-                              className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md text-xs font-medium transition duration-200"
+                              className=" cursor-pointer w-20 text-sm py-2    text-blue-600 hover:text-blue-900 bg-blue-50   hover:bg-blue-100 px-3  rounded-md  font-medium transition duration-200"
                             >
                               View
                             </button>
 
                             <button
                               onClick={() => handleEdit(demoClass)}
-                              className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded-md text-xs font-medium transition duration-200"
+                              className=" cursor-pointer w-20 text-sm py-2    text-green-600 hover:text-green-900 bg-green-50   hover:bg-green-100 px-3  rounded-md  font-medium transition duration-200"
                               title="Local edit (no API)"
                             >
                               Edit
@@ -151,7 +151,7 @@ const DemoClassesPage = () => {
 
                             <button
                               onClick={() => handleDelete(demoClass)}
-                              className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-medium transition duration-200"
+                              className=" cursor-pointer w-20 text-sm py-2    text-red-600 hover:text-red-900 bg-red-50   hover:bg-red-100 px-3  rounded-md  font-medium transition duration-200"
                               title="Remove from list (local only)"
                             >
                               Delete

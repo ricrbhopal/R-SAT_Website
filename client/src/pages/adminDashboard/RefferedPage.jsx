@@ -5,6 +5,7 @@ import { saveAs } from "file-saver";
 import { AdminAPI } from "../../config/api.js";
 import EditModalPage from "./modals/StudentRefferalsModals.jsx/editModal";
 import DeleteModalPage from "./modals/StudentRefferalsModals.jsx/deleteModal";
+import { FiSearch, FiX } from "react-icons/fi"; // added search icon
 
 const PageSizeOptions = [10, 25, 50, 100];
 
@@ -93,8 +94,12 @@ export default function ReferredPage() {
 
       // Ensure the data is extracted correctly
       if (response && response.data) {
-        setReferredUsers(response.data); // Update state with the data array
-        setTotal(response.total || response.data.length); // Update total count
+        // normalize rows for consistent UI (optional)
+        const normalized = Array.isArray(response.data)
+          ? response.data.map(normalizeRow)
+          : [];
+        setReferredUsers(normalized); // Update state with the data array
+        setTotal(response.total ?? (Array.isArray(response.data) ? response.data.length : 0)); // Update total count
       } else {
         setReferredUsers([]); // Fallback to empty array if no data
         setTotal(0);
@@ -141,6 +146,7 @@ export default function ReferredPage() {
   const downloadExcel = () => {
     if (!referredUsers.length) return alert("No data to export");
     const sheetData = referredUsers.map((r) => ({
+
       "Referrer Student ID":
         r.referrerId?.student_ID ?? r.referrerStudentID ?? "-",
       "Referrer Name": r.referrerId?.fullName ?? r.fullName ?? "-",
@@ -182,13 +188,47 @@ export default function ReferredPage() {
     return { totalReferrals, todayReferrals };
   }, [total, referredUsers]);
 
+  // --- NEW: search handlers (keeps everything else unchanged) ---
+  const onQueryChange = (val) => {
+    setQuery(val);
+    setPage(1); // reset to first page when searching
+  };
+  const clearQuery = () => {
+    setQuery("");
+    setPage(1);
+  };
+  // -------------------------------------------------------------
+
+  // Advanced search: filter referredUsers by all relevant fields
+  const filteredUsers = useMemo(() => {
+    if (!query.trim()) return referredUsers;
+    const q = query.trim().toLowerCase();
+    return referredUsers.filter((r) => {
+      const ref = r.referrerId || {};
+      return [
+        ref.fullName,
+        ref.student_ID,
+        ref.mail_ID,
+        ref.phoneNo,
+        r.referredName,
+        r.referredEmail,
+        r.referredPhone,
+        r.collegeName,
+        r.year,
+        r.refCode,
+        r.referredDate && new Date(r.referredDate).toLocaleString(),
+      ]
+        .map((v) => (v ? String(v).toLowerCase() : ""))
+        .some((v) => v.includes(q));
+    });
+  }, [query, referredUsers]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6">
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="font-bold bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 text-3xl ">
               Referral Management
             </h1>
             <p className="text-gray-600 mt-2 text-lg">
@@ -196,14 +236,33 @@ export default function ReferredPage() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            {/* === NEW SEARCH BAR (minimal & consistent styling) === */}
+            <div className="relative w-full sm:w-72">
+              <FiSearch className="absolute left-3 top-3 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                placeholder="Search by referrer / referred / code..."
+                className="w-full pl-10 pr-10 py-2 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              />
+              {query && (
+                <button
+                  onClick={clearQuery}
+                  className="absolute right-2 top-2.5 p-1 text-gray-500 hover:text-gray-700"
+                  title="Clear search"
+                >
+                  <FiX />
+                </button>
+              )}
+            </div>
+            {/* === end search bar === */}
+
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center gap-4">
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    candidatePageBlocked
-                      ? "bg-red-500 animate-pulse"
-                      : "bg-green-500"
+                    candidatePageBlocked ? "bg-red-500 animate-pulse" : "bg-green-500"
                   }`}
                 ></div>
                 <span className="text-sm font-semibold text-gray-700">
@@ -226,7 +285,7 @@ export default function ReferredPage() {
 
             <button
               onClick={downloadExcel}
-              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 rounded-2xl cursor-pointer font-semibold border border-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               <svg
                 className="w-5 h-5"
@@ -268,7 +327,7 @@ export default function ReferredPage() {
             </thead>
 
             <tbody className="divide-y divide-gray-100">
-              {loading && referredUsers.length === 0 && (
+              {loading && filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-3 text-gray-700">
@@ -279,7 +338,7 @@ export default function ReferredPage() {
                 </tr>
               )}
 
-              {!loading && error && referredUsers.length === 0 && (
+              {!loading && error && filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-4 text-red-600">
@@ -295,7 +354,7 @@ export default function ReferredPage() {
                 </tr>
               )}
 
-              {!loading && !error && referredUsers.length === 0 && (
+              {!loading && !error && filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-4 text-gray-500">
@@ -310,8 +369,8 @@ export default function ReferredPage() {
                 </tr>
               )}
 
-              {referredUsers.length > 0 &&
-                referredUsers.map((r, idx) => {
+              {filteredUsers.length > 0 &&
+                filteredUsers.map((r, idx) => {
                   const referrer = r.referrerId ?? {};
                   const idxNumber = (page - 1) * pageSize + idx + 1;
                   return (
@@ -320,20 +379,14 @@ export default function ReferredPage() {
                       className="hover:bg-blue-50/30 transition-colors duration-200 group"
                     >
                       <td className="px-8 py-6 text-center">
-                        <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-semibold text-sm">
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 rounded-full font-semibold text-sm">
                           {idxNumber}
                         </span>
                       </td>
 
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-lg">
-                              {(
-                                (referrer.fullName ?? r.fullName ?? "?") + ""
-                              ).charAt(0)}
-                            </span>
-                          </div>
+               
                           <div className="text-center">
                             <p className="font-semibold text-gray-900 text-lg">
                               {referrer.fullName ?? r.fullName ?? "-"}
@@ -344,11 +397,7 @@ export default function ReferredPage() {
 
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-lg">
-                              {((r.referredName ?? "?") + "").charAt(0)}
-                            </span>
-                          </div>
+                   
                           <div className="text-center">
                             <p className="font-semibold text-gray-900 text-lg">
                               {r.referredName ?? "-"}
@@ -422,7 +471,7 @@ export default function ReferredPage() {
                     onClick={() => setPage(pageNum)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                       page === pageNum
-                        ? "bg-blue-600 text-white shadow-lg"
+                        ? "bg-green-600 text-white shadow-lg"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     }`}
                   >

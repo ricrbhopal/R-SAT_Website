@@ -40,8 +40,8 @@ export default function BulkEditModal({ isOpen, onClose, onUpdate }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+    <div className="fixed inset-0 bg-black/80 bg-blue-lg flex items-center justify-center p-4 z-50 ">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mb-65">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Bulk Edit Admit Cards</h3>
         </div>
@@ -101,14 +101,14 @@ export default function BulkEditModal({ isOpen, onClose, onUpdate }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`px-4 py-2 text-white rounded-lg ${
+              className={`px-4 py-2 text-white rounded-lg cursor-pointer ${
                 loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
               }`}
             >

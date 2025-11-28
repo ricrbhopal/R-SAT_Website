@@ -26,5 +26,17 @@ router.put("/update-status/:queryId", protect, UpdateSupportQueryStatus);
 
 // Add a response to a query (admin/support agent)
 router.post("/:queryId/respond", protect, AddSupportQueryResponse);
+// Delete support query (admin)
+router.delete("/delete-query/:queryId", protect, async (req, res, next) => {
+  // Use controller if you want, but for now inline for clarity
+  try {
+    const { queryId } = req.params;
+    if (!queryId) return res.status(400).json({ message: "Query ID required" });
+    const deleted = await import("../controller/supportController.js").then(mod => mod.DeleteSupportQuery(req, res, next));
+    return deleted;
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router;

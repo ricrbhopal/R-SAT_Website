@@ -29,7 +29,8 @@ import {
   updateResult,
   getResultByStudentId,
   getAllResults,
-  createResult
+  createResult,
+  DeleteSupportQuery
 } from "../controller/adminController.js";
 import rateLimit from "express-rate-limit";
 import {  } from "../middleware/authMiddleware.js";
@@ -81,7 +82,7 @@ router.get("/support/all-queries", GetAllSupportQueries);
 router.get("/support/student-queries", GetStudentSupportQueries);
 router.put("/support/update-status/:queryId", UpdateSupportQueryStatus);
 router.put("/support/add-response/:queryId", AddSupportQueryResponse);
-
+router.delete("/support/delete-query/:queryId", DeleteSupportQuery);
 
 // Admit Card Router
 router.post("/bulk", bulkCreateAdmitCards);

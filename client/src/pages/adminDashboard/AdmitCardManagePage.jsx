@@ -279,7 +279,7 @@ export default function AdmitCardManagePage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center justify-between w-full sm:w-auto">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admit Card Management</h1>
+                <h1 className="text-xl sm:text-2xl font-bold  text-indigo-800">Admit Card Management</h1>
                 <p className="text-gray-600 text-sm sm:text-base mt-1">Manage student admit cards and examination details</p>
               </div>
               <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden p-2 rounded-lg border border-gray-300 bg-white shadow-sm">
@@ -288,7 +288,7 @@ export default function AdmitCardManagePage() {
             </div>
 
             <div className="hidden sm:flex items-center gap-3">
-              <button onClick={handleBulkEditClick} className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm shadow-sm">
+              <button onClick={handleBulkEditClick} className="flex  border-indigo-300  rounded-lg items-center shadow-2xl gap-2 px-4 py-2 font-bold bg-gradient-to-r from-indigo-50 to-blue-50 00 text-indigo-800 border  text-sm cursor-pointer">
                 <FiSettings className="w-4 h-4" /> Bulk Edit
               </button>
               <button onClick={() => { fetchAllStudents(); fetchAllAdmitCards(); }} className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm shadow-sm">
