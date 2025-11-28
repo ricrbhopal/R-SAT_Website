@@ -169,7 +169,7 @@ export default function Slider({
         ${
           isMobile
             ? `
-          fixed top-0 left-0 h-full w-[280px] max-w-[85vw] z-50 transform transition-transform duration-300 ease-in-out
+          fixed top-0 left-0 h-full w-[280px] max-w-[85vw] z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto
           ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `
             : `
@@ -180,7 +180,7 @@ export default function Slider({
       >
         {/* Mobile menu header */}
         {isMobile && (
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200/60">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200/60 sticky top-0 bg-gradient-to-b from-gray-200 to-gray-50/80 z-10">
             <div>
               <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                 {title}
@@ -210,7 +210,7 @@ export default function Slider({
           </div>
         )}
 
-        <ul className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
+        <ul className="space-y-2">
           {items.map((it) => {
             const active = it.id === activeId;
             const theme = getTheme(it.id);
@@ -265,33 +265,35 @@ export default function Slider({
           })}
         </ul>
 
-        {/* Logout Button */}
-        <button
-          className="w-full flex items-center gap-3 px-3 md:px-4 py-3 mt-6 rounded-xl cursor-pointer transition-all duration-300 border border-red-100 bg-gradient-to-r from-red-50 to-white text-red-600 font-semibold hover:bg-red-100 hover:text-red-700 shadow-sm"
-          onClick={async () => {
-            try {
-              await AuthAPI.logout();
-              sessionStorage.removeItem("token");
-              window.location.href = "/";
-            } catch (err) {
-              alert("Logout failed. Please try again.");
-            }
-          }}
-        >
-          <FiLogOut className="text-lg md:text-xl" />
-          <span className="text-sm md:text-base">Logout</span>
-        </button>
+        {/* Logout Button - Sticky at bottom on mobile */}
+        <div className={`${isMobile ? 'sticky bottom-0 bg-gradient-to-b from-gray-200 to-gray-50/80 pb-4' : 'mt-6'}`}>
+          <button
+            className="w-full flex items-center gap-3 px-3 md:px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 border border-red-100 bg-gradient-to-r from-red-50 to-white text-red-600 font-semibold hover:bg-red-100 hover:text-red-700 shadow-sm"
+            onClick={async () => {
+              try {
+                await AuthAPI.logout();
+                sessionStorage.removeItem("token");
+                window.location.href = "/";
+              } catch (err) {
+                alert("Logout failed. Please try again.");
+              }
+            }}
+          >
+            <FiLogOut className="text-lg md:text-xl" />
+            <span className="text-sm md:text-base">Logout</span>
+          </button>
 
-        {items.length === 0 && (
-          <div className="text-center py-6 md:py-8">
-            <div className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-3 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-sm">
-              <span className="text-gray-400 text-lg md:text-2xl">📝</span>
+          {items.length === 0 && (
+            <div className="text-center py-6 md:py-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-3 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-sm">
+                <span className="text-gray-400 text-lg md:text-2xl">📝</span>
+              </div>
+              <p className="text-gray-500 text-xs md:text-sm font-medium">
+                No menu items available
+              </p>
             </div>
-            <p className="text-gray-500 text-xs md:text-sm font-medium">
-              No menu items available
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </nav>
 
       {/* Right column - content area */}
@@ -305,18 +307,6 @@ export default function Slider({
             <div className="animate-fade-in w-full">
               <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 w-full">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    {activeItem.badge && (
-                      <span
-                        className={`px-2 md:px-3 py-1 text-xs font-bold ${activeTheme.icon} rounded-full text-white shadow-lg`}
-                      >
-                        {activeItem.badge}
-                      </span>
-                    )}
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-800 truncate">
-                      {activeItem.title}
-                    </h1>
-                  </div>
                   {activeItem.subtitle && (
                     <p className="text-gray-600 text-sm md:text-base max-w-2xl font-medium">
                       {activeItem.subtitle}

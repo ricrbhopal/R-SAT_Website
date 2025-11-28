@@ -536,12 +536,12 @@ export default function ResultPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
       <ConfirmModal open={confirmState.open} message={confirmState.message} onCancel={handleCancelConfirm} onConfirm={handleOkConfirm} />
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl ">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Result Management</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold  text-teal-800">Result Management</h1>
               <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Manage student results and scholarship calculations</p>
             </div>
             <div className="flex items-center gap-2 w-full lg:w-auto">
