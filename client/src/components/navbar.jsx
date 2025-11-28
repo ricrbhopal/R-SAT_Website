@@ -17,10 +17,10 @@ const Navbar = () => {
 
             <ul className="hidden md:flex items-center gap-8 text-gray-900 text-lg font-semibold">
               <Link to="/" className="cursor-pointer hover:text-[#125785]">Home</Link>
-              <Link to={""} className="cursor-pointer hover:text-[#125785]">About</Link>
-                <Link to={""} className="cursor-pointer hover:text-[#125785]">Courses</Link>
+              <Link to={"https://ricr.in/about"} className="cursor-pointer hover:text-[#125785]">About</Link>
+                <Link to={"https://ricr.in/courses"} className="cursor-pointer hover:text-[#125785]">Courses</Link>
               {/* <li className="cursor-pointer hover:text-[#125785]">R-Sat</li> */}
-              <li className="cursor-pointer hover:text-[#125785]">Contact</li>
+              <Link to={"https://ricr.in/contact"} className="cursor-pointer hover:text-[#125785]">Contact</Link>
             </ul>
           </div>
 
