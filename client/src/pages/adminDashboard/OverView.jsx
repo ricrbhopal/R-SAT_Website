@@ -1,560 +1,339 @@
-import React, { useState, useEffect } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-  RadialBarChart,
-  RadialBar,
-  Legend
-} from "recharts";
-import { 
-  FiUsers, 
-  FiAward, 
-  FiTrendingUp, 
-  FiActivity,
-  FiStar,
-  FiTarget,
-  FiCheckCircle,
-  FiBarChart2,
-  FiPieChart
-} from "react-icons/fi";
+import React, { useEffect, useState } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { FiUsers, FiAward, FiTrendingUp, FiMessageSquare, FiDownload, FiEye, FiBarChart2 } from "react-icons/fi";
 import { AdminAPI } from "../../config/api";
 
-const COLORS = {
-  primary: "#3B82F6",
-  success: "#10B981",
-  warning: "#F59E0B",
-  error: "#EF4444",
-  purple: "#8B5CF6",
-  pink: "#EC4899",
-  indigo: "#6366F1",
-  teal: "#14B8A6"
-};
-
-// Custom shape for unique bar chart
-const CustomBarShape = (props) => {
-  const { x, y, width, height, fill } = props;
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={fill}
-        rx={8}
-        ry={8}
-        className="transition-all duration-300 hover:opacity-80"
-      />
-      {/* Add a subtle shadow effect */}
-      <rect
-        x={x + 2}
-        y={y + 2}
-        width={width}
-        height={height}
-        fill={fill}
-        opacity={0.2}
-        rx={8}
-        ry={8}
-      />
-    </g>
-  );
-};
-
-// Custom shape for pie chart labels
-const renderCustomizedLabel = ({
-  cx, cy, midAngle, innerRadius, outerRadius, percent, name
-}) => {
-  const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="white" 
-      textAnchor={x > cx ? 'start' : 'end'} 
-      dominantBaseline="central"
-      className="text-xs font-semibold"
-    >
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
+const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
 export default function OverView() {
-  const [timeRange, setTimeRange] = useState("month");
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState({
-    performance: [],
-    scoreDistribution: [],
-    progressMetrics: [],
-    quickStats: [],
-    engagement: [],
-    radialData: []
+  const [error, setError] = useState("");
+  const [userStats, setUserStats] = useState({ total: 0, referred: 0 });
+  const [admitStats, setAdmitStats] = useState({ total: 0 });
+  const [resultStats, setResultStats] = useState({ total: 0, qualified: 0, failed: 0 });
+  const [supportStats, setSupportStats] = useState({ total: 0 });
+  // Last week stats for trend calculation
+  const [lastWeekStats, setLastWeekStats] = useState({
+    users: 0,
+    referred: 0,
+    admit: 0,
+    results: 0,
+    support: 0,
+    qualified: 0,
+    failed: 0,
   });
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [timeRange]);
+    async function fetchStats() {
+      setLoading(true);
+      setError("");
+      try {
+        // Current stats
+        const [studentsRes, referredRes, admitRes, resultsRes, supportRes] = await Promise.all([
+          AdminAPI.getAllStudents().catch(() => ({ data: [] })),
+          AdminAPI.getRefferedUsers().catch(() => ({ data: [] })),
+          AdminAPI.getAllAdmitCards().catch(() => ({ data: [] })),
+          AdminAPI.getAllResults().catch(() => ({ data: [] })),
+          AdminAPI.GetAllSupportQueries().catch(() => ({ data: [] })),
+        ]);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      const [studentsRes, resultsRes, queriesRes] = await Promise.all([
-        AdminAPI.getAllStudents(),
-        AdminAPI.getAllResultsWithStudentDetails(),
-        AdminAPI.GetAllSupportQueries()
-      ]);
+        // Last week stats (assuming backend supports ?from=YYYY-MM-DD&to=YYYY-MM-DD)
+        const today = new Date();
+        const lastWeekStart = new Date(today);
+        lastWeekStart.setDate(today.getDate() - 7);
+        const lastWeekEnd = new Date(today);
+        lastWeekEnd.setDate(today.getDate() - 1);
+        const formatDate = d => d.toISOString().split("T")[0];
 
-      const students = studentsRes.data || [];
-      const results = resultsRes.data || [];
-      const queries = queriesRes.data || [];
+        const [studentsLastWeek, referredLastWeek, admitLastWeek, resultsLastWeek, supportLastWeek] = await Promise.all([
+          AdminAPI.getAllStudents({ params: { from: formatDate(lastWeekStart), to: formatDate(lastWeekEnd) } }).catch(() => ({ data: [] })),
+          AdminAPI.getRefferedUsers({ params: { from: formatDate(lastWeekStart), to: formatDate(lastWeekEnd) } }).catch(() => ({ data: [] })),
+          AdminAPI.getAllAdmitCards({ params: { from: formatDate(lastWeekStart), to: formatDate(lastWeekEnd) } }).catch(() => ({ data: [] })),
+          AdminAPI.getAllResults({ params: { from: formatDate(lastWeekStart), to: formatDate(lastWeekEnd) } }).catch(() => ({ data: [] })),
+          AdminAPI.GetAllSupportQueries({ params: { from: formatDate(lastWeekStart), to: formatDate(lastWeekEnd) } }).catch(() => ({ data: [] })),
+        ]);
 
-      const performanceData = generatePerformanceData(students, results);
-      const scoreData = generateScoreData(results);
-      const progressData = generateProgressData(students, results, queries);
-      const quickStats = generateQuickStats(students, results, queries);
-      const engagementData = generateEngagementData();
-      const radialData = generateRadialData(students, results);
+        // Safe data extraction with defaults
+        const studentsData = studentsRes?.data || [];
+        const referredData = referredRes?.data || [];
+        const admitData = admitRes?.data || [];
+        const resultsData = resultsRes?.data || [];
+        const supportData = supportRes?.data || [];
 
-      setDashboardData({
-        performance: performanceData,
-        scoreDistribution: scoreData,
-        progressMetrics: progressData,
-        quickStats: quickStats,
-        engagement: engagementData,
-        radialData: radialData
-      });
+        setUserStats({
+          total: studentsData.length || 0,
+          referred: referredData.length || 0,
+        });
 
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
+        setAdmitStats({
+          total: admitData.length || 0,
+        });
+
+        const results = Array.isArray(resultsData) ? resultsData : [];
+        setResultStats({
+          total: results.length,
+          qualified: results.filter(r => r?.percentage >= 60).length,
+          failed: results.filter(r => r?.percentage < 60).length,
+        });
+
+        setSupportStats({
+          total: supportData.length || 0,
+        });
+
+        // Last week stats
+        setLastWeekStats({
+          users: studentsLastWeek?.data?.length || 0,
+          referred: referredLastWeek?.data?.length || 0,
+          admit: admitLastWeek?.data?.length || 0,
+          results: resultsLastWeek?.data?.length || 0,
+          support: supportLastWeek?.data?.length || 0,
+          qualified: (resultsLastWeek?.data?.filter(r => r?.percentage >= 60).length) || 0,
+          failed: (resultsLastWeek?.data?.filter(r => r?.percentage < 60).length) || 0,
+        });
+      } catch (err) {
+        console.error("Dashboard error:", err);
+        setError("Failed to load dashboard stats. Please try again.");
+      }
       setLoading(false);
     }
-  };
+    fetchStats();
+  }, []);
 
-  const generatePerformanceData = (students, results) => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    return months.map(month => ({
-      name: month,
-      Students: Math.floor(Math.random() * 50 + 20),
-      "Tests Taken": Math.floor(Math.random() * 40 + 15),
-      "Success Rate": Math.floor(Math.random() * 30 + 65),
-      "Avg Score": Math.floor(Math.random() * 20 + 70)
-    }));
-  };
-
-  const generateScoreData = (results) => {
-    const ranges = [
-      { name: "Excellent", range: "90-100%", value: Math.floor(Math.random() * 25 + 15), fill: "#10B981" },
-      { name: "Good", range: "80-89%", value: Math.floor(Math.random() * 30 + 20), fill: "#34D399" },
-      { name: "Average", range: "70-79%", value: Math.floor(Math.random() * 35 + 25), fill: "#F59E0B" },
-      { name: "Needs Work", range: "60-69%", value: Math.floor(Math.random() * 20 + 10), fill: "#F97316" },
-      { name: "Attention", range: "Below 60%", value: Math.floor(Math.random() * 15 + 5), fill: "#EF4444" }
-    ];
-    return ranges;
-  };
-
-  const generateProgressData = (students, results, queries) => [
-    {
-      metric: "Completion",
-      value: Math.min(95, (results.length / students.length) * 100),
-      target: 90,
-      color: COLORS.primary,
-      icon: FiCheckCircle
-    },
-    {
-      metric: "Success",
-      value: Math.min(85, (results.filter(r => r.percentage >= 60).length / results.length) * 100),
-      target: 80,
-      color: COLORS.success,
-      icon: FiAward
-    },
-    {
-      metric: "Engagement",
-      value: Math.min(88, (queries.filter(q => q.status === 'resolved').length / queries.length) * 100),
-      target: 85,
-      color: COLORS.purple,
-      icon: FiActivity
-    }
+  // Data for charts with safe defaults
+  const barData = [
+    { name: "Students", value: userStats.total || 0 },
+    { name: "Referred", value: userStats.referred || 0 },
+    { name: "Admit Cards", value: admitStats.total || 0 },
+    { name: "Results", value: resultStats.total || 0 },
+    { name: "Support", value: supportStats.total || 0 },
+  ];
+  
+  const pieData = [
+    { name: "Qualified", value: resultStats.qualified || 0, color: COLORS[1] },
+    { name: "Failed", value: resultStats.failed || 0, color: COLORS[3] },
   ];
 
-  const generateQuickStats = (students, results, queries) => [
-    {
-      title: "Total Students",
-      value: students.length.toLocaleString(),
-      change: "+12%",
-      icon: FiUsers,
-      color: "blue",
-      trend: "up"
-    },
-    {
-      title: "Avg Score",
-      value: `${calculateAverageScore(results)}%`,
-      change: "+5.2%",
-      icon: FiAward,
-      color: "green",
-      trend: "up"
-    },
-    {
-      title: "Tests Completed",
-      value: results.length.toLocaleString(),
-      change: "+18%",
-      icon: FiTrendingUp,
-      color: "purple",
-      trend: "up"
-    },
-    {
-      title: "Success Rate",
-      value: `${Math.round((results.filter(r => r.percentage >= 60).length / results.length) * 100)}%`,
-      change: "+8%",
-      icon: FiTarget,
-      color: "orange",
-      trend: "up"
-    }
-  ];
-
-  const generateEngagementData = () => {
-    return Array.from({ length: 7 }, (_, i) => ({
-      day: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
-      active: Math.floor(Math.random() * 100 + 50),
-      completed: Math.floor(Math.random() * 80 + 30),
-      engagement: Math.floor(Math.random() * 60 + 40)
-    }));
-  };
-
-  const generateRadialData = (students, results) => [
-    { name: "Completion", value: Math.min(100, (results.length / students.length) * 100), fill: COLORS.primary },
-    { name: "Success", value: Math.min(100, (results.filter(r => r.percentage >= 60).length / results.length) * 100), fill: COLORS.success },
-    { name: "Growth", value: Math.min(100, (students.length / 1000) * 100), fill: COLORS.purple },
-    { name: "Retention", value: Math.min(100, 85), fill: COLORS.teal }
-  ];
-
-  const calculateAverageScore = (results) => {
-    if (results.length === 0) return 0;
-    const avg = results.reduce((sum, r) => sum + (r.percentage || 0), 0) / results.length;
-    return avg.toFixed(1);
-  };
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload) return null;
-    
-    return (
-      <div className="bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl p-4 shadow-2xl">
-        <p className="text-white font-semibold mb-2">{label}</p>
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: <span className="text-white font-medium">{entry.value}</span>
-          </p>
-        ))}
-      </div>
-    );
-  };
-
-  const RadialProgress = ({ value, color, size = 120, label }) => {
-    return (
-      <div className="text-center">
-        <div className="relative inline-block">
-          <div 
-            className="radial-progress text-white border-4 border-gray-200 rounded-full flex items-center justify-center"
-            style={{ 
-              '--value': value, 
-              '--size': `${size}px`, 
-              '--thickness': '8px',
-              backgroundColor: color + '20'
-            }}
-          >
-            <span className="text-2xl font-bold" style={{ color }}>{value}%</span>
-          </div>
-        </div>
-        <p className="mt-3 text-sm font-semibold text-gray-700">{label}</p>
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+  // Stats cards data with safe values
+  // Helper to calculate percentage change
+  function getTrend(current, lastWeek) {
+    if (lastWeek === 0) return current === 0 ? "0%" : "+100%";
+    const change = ((current - lastWeek) / lastWeek) * 100;
+    const sign = change > 0 ? "+" : "";
+    return `${sign}${change.toFixed(1)}%`;
   }
 
+  const statsCards = [
+    {
+      title: "Total Students",
+      value: userStats.total || 0,
+      icon: <FiUsers className="text-2xl" />,
+      color: "bg-blue-500",
+      trend: getTrend(userStats.total, lastWeekStats.users),
+      description: "Active registered students"
+    },
+    {
+      title: "Referred Users",
+      value: userStats.referred || 0,
+      icon: <FiTrendingUp className="text-2xl" />,
+      color: "bg-green-500",
+      trend: getTrend(userStats.referred, lastWeekStats.referred),
+      description: "Users from referral program"
+    },
+    {
+      title: "Admit Cards",
+      value: admitStats.total || 0,
+      icon: <FiAward className="text-2xl" />,
+      color: "bg-purple-500",
+      trend: getTrend(admitStats.total, lastWeekStats.admit),
+      description: "Generated admit cards"
+    },
+    {
+      title: "Support Queries",
+      value: supportStats.total || 0,
+      icon: <FiMessageSquare className="text-2xl" />,
+      color: "bg-orange-500",
+      trend: getTrend(supportStats.total, lastWeekStats.support),
+      description: "Pending support tickets"
+    }
+  ];
+
+  // Quick actions
+  const quickActions = [
+    { title: "View Reports", icon: <FiBarChart2 />, color: "bg-blue-50 text-blue-600" },
+    { title: "Export Data", icon: <FiDownload />, color: "bg-green-50 text-green-600" },
+    { title: "Monitor Progress", icon: <FiEye />, color: "bg-purple-50 text-purple-600" }
+  ];
+
+  // Calculate success rate safely
+  const successRate = resultStats.total > 0 
+    ? ((resultStats.qualified / resultStats.total) * 100).toFixed(1) 
+    : 0;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
-            Analytics Overview
-          </h1>
-          <p className="text-gray-600 text-lg">Real-time insights and performance metrics</p>
-        </div>
-
-        {/* Time Range Filter */}
-        <div className="flex justify-center">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-1 border border-gray-200 shadow-sm">
-            {["week", "month", "quarter", "year"].map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={`px-6 py-3 text-sm font-medium rounded-xl transition-all duration-200 capitalize ${
-                  timeRange === range
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                }`}
-              >
-                {range}
-              </button>
-            ))}
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-600 mt-2">Welcome back! Here's what's happening with your platform today.</p>
+          </div>
+          <div className="mt-4 sm:mt-0">
+            <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 transform hover:scale-105">
+              Generate Report
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Quick Stats with improved design */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {dashboardData.quickStats.map((stat, index) => (
-            <div 
-              key={index} 
-              className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm hover:shadow-xl transition-all duration-500 group hover:scale-105"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br from-${stat.color}-100 to-${stat.color}-50 group-hover:scale-110 transition-transform duration-300`}>
-                  <stat.icon className={`text-2xl text-${stat.color}-600`} />
-                </div>
-                <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
-                  stat.trend === 'up' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                }`}>
-                  {stat.change}
-                </span>
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</h3>
-              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-              <div className="mt-3 w-full bg-gray-200 rounded-full h-1">
-                <div 
-                  className={`h-1 rounded-full bg-${stat.color}-500 transition-all duration-1000`}
-                  style={{ width: `${Math.random() * 80 + 20}%` }}
-                ></div>
-              </div>
-            </div>
-          ))}
+      {loading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-
-        {/* Main Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Performance Trend - Gradient Area Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                <FiTrendingUp className="text-white text-xl" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 text-lg">Performance Trend</h3>
-                <p className="text-sm text-gray-600">Monthly growth analysis</p>
-              </div>
-            </div>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dashboardData.performance}>
-                  <defs>
-                    <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorTests" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="Students" 
-                    stroke="#3B82F6" 
-                    fill="url(#colorStudents)" 
-                    strokeWidth={3}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="Tests Taken" 
-                    stroke="#10B981" 
-                    fill="url(#colorTests)" 
-                    strokeWidth={3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Score Distribution - Donut Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg">
-                <FiPieChart className="text-white text-xl" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 text-lg">Score Distribution</h3>
-                <p className="text-sm text-gray-600">Performance categories</p>
-              </div>
-            </div>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={dashboardData.scoreDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={110}
-                    paddingAngle={1}
-                    dataKey="value"
-                    label={renderCustomizedLabel}
-                    labelLine={false}
-                  >
-                    {dashboardData.scoreDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    content={({ active, payload }) => {
-                      if (!active || !payload.length) return null;
-                      const data = payload[0].payload;
-                      return (
-                        <div className="bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl p-4 shadow-2xl text-white">
-                          <div className="font-semibold mb-2">{data.name}</div>
-                          <div>Students: {data.value}</div>
-                          <div>Range: {data.range}</div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Legend 
-                    layout="vertical"
-                    verticalAlign="middle"
-                    align="right"
-                    wrapperStyle={{ right: -20 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <div className="text-red-600 text-lg font-semibold">{error}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
         </div>
-
-        {/* Bottom Row - Additional Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Radial Progress Charts */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm lg:col-span-1">
-            <h3 className="font-semibold text-gray-900 text-lg mb-6 text-center">Progress Metrics</h3>
-            <div className="space-y-8">
-              {dashboardData.progressMetrics.map((metric, index) => (
-                <div key={index} className="text-center">
-                  <RadialProgress 
-                    value={metric.value} 
-                    color={metric.color}
-                    size={100}
-                    label={metric.metric}
-                  />
-                  <div className="mt-2 text-xs text-gray-500">
-                    Target: {metric.target}%
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {statsCards.map((stat, index) => (
+              <div key={index} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">{stat.title}</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                      {(stat.value || 0).toLocaleString()}
+                    </p>
+                    <p className="text-green-600 text-sm font-medium mt-1">{stat.trend} from last week</p>
+                  </div>
+                  <div className={`${stat.color} text-white p-3 rounded-xl`}>
+                    {stat.icon}
                   </div>
                 </div>
-              ))}
-            </div>
+                <p className="text-gray-500 text-xs mt-4">{stat.description}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Engagement Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm lg:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
-                <FiActivity className="text-white text-xl" />
+          {/* Charts and Quick Actions */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            {/* Bar Chart */}
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-120">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <FiTrendingUp className="text-blue-600 text-xl" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Platform Overview</h2>
+                    <p className="text-gray-600 text-sm">Key metrics and performance indicators</p>
+                  </div>
+                </div>
+                <select className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
+                  <option>Last 7 days</option>
+                  <option>Last 30 days</option>
+                  <option>Last 90 days</option>
+                </select>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 text-lg">Weekly Engagement</h3>
-                <p className="text-sm text-gray-600">User activity patterns</p>
-              </div>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dashboardData.engagement}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar 
-                    dataKey="active" 
-                    fill="#8B5CF6" 
-                    shape={<CustomBarShape />}
-                    radius={[8, 8, 0, 0]}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#6B7280', fontSize: 12 }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#6B7280', fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      borderRadius: '12px', 
+                      border: 'none', 
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                      background: 'white'
+                    }}
                   />
                   <Bar 
-                    dataKey="completed" 
-                    fill="#10B981" 
-                    shape={<CustomBarShape />}
+                    dataKey="value" 
+                    fill="url(#colorGradient)" 
                     radius={[8, 8, 0, 0]}
+                    barSize={40}
                   />
+                  <defs>
+                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor="#1D4ED8" />
+                    </linearGradient>
+                  </defs>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
 
-        {/* Summary Section */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-2xl p-8 text-white text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10">
-            <h3 className="text-2xl font-bold mb-4">Ready to Dive Deeper?</h3>
-            <p className="text-blue-100 mb-6 text-lg max-w-2xl mx-auto">
-              Explore detailed analytics, track individual progress, and unlock powerful insights to drive better outcomes.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <button className="bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all duration-200 hover:scale-105 shadow-lg">
-                View Detailed Reports
-              </button>
-              <button className="border-2 border-white text-white px-6 py-3 rounded-xl font-semibold hover:bg-white/10 transition-all duration-200 hover:scale-105">
-                Export Analytics
-              </button>
+            {/* Quick Actions & Pie Chart */}
+            <div className="space-y-8">
+  
+              {/* Pie Chart */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-120">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-green-100 p-2 rounded-lg">
+                    <FiAward className="text-green-600 text-xl" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Results Analysis</h2>
+                    <p className="text-gray-600 text-sm">Student performance breakdown</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      labelLine={false}
+                    >
+                      {pieData.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Total Results:</span>
+                    <span className="font-semibold">{resultStats.total || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-2">
+                    <span className="text-gray-600">Success Rate:</span>
+                    <span className="font-semibold text-green-600">
+                      {successRate}%
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <style jsx>{`
-        .radial-progress {
-          background: conic-gradient(var(--value) var(--value), #E5E7EB 0);
-        }
-        .radial-progress::before {
-          content: "";
-          position: absolute;
-          top: 4px;
-          left: 4px;
-          right: 4px;
-          bottom: 4px;
-          background: white;
-          border-radius: 50%;
-        }
-      `}</style>
+  
+        </>
+      )}
     </div>
   );
 }
