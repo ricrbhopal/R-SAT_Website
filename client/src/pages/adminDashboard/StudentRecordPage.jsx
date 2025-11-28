@@ -91,16 +91,16 @@ export default function StudentRecordPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen ">
+      <div className="bg-white rounded-4xl shadow-lg border border-gray-200 p-4 sm:p-6 ">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 sm:p-3 bg-blue-50 rounded-full text-blue-600">
+            <div className="p-2 sm:p-3 bg-emerald-50 rounded-full text-emerald-600">
               <FiUsers size={20} />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Student Records</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-emerald-400">Student Records</h2>
               <p className="text-xs sm:text-sm text-gray-500">
                 Total students: <span className="font-medium text-gray-700">{students.length}</span>
                 {query && (
@@ -119,7 +119,7 @@ export default function StudentRecordPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search students..."
-                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                className="pl-9 pr-4 py-2 shadow-sm border border-gray-300 rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2  focus:ring-emerald-200 focus:border-emerald-500"
               />
               <FiSearch className="absolute left-3 top-2.5 text-gray-400" />
             </div>
@@ -129,7 +129,7 @@ export default function StudentRecordPage() {
               <button
                 onClick={downloadExcel}
                 disabled={filteredStudents.length === 0}
-                className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex shadow-sm cursor-pointer items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg transition-colors bg-green-50 text-green-600 hover:bg-green-100 hover:border-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Download Excel"
               >
                 <FiDownload size={16} />
@@ -138,7 +138,7 @@ export default function StudentRecordPage() {
 
               <button
                 onClick={() => setRefreshToggle((t) => !t)}
-                className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="inline-flex shadow-sm cursor-pointer items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg  transition-colors  bg-blue-50 text-blue-600 hover:bg-blue-100 hover:border-blue-200"
                 title="Refresh"
               >
                 <FiRefreshCw size={16} />
