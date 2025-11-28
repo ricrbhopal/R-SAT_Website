@@ -1,13 +1,13 @@
 import AuthModel from "../models/authModel.js";
 import Referred from "../models/refferedModel.js";
 import DemoClass from "../models/demoModel.js";
-import SupportQuery from "../models/supportQueriesModel.js"; 
+import SupportQuery from "../models/supportQueriesModel.js";
 import Result from "../models/resultModel.js";
 import AdmitCard from "../models/admitCardmodel.js";
 import Student from "../models/authModel.js";
-import {sendConfirmationEmail } from "../utils/emailService.js";
-import { verifyPresentToken } from '../utils/genAuthToken.js';
-import {sendAdmitCardEmail } from "../utils/emailService.js";
+import { sendConfirmationEmail } from "../utils/emailService.js";
+import { verifyPresentToken } from "../utils/genAuthToken.js";
+import { sendAdmitCardEmail } from "../utils/emailService.js";
 import crypto from "crypto";
 import mongoose from "mongoose";
 
@@ -119,12 +119,10 @@ export const putRefferedUserDetails = async (req, res, next) => {
       return res.status(404).json({ message: "Referred user not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Referred user updated successfully",
-        referred: updatedReferred,
-      });
+    res.status(200).json({
+      message: "Referred user updated successfully",
+      referred: updatedReferred,
+    });
   } catch (error) {
     console.error("[putRefferedUserDetails] Error:", error);
     next(error);
@@ -163,8 +161,6 @@ export const getRefferedUserById = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 export const getAllDemoClasses = async (req, res, next) => {
   try {
@@ -210,15 +206,17 @@ export const deleteDemoClass = async (req, res) => {
   }
 };
 
-
-
 export const putDemoClassDetails = async (req, res, next) => {
   try {
     const demoClassId = req.params.id;
     const updateData = req.body;
-    const updatedDemoClass = await DemoClass.findByIdAndUpdate(demoClassId, updateData, {
-      new: true,
-    });
+    const updatedDemoClass = await DemoClass.findByIdAndUpdate(
+      demoClassId,
+      updateData,
+      {
+        new: true,
+      }
+    );
     if (!updatedDemoClass) {
       return res.status(404).json({ message: "Demo class not found" });
     }
@@ -234,25 +232,23 @@ export const putDemoClassDetails = async (req, res, next) => {
           collegeName: updatedDemoClass.collegeName,
           year: updatedDemoClass.year,
         });
-        console.log("Confirmation email sent successfully to:", updatedDemoClass.email);
+        console.log(
+          "Confirmation email sent successfully to:",
+          updatedDemoClass.email
+        );
       } catch (emailError) {
         console.error("Failed to send confirmation email:", emailError);
       }
     }
 
-    res
-      .status(200)
-      .json({ message: "Demo class updated successfully", demoClass: updatedDemoClass });
+    res.status(200).json({
+      message: "Demo class updated successfully",
+      demoClass: updatedDemoClass,
+    });
   } catch (error) {
     next(error);
   }
 };
-
-
-
-
-
-
 
 /**
  * Get all support queries (admin)
@@ -335,7 +331,9 @@ export const UpdateSupportQueryStatus = async (req, res, next) => {
       return res.status(404).json({ message: "Support query not found" });
     }
 
-    return res.status(200).json({ message: "Support query status updated", query });
+    return res
+      .status(200)
+      .json({ message: "Support query status updated", query });
   } catch (error) {
     next(error);
   }
@@ -359,9 +357,13 @@ export const AddSupportQueryResponse = async (req, res, next) => {
       return res.status(400).json({ message: "Response message is required" });
     }
 
-    const responderName = (req.user && (req.user.name || req.user.fullName)) || responder;
+    const responderName =
+      (req.user && (req.user.name || req.user.fullName)) || responder;
     if (!responderName) {
-      return res.status(400).json({ message: "Responder name required (authenticate or send responder in body)" });
+      return res.status(400).json({
+        message:
+          "Responder name required (authenticate or send responder in body)",
+      });
     }
 
     const query = await SupportQuery.findByIdAndUpdate(
@@ -379,7 +381,9 @@ export const AddSupportQueryResponse = async (req, res, next) => {
       return res.status(404).json({ message: "Support query not found" });
     }
 
-    return res.status(200).json({ message: "Response added to support query", query });
+    return res
+      .status(200)
+      .json({ message: "Response added to support query", query });
   } catch (error) {
     next(error);
   }
@@ -403,22 +407,17 @@ export const DeleteSupportQuery = async (req, res, next) => {
       return res.status(404).json({ message: "Support query not found" });
     }
 
-    return res.status(200).json({ message: "Support query deleted successfully" });
+    return res
+      .status(200)
+      .json({ message: "Support query deleted successfully" });
   } catch (error) {
     next(error);
   }
 };
 
-
-
-
-
-
 /** helper: generate short unique RSAT */
-const genRSAT = () => "RSAT-" + crypto.randomBytes(4).toString("hex").toUpperCase();
-
-
-
+const genRSAT = () =>
+  "RSAT-" + crypto.randomBytes(4).toString("hex").toUpperCase();
 
 export const bulkCreateAdmitCards = async (req, res) => {
   try {
@@ -432,7 +431,9 @@ export const bulkCreateAdmitCards = async (req, res) => {
     // Fetch all students
     const students = await Student.find();
     if (!students || students.length === 0) {
-      return res.status(400).json({ message: "No students found to create admit cards." });
+      return res
+        .status(400)
+        .json({ message: "No students found to create admit cards." });
     }
 
     // Prepare admit cards for all students
@@ -458,66 +459,102 @@ export const bulkCreateAdmitCards = async (req, res) => {
     students.forEach((s) => studentMap.set(String(s._id), s));
 
     // Send confirmation emails and update each admit card with email status
-    const results = await Promise.all(createdAdmitCards.map(async (admitCard) => {
-      const student = studentMap.get(String(admitCard.studentId)) || await Student.findById(admitCard.studentId);
+    const results = await Promise.all(
+      createdAdmitCards.map(async (admitCard) => {
+        const student =
+          studentMap.get(String(admitCard.studentId)) ||
+          (await Student.findById(admitCard.studentId));
 
-      // resolve the email address field(s) — try common field names
-      const emailCandidates = [
-        student?.mail_ID,
-        student?.mailId,
-        student?.email,
-        student?.mail,
-        student?.contactEmail,
-      ].filter(Boolean);
+        // resolve the email address field(s) — try common field names
+        const emailCandidates = [
+          student?.mail_ID,
+          student?.mailId,
+          student?.email,
+          student?.mail,
+          student?.contactEmail,
+        ].filter(Boolean);
 
-      // prefer first valid email
-      const resolvedEmail = Array.isArray(emailCandidates[0]) ? emailCandidates[0][0] : emailCandidates[0];
+        // prefer first valid email
+        const resolvedEmail = Array.isArray(emailCandidates[0])
+          ? emailCandidates[0][0]
+          : emailCandidates[0];
 
-      if (!resolvedEmail) {
-        // update DB: email missing
-        admitCard.emailSent = false;
-        admitCard.emailSentAt = null;
-        admitCard.emailError = "Student email not found (mail_ID/email/mailId)";
-        await admitCard.save();
-        return { admitCardId: admitCard._id, success: false, error: admitCard.emailError };
-      }
-
-      // Use sendAdmitCardEmail helper: it expects `student` with `.email` OR an email string in args.
-      // We'll call sendAdmitCardEmail(studentObj, [admitCard], opts) — but ensure student.email exists.
-      const studentForEmail = { ...student.toObject ? student.toObject() : student, email: resolvedEmail };
-
-      try {
-        // sendIndividually=false will send one email containing the admit card details (function you provided)
-        const response = await sendAdmitCardEmail(studentForEmail, [admitCard], {
-          attachFiles: [], // pass attachments if you have
-          dashboardPath: "/student/dashboard",
-          sendIndividually: false,
-        });
-
-        if (response && response.success) {
-          admitCard.emailSent = true;
-          admitCard.emailSentAt = new Date();
-          admitCard.emailError = null;
-          await admitCard.save();
-          return { admitCardId: admitCard._id, success: true, sentTo: response.sentTo || [resolvedEmail] };
-        } else {
-          const errMsg = response && response.error ? response.error : "Unknown send failure";
+        if (!resolvedEmail) {
+          // update DB: email missing
           admitCard.emailSent = false;
           admitCard.emailSentAt = null;
-          admitCard.emailError = String(errMsg);
+          admitCard.emailError =
+            "Student email not found (mail_ID/email/mailId)";
           await admitCard.save();
-          return { admitCardId: admitCard._id, success: false, error: String(errMsg) };
+          return {
+            admitCardId: admitCard._id,
+            success: false,
+            error: admitCard.emailError,
+          };
         }
-      } catch (err) {
-        // sendAdmitCardEmail threw
-        admitCard.emailSent = false;
-        admitCard.emailSentAt = null;
-        admitCard.emailError = err.message || String(err);
-        await admitCard.save();
-        console.error(`Email send error for admit ${admitCard._id} -> ${resolvedEmail}:`, err);
-        return { admitCardId: admitCard._id, success: false, error: String(err.message || err) };
-      }
-    }));
+
+        // Use sendAdmitCardEmail helper: it expects `student` with `.email` OR an email string in args.
+        // We'll call sendAdmitCardEmail(studentObj, [admitCard], opts) — but ensure student.email exists.
+        const studentForEmail = {
+          ...(student.toObject ? student.toObject() : student),
+          email: resolvedEmail,
+        };
+
+        try {
+          // sendIndividually=false will send one email containing the admit card details (function you provided)
+          const response = await sendAdmitCardEmail(
+            studentForEmail,
+            [admitCard],
+            {
+              attachFiles: [], // pass attachments if you have
+              dashboardPath: "/student/dashboard",
+              sendIndividually: false,
+            }
+          );
+
+          if (response && response.success) {
+            admitCard.emailSent = true;
+            admitCard.emailSentAt = new Date();
+            admitCard.emailError = null;
+            await admitCard.save();
+            return {
+              admitCardId: admitCard._id,
+              success: true,
+              sentTo: response.sentTo || [resolvedEmail],
+            };
+          } else {
+            const errMsg =
+              response && response.error
+                ? response.error
+                : "Unknown send failure";
+            admitCard.emailSent = false;
+            admitCard.emailSentAt = null;
+            admitCard.emailError = String(errMsg);
+            await admitCard.save();
+            return {
+              admitCardId: admitCard._id,
+              success: false,
+              error: String(errMsg),
+            };
+          }
+        } catch (err) {
+          // sendAdmitCardEmail threw
+          admitCard.emailSent = false;
+          admitCard.emailSentAt = null;
+          admitCard.emailError = err.message || String(err);
+          await admitCard.save();
+          console.error(
+            `Email send error for admit ${admitCard._id} -> ${resolvedEmail}:`,
+            err
+          );
+          return {
+            admitCardId: admitCard._id,
+            success: false,
+            error: String(err.message || err),
+          };
+        }
+      })
+    );
 
     // return inserted count + email send summary
     return res.status(201).json({
@@ -527,9 +564,16 @@ export const bulkCreateAdmitCards = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating admit cards:", error);
-    return res.status(500).json({ message: "Failed to create admit cards.", error: String(error.message || error) });
+    return res.status(500).json({
+      message: "Failed to create admit cards.",
+      error: String(error.message || error),
+    });
   }
 };
+
+
+
+
 /**
  * Get All Admit Cards
  * GET /api/admitcards
@@ -542,7 +586,12 @@ export const getAllAdmitCards = async (req, res, next) => {
     if (status) query.status = status;
     if (search) {
       const re = new RegExp(search, "i");
-      query.$or = [{ ApplicantName: re }, { RSAT: re }, { college: re }, { contact: re }];
+      query.$or = [
+        { ApplicantName: re },
+        { RSAT: re },
+        { college: re },
+        { contact: re },
+      ];
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -555,7 +604,9 @@ export const getAllAdmitCards = async (req, res, next) => {
         .populate("studentId", "fullName email"),
     ]);
 
-    return res.status(200).json({ total, page: Number(page), limit: Number(limit), data });
+    return res
+      .status(200)
+      .json({ total, page: Number(page), limit: Number(limit), data });
   } catch (err) {
     next(err);
   }
@@ -568,8 +619,12 @@ export const getAllAdmitCards = async (req, res, next) => {
 export const getAdmitCardById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const admitCard = await AdmitCard.findById(id).populate("studentId", "fullName email");
-    if (!admitCard) return res.status(404).json({ message: "Admit card not found" });
+    const admitCard = await AdmitCard.findById(id).populate(
+      "studentId",
+      "fullName email"
+    );
+    if (!admitCard)
+      return res.status(404).json({ message: "Admit card not found" });
     res.status(200).json(admitCard);
   } catch (err) {
     next(err);
@@ -583,13 +638,21 @@ export const getAdmitCardById = async (req, res, next) => {
 export const updateAdmitCard = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updated = await AdmitCard.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
-    if (!updated) return res.status(404).json({ message: "Admit card not found" });
-    res.status(200).json({ message: "Admit card updated successfully", admitCard: updated });
+    const updated = await AdmitCard.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!updated)
+      return res.status(404).json({ message: "Admit card not found" });
+    res
+      .status(200)
+      .json({ message: "Admit card updated successfully", admitCard: updated });
   } catch (err) {
     // duplicate key handling
     if (err.code === 11000) {
-      return res.status(409).json({ message: "Duplicate value error", details: err.keyValue });
+      return res
+        .status(409)
+        .json({ message: "Duplicate value error", details: err.keyValue });
     }
     next(err);
   }
@@ -603,7 +666,8 @@ export const deleteAdmitCard = async (req, res, next) => {
   try {
     const { id } = req.params;
     const removed = await AdmitCard.findByIdAndDelete(id);
-    if (!removed) return res.status(404).json({ message: "Admit card not found" });
+    if (!removed)
+      return res.status(404).json({ message: "Admit card not found" });
     res.status(200).json({ message: "Admit card deleted successfully" });
   } catch (err) {
     next(err);
@@ -621,7 +685,9 @@ export const updateAdmitCardStatus = async (req, res, next) => {
     const { status, issuedBy } = req.body;
 
     if (!status || !["issued", "not_issued"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status. Use 'issued' or 'not_issued'." });
+      return res
+        .status(400)
+        .json({ message: "Invalid status. Use 'issued' or 'not_issued'." });
     }
 
     const updates = { status };
@@ -633,21 +699,30 @@ export const updateAdmitCardStatus = async (req, res, next) => {
       updates.issuedBy = null;
     }
 
-    const admitCard = await AdmitCard.findByIdAndUpdate(id, updates, { new: true }).populate("studentId", "fullName email");
+    const admitCard = await AdmitCard.findByIdAndUpdate(id, updates, {
+      new: true,
+    }).populate("studentId", "fullName email");
 
-    if (!admitCard) return res.status(404).json({ message: "Admit card not found" });
+    if (!admitCard)
+      return res.status(404).json({ message: "Admit card not found" });
 
     // send email if issued and student email exists
-    if (status === "issued" && admitCard.studentId && admitCard.studentId.email) {
+    if (
+      status === "issued" &&
+      admitCard.studentId &&
+      admitCard.studentId.email
+    ) {
       try {
-        const admits = [{
-          _id: admitCard._id,
-          admitToken: admitCard.admitToken,
-          examDate: admitCard.examDate,
-          venue: admitCard.venue,
-          examTime: admitCard.examTime,
-          ReportingTime: admitCard.ReportingTime,
-        }];
+        const admits = [
+          {
+            _id: admitCard._id,
+            admitToken: admitCard.admitToken,
+            examDate: admitCard.examDate,
+            venue: admitCard.venue,
+            examTime: admitCard.examTime,
+            ReportingTime: admitCard.ReportingTime,
+          },
+        ];
 
         await sendAdmitCardEmail(
           {
@@ -672,14 +747,17 @@ export const updateAdmitCardStatus = async (req, res, next) => {
 
         // return success about status but inform about email failure
         return res.status(200).json({
-          message: "Admit card status updated to 'issued' but failed to send email",
+          message:
+            "Admit card status updated to 'issued' but failed to send email",
           admitCard,
           emailError: admitCard.emailError,
         });
       }
     }
 
-    return res.status(200).json({ message: "Admit card status updated successfully", admitCard });
+    return res
+      .status(200)
+      .json({ message: "Admit card status updated successfully", admitCard });
   } catch (err) {
     next(err);
   }
@@ -715,7 +793,10 @@ export const bulkUpdateAdmitCards = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating admit cards:", error);
-    return res.status(500).json({ message: "Failed to update admit cards.", error: String(error.message || error) });
+    return res.status(500).json({
+      message: "Failed to update admit cards.",
+      error: String(error.message || error),
+    });
   }
 };
 
@@ -726,10 +807,16 @@ export const getPublicAdmitCard = async (req, res, next) => {
     // Try as ObjectId first, if not found try RSAT
     let admit = null;
     if (idOrRsat.match(/^[0-9a-fA-F]{24}$/)) {
-      admit = await AdmitCard.findById(idOrRsat).populate("studentId", "fullName email phoneNo");
+      admit = await AdmitCard.findById(idOrRsat).populate(
+        "studentId",
+        "fullName email phoneNo"
+      );
     }
     if (!admit) {
-      admit = await AdmitCard.findOne({ RSAT: idOrRsat }).populate("studentId", "fullName email phoneNo");
+      admit = await AdmitCard.findOne({ RSAT: idOrRsat }).populate(
+        "studentId",
+        "fullName email phoneNo"
+      );
     }
 
     if (!admit) {
@@ -741,7 +828,8 @@ export const getPublicAdmitCard = async (req, res, next) => {
       _id: admit._id,
       RSAT: admit.RSAT,
       ApplicantName: admit.ApplicantName || admit.studentId?.fullName,
-      contact: admit.contact || admit.studentId?.phoneNo || admit.studentId?.email,
+      contact:
+        admit.contact || admit.studentId?.phoneNo || admit.studentId?.email,
       college: admit.college || admit.studentId?.college,
       branch: admit.branch || admit.studentId?.branch,
       year: admit.year || admit.studentId?.year,
@@ -757,8 +845,6 @@ export const getPublicAdmitCard = async (req, res, next) => {
     next(err);
   }
 };
-
-
 
 export const markAttendance = async (req, res) => {
   try {
@@ -780,7 +866,8 @@ export const markAttendance = async (req, res) => {
     }
 
     const admit = await AdmitCard.findById(payload.admitCardId);
-    if (!admit) return res.status(404).json({ message: "Admit card not found" });
+    if (!admit)
+      return res.status(404).json({ message: "Admit card not found" });
 
     // Already present
     if (admit.present) {
@@ -804,16 +891,11 @@ export const markAttendance = async (req, res) => {
       admitId: admit._id,
       presentedAt: admit.presentedAt,
     });
-
   } catch (error) {
     console.error("Attendance Mark Error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
-
-
-
-
 
 // Create a new result
 export const createResult = async (req, res) => {
@@ -925,16 +1007,18 @@ export const updateResult = async (req, res) => {
 export const deleteResult = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('[DELETE RESULT] Attempting to delete result with id:', id);
+    console.log("[DELETE RESULT] Attempting to delete result with id:", id);
     const deletedResult = await Result.findByIdAndDelete(id);
     if (!deletedResult) {
-      console.log('[DELETE RESULT] Result not found for id:', id);
+      console.log("[DELETE RESULT] Result not found for id:", id);
       return res.status(404).json({ message: "Result not found" });
     }
-    console.log('[DELETE RESULT] Deleted result:', deletedResult);
-    res.status(200).json({ message: "Result deleted successfully", deletedResult });
+    console.log("[DELETE RESULT] Deleted result:", deletedResult);
+    res
+      .status(200)
+      .json({ message: "Result deleted successfully", deletedResult });
   } catch (error) {
-    console.error('[DELETE RESULT] Server error:', error);
+    console.error("[DELETE RESULT] Server error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -948,7 +1032,7 @@ export const getAllResultsWithStudentDetails = async (req, res) => {
       "student_ID fullName email phoneNo collegeName year"
     );
     // Map each result to include custom RSAT ID
-    const mappedResults = results.map(result => {
+    const mappedResults = results.map((result) => {
       let customId = "";
       if (result.student_ID && result.student_ID.student_ID) {
         customId = result.student_ID.student_ID;
