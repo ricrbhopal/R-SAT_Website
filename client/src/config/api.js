@@ -138,6 +138,14 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
   createResult: (data) => api.post("/admin/results/create", data),
 
 
+  // Admin Auth Router  registerAdmin: (data) => api.post("/admin/register", data),
+  loginAdmin: (data) => api.post("/admin/login", data),
+  logoutAdmin: () => api.post("/admin/logout"),
+  getProfileAdmin: () => api.get("/admin/profile"),
+  registerAdmin: (data) => api.post("/admin/register", data),
+  verifyAdminOtp: (data) => api.post("/admin/verify-otp", data),
+  sendAdminOtp: (data) => api.post("/admin/send-otp", data),
+
 
 };
 

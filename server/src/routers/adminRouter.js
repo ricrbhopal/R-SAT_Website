@@ -30,7 +30,14 @@ import {
   getResultByStudentId,
   getAllResults,
   createResult,
-  DeleteSupportQuery
+  DeleteSupportQuery,
+  getProfileAdmin,
+  logoutAdmin,
+  loginAdmin,
+  registerAdmin,
+  verifyAdminOtp,
+  sendAdminOtp
+
 } from "../controller/adminController.js";
 import rateLimit from "express-rate-limit";
 import {  } from "../middleware/authMiddleware.js";
@@ -102,5 +109,11 @@ router.get("/results/student/:studentId", getResultByStudentId);
 router.get("/results/all", getAllResults);
 router.post("/results/create", createResult);
 
-
+// Admin Auth Router
+router.post("/register", registerAdmin);
+router.post("/verify-otp", verifyAdminOtp);
+router.post("/login", loginAdmin);
+router.post("/logout", logoutAdmin);
+router.post("/send-otp", sendAdminOtp);
+router.get("/profile", getProfileAdmin);
 export default router;

@@ -8,8 +8,21 @@ import Student from "../models/authModel.js";
 import { sendConfirmationEmail } from "../utils/emailService.js";
 import { verifyPresentToken } from "../utils/genAuthToken.js";
 import { sendAdmitCardEmail } from "../utils/emailService.js";
+import { sendOTPPhone } from "../utils/phoneService.js";
+import bcrypt from "bcryptjs";
+import AdminAuth from "../models/adminAuth.js";
+import Otp from "../models/otpModel.js";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+
+// Utility: Remove sensitive fields from user object
+function sanitizeUser(user) {
+  if (!user) return user;
+  const obj = user.toObject ? user.toObject() : { ...user };
+  delete obj.password;
+  return obj;
+}
 
 // Example: Get all users (admin only)
 export const getAllUsers = async (req, res, next) => {
@@ -1047,5 +1060,265 @@ export const getAllResultsWithStudentDetails = async (req, res) => {
     res.status(200).json(mappedResults);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+
+
+
+const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret_in_prod";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+
+
+
+/**
+ * REGISTER ADMIN / MANAGER / CALLER — only after phone OTP verified
+ */
+export const registerAdmin = async (req, res, next) => {
+  try {
+    const { username, phone, password, role } = req.body;
+
+    if (!username || !phone || !password) {
+      const err = new Error("username, phone and password are required");
+      err.statusCode = 400;
+      return next(err);
+    }
+
+    // 🔥 Step 1: Check if OTP has been verified
+    // If OTP exists in DB → means OR verify nahi hua (bcoz we delete OTP after verify)
+    const otpExists = await Otp.findOne({
+      otpfor: phone.toString(),
+      type: "phone",
+    });
+
+    if (otpExists) {
+      const err = new Error("Phone not verified. Please verify OTP first.");
+      err.statusCode = 400;
+      return next(err);
+    }
+
+    // 🔥 Step 2: Check if phone already registered
+    const existing = await AdminAuth.findOne({ phone: phone.toString() });
+    if (existing) {
+      const err = new Error("User with this phone already exists");
+      err.statusCode = 400;
+      return next(err);
+    }
+
+    // 🔥 Step 3: Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash(password, salt);
+
+    // 🔥 Step 4: Create user (NO student_id, NO reffer_id)
+    const newUser = await AdminAuth.create({
+      username,
+      phone: phone.toString(),
+      password: hashed,
+      role: role || "caller",
+    });
+
+    const safeUser = sanitizeUser(newUser);
+
+    return res.status(201).json({
+      message: "Registered successfully",
+      user: safeUser,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+/**
+ * SEND OTP to phone (for admin/manager/caller registration verification)
+ * Expects: { phone } in req.body
+ */
+export const sendAdminOtp = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone || !/^\d{10,15}$/.test(String(phone).trim())) {
+      const err = new Error("Valid phone number is required");
+      err.statusCode = 400;
+      return next(err);
+    }
+
+    const phoneStr = phone.toString().trim();
+
+    // Rate-limit / cooldown: check last OTP timestamp
+    const lastOtp = await Otp.findOne({ otpfor: phoneStr, type: "phone" }).sort({ createdAt: -1 });
+    if (lastOtp && lastOtp.createdAt) {
+      const ageMs = Date.now() - new Date(lastOtp.createdAt).getTime();
+      const COOLDOWN_MS = 60 * 1000; // 60 seconds
+      if (ageMs < COOLDOWN_MS) {
+        const err = new Error(`Please wait ${Math.ceil((COOLDOWN_MS - ageMs) / 1000)} seconds before requesting a new OTP`);
+        err.statusCode = 429;
+        return next(err);
+      }
+    }
+
+    // Remove any previous OTP entries (cleanup)
+    await Otp.deleteMany({ otpfor: phoneStr, type: "phone" });
+
+    // Generate 6-digit OTP
+    const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Attempt to send via SMS (if send fails, still don't reveal OTP)
+    try {
+      await sendOTPPhone(phoneStr, plainOtp);
+    } catch (smsErr) {
+      // Log but continue to store hashed OTP so verify can still work if you want.
+      console.warn(`[sendAdminOtp] SMS send failed for ${phoneStr}:`, smsErr?.message || smsErr);
+      // Optionally: return error here if you want to require SMS success:
+      // const err = new Error("Failed to send OTP via SMS");
+      // err.statusCode = 502;
+      // return next(err);
+    }
+
+    // Hash OTP and store
+    const hashed = await bcrypt.hash(plainOtp, 10);
+    await Otp.create({
+      otpfor: phoneStr,
+      otp: hashed,
+      type: "phone",
+      createdAt: new Date(),
+    });
+
+    return res.status(200).json({ message: "OTP sent to phone (if SMS gateway succeeded)" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// VERIFY ADMIN OTP
+
+export const verifyAdminOtp = async (req, res, next) => {
+  try {
+    const { phone, otp } = req.body;
+
+    const otpEntry = await Otp.findOne({
+      otpfor: phone.toString(),
+      type: "phone",
+    });
+
+    if (!otpEntry) {
+      return res.status(400).json({ message: "OTP expired or not found" });
+    }
+
+    const isCorrect = await bcrypt.compare(otp.toString(), otpEntry.otp);
+
+    if (!isCorrect) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    // OTP VERIFIED → DELETE OTP
+    await Otp.deleteMany({ otpfor: phone.toString(), type: "phone" });
+
+    return res.status(200).json({ message: "OTP verified successfully" });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * LOGIN: phone + password
+ */
+export const loginAdmin  = async (req, res, next) => {
+  try {
+    const { phone, password } = req.body;
+
+    if (!phone || !password) {
+      const err = new Error("phone and password are required");
+      err.statusCode = 400;
+      return next(err);
+    }
+
+    const user = await AdminAuth.findOne({ phone: phone.toString() });
+    if (!user) {
+      const err = new Error("Invalid credentials");
+      err.statusCode = 401;
+      return next(err);
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      const err = new Error("Invalid credentials");
+      err.statusCode = 401;
+      return next(err);
+    }
+
+    const payload = {
+      id: user._id,
+      role: user.role,
+      phone: user.phone,
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    const safeUser = sanitizeUser(user);
+
+    return res.status(200).json({
+      message: "Login successful",
+      user: safeUser,
+      token,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * LOGOUT HANDLER
+ */
+export const logoutAdmin = (req, res, next) => {
+  try {
+    res.clearCookie("token");
+    res.status(200).json({ message: "Logout successful" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * GET PROFILE (requires auth)
+ */
+export const getProfileAdmin = async (req, res, next) => {
+  try {
+    const authUser = req.user; // from auth middleware
+
+    if (!authUser || !authUser.id) {
+      const err = new Error("Not authenticated");
+      err.statusCode = 401;
+      return next(err);
+    }
+
+    const user = await AdminAuth.findById(authUser.id)
+      .select("-password -__v")
+      .lean();
+
+    if (!user) {
+      const err = new Error("User not found");
+      err.statusCode = 404;
+      return next(err);
+    }
+
+    res.status(200).json({
+      message: "Profile fetched successfully",
+      user,
+    });
+  } catch (err) {
+    next(err);
   }
 };

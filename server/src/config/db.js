@@ -18,3 +18,5 @@ const connectDB = async () => {
 };
 
 export default connectDB;
+
+// Ensure the database connection is properly configured to support the new admin login functionality.

@@ -59,12 +59,19 @@ export default function Slider({
       icon: "bg-gradient-to-br from-indigo-500 to-blue-500 text-white",
       dot: "bg-indigo-500",
     },
+    "admin-register": {
+      active:
+        "bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-200 text-indigo-800",
+      icon: "bg-gradient-to-br from-indigo-500 to-blue-500 text-white",
+      dot: "bg-indigo-500",
+    },
     results: {
       active:
         "bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200 text-teal-800",
       icon: "bg-gradient-to-br from-teal-500 to-cyan-500 text-white",
       dot: "bg-teal-500",
     },
+
     default: {
       active:
         "bg-gradient-to-r from-gray-50 to-blue-50 border-gray-200 text-gray-800",
