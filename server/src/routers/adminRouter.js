@@ -39,25 +39,9 @@ import {
   sendAdminOtp
 
 } from "../controller/adminController.js";
-import rateLimit from "express-rate-limit";
 import {  } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-/**
- * Rate limiter for marking attendance
- * adjust windowMs / max to your needs
- */
-const markLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute window
-  max: 30, // max 30 requests per IP per window
-  message: {
-    success: false,
-    message:
-      "Too many attendance requests from this IP, please try again later.",
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
 
 
 // User Router

@@ -8,7 +8,7 @@ import {
   AddSupportQueryResponse,
 } from "../controller/supportController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { uploadSingleImage } from "../utils/multer.js"; // image-only multer (memory)
+import { uploadSingleImage } from "../utils/multer.js"; 
 
 const router = express.Router();
 

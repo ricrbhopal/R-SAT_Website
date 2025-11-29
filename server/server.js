@@ -43,7 +43,7 @@ app.use("/admin", Admin);
 app.use("/admit-cards", AdmitCard);
 
 // Centralized error handler (should be last middleware)
-app.use((err, req, res, next) => {
+app.use((err, res) => {
   console.error("Server Error:", err);
   const status = err.statusCode || err.status || 500;
   const message = err.message || "Internal Server Error";

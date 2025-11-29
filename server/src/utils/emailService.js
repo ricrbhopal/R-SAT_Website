@@ -846,20 +846,6 @@ function escapeHtml(s) {
 
 
 
-
-
-
-/**
- * Send admit-card notification email to student (one email to all student's emails or individual)
- *
- * @param {Object} student - Student object (expects .name and .email). .email can be string, comma-separated or array.
- * @param {Array<Object>} admits - Array of admit objects. Each admit should have at least _id and optionally admitToken, examDate, venue, examTime, ReportingTime.
- * @param {Object} opts - Optional:
- *    - attachFiles: Array of nodemailer attachment objects to include
- *    - dashboardPath: path to student dashboard (default '/student/dashboard')
- *    - sendIndividually: boolean (default false) - send separate email to each recipient
- * @returns {Promise<{ success: boolean, sentTo?: Array, error?: string }>}
- */
 export const sendAdmitCardEmail = async (student, admits, opts = {}) => {
   if (!student || !student.email) {
     return { success: false, error: "Student email is required" };

@@ -35,8 +35,6 @@ export const getAllUsers = async (req, res, next) => {
 };
 
 // admin edit user details can be added here in future
-// admin delete user can be added here in future
-
 export const putUserDetails = async (req, res, next) => {
   try {
     const userId = req.params.id;
@@ -89,7 +87,6 @@ export const deleteUser = async (req, res, next) => {
 };
 
 // get All referred users
-
 export const getRefferedUsers = async (req, res, next) => {
   try {
     const referredUsers = await Referred.find().populate(
@@ -103,7 +100,6 @@ export const getRefferedUsers = async (req, res, next) => {
 };
 
 // edit referred user details can be added here in future
-
 export const putRefferedUserDetails = async (req, res, next) => {
   try {
     const referredId = req.params.id;
@@ -143,7 +139,6 @@ export const putRefferedUserDetails = async (req, res, next) => {
 };
 
 // delete referred user can be added here in future
-
 export const deleteRefferedUser = async (req, res, next) => {
   try {
     const referredId = req.params.id;
@@ -175,6 +170,7 @@ export const getRefferedUserById = async (req, res, next) => {
   }
 };
 
+
 export const getAllDemoClasses = async (req, res, next) => {
   try {
     const demoClasses = await DemoClass.find({});
@@ -183,6 +179,7 @@ export const getAllDemoClasses = async (req, res, next) => {
     next(error);
   }
 };
+
 
 export const getDemoClassById = async (req, res, next) => {
   try {
@@ -260,11 +257,7 @@ export const putDemoClassDetails = async (req, res, next) => {
   }
 };
 
-/**
- * Get all support queries (admin)
- * GET /support/all-queries
- * Optional query params: ?status=open
- */
+
 export const GetAllSupportQueries = async (req, res, next) => {
   try {
     const filter = {};
