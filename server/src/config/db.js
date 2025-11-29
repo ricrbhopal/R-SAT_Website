@@ -1,5 +1,5 @@
 // src/config/db.js
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
 
 const connectDB = async () => {
   try {
@@ -9,6 +9,8 @@ const connectDB = async () => {
         'MongoDB connection string is missing. Set `MONGO_URI` in your .env file.'
       );
     }
+
+    console.log('MongoDB URI:', uri);
     const conn = await mongoose.connect(uri);
   } catch (error) {
     console.error("MongoDB connection error:", error);
