@@ -82,7 +82,6 @@ const handleSubmit = async () => {
       refCode: student.referralCode,
     };
 
-    console.log("[EditModal] Sending payload:", payload);
 
     const idToUpdate = student?._id ?? studentId;
     await AdminAPI.putRefferedUserDetails(idToUpdate, payload);

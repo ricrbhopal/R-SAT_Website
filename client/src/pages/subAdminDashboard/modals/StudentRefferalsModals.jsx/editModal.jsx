@@ -57,7 +57,6 @@ export default function EditModal({ studentId, initialData = null, onClose }) {
 
       try {
         setLoading(true);
-        console.log("[EditModal] Fetching details for ID:", studentId);
 
         // Try multiple AdminAPI helpers (be tolerant of naming differences)
         const tries = [
@@ -74,7 +73,6 @@ export default function EditModal({ studentId, initialData = null, onClose }) {
             try {
               const res = await AdminAPI[fn](studentId);
               fetched = res?.data ?? res;
-              console.log(`[EditModal] fetched via ${fn}`, fetched);
               break;
             } catch (err) {
               // log and continue trying other functions
@@ -88,7 +86,6 @@ export default function EditModal({ studentId, initialData = null, onClose }) {
           try {
             const res = await AdminAPI.get?.(`/admin/students/${studentId}`);
             fetched = res?.data ?? res;
-            console.log("[EditModal] fetched via generic /admin/students/:id", fetched);
           } catch (err) {
             // ignore - we'll handle not found below
             console.warn("[EditModal] generic fetch failed:", err?.message || err);

@@ -245,10 +245,7 @@ export const putDemoClassDetails = async (req, res, next) => {
           collegeName: updatedDemoClass.collegeName,
           year: updatedDemoClass.year,
         });
-        console.log(
-          "Confirmation email sent successfully to:",
-          updatedDemoClass.email
-        );
+     
       } catch (emailError) {
         console.error("Failed to send confirmation email:", emailError);
       }
@@ -285,7 +282,6 @@ export const GetAllSupportQueries = async (req, res, next) => {
       .populate({ path: "studentId", select: "fullName mail_ID phoneNo" })
       .lean();
 
-    console.log("Fetched Queries:", queries); // Debugging log
 
     return res.status(200).json(queries);
   } catch (error) {
@@ -1020,13 +1016,10 @@ export const updateResult = async (req, res) => {
 export const deleteResult = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("[DELETE RESULT] Attempting to delete result with id:", id);
     const deletedResult = await Result.findByIdAndDelete(id);
     if (!deletedResult) {
-      console.log("[DELETE RESULT] Result not found for id:", id);
       return res.status(404).json({ message: "Result not found" });
     }
-    console.log("[DELETE RESULT] Deleted result:", deletedResult);
     res
       .status(200)
       .json({ message: "Result deleted successfully", deletedResult });

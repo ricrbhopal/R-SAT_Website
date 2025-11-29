@@ -194,7 +194,6 @@ export const registerWithReferral = async (req, res, next) => {
 
     // defensive email send: trim/validate recipient and log useful info
     const recipientEmail = (mail_ID || newStudent?.mail_ID || "").toString().trim();
-    console.log("[registerWithReferral] recipientEmail:", recipientEmail);
 
     // --- Send the referral confirmation email with all required labels populated ---
     if (recipientEmail) {
@@ -206,7 +205,6 @@ export const registerWithReferral = async (req, res, next) => {
           testDate: process.env.RSAT_TEST_DATE || "19th Jan 2026",
           venue: process.env.RSAT_VENUE || "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)",
         });
-        console.log("[registerWithReferral] referral confirmation email sent to:", recipientEmail);
       } catch (mailErr) {
         console.error("[registerWithReferral] sendReferralConfirmationEmail ERROR:", mailErr?.message || mailErr);
       }
@@ -225,7 +223,6 @@ export const registerWithReferral = async (req, res, next) => {
           year: year,
           phoneNo: phoneNo,
         });
-        console.log("Referral confirmation email sent successfully to:", mail_ID);
       } catch (emailErr) {
         console.error("Failed to send referral confirmation email:", emailErr);
       }

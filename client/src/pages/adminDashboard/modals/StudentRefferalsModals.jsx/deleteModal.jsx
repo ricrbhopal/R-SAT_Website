@@ -32,7 +32,6 @@ export default function DeleteModalPage({ studentId, initialData = null, onClose
       setLoading(true);
       setError("");
       try {
-        console.log("[DeleteModal] fetching student for id:", studentId);
         // ensure AdminAPI.getStudentById exists and points to correct route
         if (typeof AdminAPI.getStudentById === "function") {
           const resp = await AdminAPI.getStudentById(studentId);

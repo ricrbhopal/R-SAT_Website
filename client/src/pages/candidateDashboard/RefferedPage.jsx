@@ -90,7 +90,6 @@ const ReferredPage = () => {
       } else {
         // fallback
         alert("Referral created but server did not return a link. Check server response.");
-        console.log("Full response:", response?.data);
         return;
       }
 
