@@ -1,1 +1,0 @@
-// Added the `loginAdmin` function to handle admin login requests. This function validates the admin's credentials and returns a response.

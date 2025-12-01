@@ -7,7 +7,6 @@ const referredSchema = new mongoose.Schema(
     referrerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Student",
-      required: true,
     },
 
     // explicit saved referrer user id (redundant with referrerId but useful)
@@ -38,7 +37,7 @@ const referredSchema = new mongoose.Schema(
     year: { type: String },
 
     // unique referral code
-    refCode: { type: String, required: true, unique: true },
+    // refCode: { type: String, required: true, unique: true },
 
     referredDate: { type: Date, default: Date.now },
   },

@@ -1,10 +1,10 @@
-import crypto from "crypto";
+// server/src/controller/refferedController.js
+import mongoose from "mongoose";
 import Referred from "../models/refferedModel.js";
 import Student from "../models/authModel.js";
 import { generateAuthToken } from "../utils/genAuthToken.js";
 import { sendOTPPhone } from "../utils/phoneService.js";
-import { sendCredentialsEmail } from "../utils/emailService.js";
-import { sendReferralConfirmationEmail } from "../utils/emailService.js"; // <-- new import
+import { sendCredentialsEmail, sendReferralConfirmationEmail } from "../utils/emailService.js";
 import bcrypt from "bcryptjs";
 import Otp from "../models/otpModel.js";
 
@@ -17,18 +17,22 @@ export const sendReferralOTP = async (req, res, next) => {
     const { phoneNo, ref } = req.body;
     if (!phoneNo) return res.status(400).json({ message: "phoneNo is required" });
 
+    // If ref provided, do a soft validation (don't block if there is no Referred doc).
+    // This allows sending OTP even if referrer hasn't yet created a Referred doc,
+    // because we accept userId links too and will fallback to Student lookup.
     if (ref) {
-      const refer = await Referred.findOne({ refCode: ref });
-      if (!refer) return res.status(400).json({ message: "Invalid referral code" });
-      if (refer.referredStudentId) {
-        return res.status(400).json({ message: "This referral link has already been used" });
+      try {
+        const found = await Referred.findOne({ referrerUserId: ref }).lean();
+        // do not return error here — only log if missing
+        if (!found) console.warn("[sendReferralOTP] no Referred record found for ref:", ref);
+      } catch (e) {
+        console.warn("[sendReferralOTP] lookup failed:", e?.message || e);
       }
     }
 
     await Otp.deleteMany({ otpfor: phoneNo.toString(), type: "phone" });
 
     const phoneOTP = Math.floor(100000 + Math.random() * 900000).toString();
-
     try {
       await sendOTPPhone(phoneNo.toString(), phoneOTP);
     } catch (smsErr) {
@@ -52,92 +56,165 @@ export const sendReferralOTP = async (req, res, next) => {
 
 /**
  * POST /api/referrals/create  (auth required)
+ * body: { referredName?, referredEmail?, referredPhone?, collegeName?, year? }
+ *
+ * Behavior:
+ * - If referrer already has a referral record (referrerUserId), return that existing referralLink (idempotent).
+ * - Else create a Referred document and return referralLink using only userId (query param userId).
  */
 export const createReferral = async (req, res, next) => {
   try {
     const referrer = req.user;
-    if (!referrer) return res.status(401).json({ message: "Unauthorized" });
-
-    const { referredName, referredEmail, referredPhone, collegeName, year } = req.body;
-
-    let refCode;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      refCode = crypto.randomBytes(6).toString("hex");
-      const exists = await Referred.findOne({ refCode });
-      if (!exists) break;
-      refCode = null;
+    if (!referrer) {
+      return res.status(401).json({ message: "Unauthorized: login required to create referral" });
     }
-    if (!refCode) return res.status(500).json({ message: "Could not generate unique referral code" });
 
-    const referrerStudentID = referrer.student_ID || referrer.studentId || referrer.student_id || null;
+    const referrerUserId = String(referrer._id);
+    // Check existing record
+    let existing = await Referred.findOne({ referrerUserId }).lean();
+    if (existing) {
+      const frontendBase = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) || "https://rsat.ricr.in";
+      const referralLink = `${frontendBase.replace(/\/+$/, "")}/candidateDashboard/RefferedRegisterationPage?userId=${encodeURIComponent(referrerUserId)}`;
+      return res.status(200).json({ message: "Referral exists", ref: existing, referralLink });
+    }
 
-    const newRef = await Referred.create({
+    const { referredName, referredEmail, referredPhone, collegeName, year } = req.body || {};
+    const payload = {
       referrerId: referrer._id,
-      referrerUserId: referrer._id,
-      referrerStudentID,
+      referrerUserId,
+      referrerStudentID: referrer.student_ID || referrer.studentId || referrer.student_id || null,
       referredName: referredName || "",
       referredEmail: referredEmail || "",
       referredPhone: referredPhone || "",
       collegeName: collegeName || "",
       year: year || "",
-      refCode,
-    });
+    };
 
-    const frontendBase = process.env.FRONTEND_URL || "https://rsat.ricr.in/";
-    const link = `${frontendBase}/candidateDashboard/RefferedRegisterationPage?ref=${encodeURIComponent(
-      refCode
-    )}${referrerStudentID ? `&studentId=${encodeURIComponent(referrerStudentID)}` : ""}`;
+    let newRef;
+    try {
+      newRef = await Referred.create(payload);
+    } catch (createErr) {
+      console.error("[createReferral] create error:", createErr);
+      if (createErr.name === "ValidationError") {
+        return res.status(400).json({ message: "Invalid referral data", details: createErr.errors });
+      }
+      if (createErr.code === 11000) {
+        return res.status(409).json({ message: "Duplicate referral detected", key: createErr.keyValue });
+      }
+      return res.status(500).json({ message: "Failed to create referral", error: createErr.message });
+    }
 
-    res.status(201).json({ message: "Referral created", ref: newRef, referralLink: link });
+    const frontendBase = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) || "https://rsat.ricr.in";
+    const referralLink = `${frontendBase.replace(/\/+$/, "")}/candidateDashboard/RefferedRegisterationPage?userId=${encodeURIComponent(referrerUserId)}`;
+
+    return res.status(201).json({ message: "Referral created", ref: newRef, referralLink });
   } catch (err) {
-    next(err);
+    console.error("[createReferral] unexpected:", err && err.stack ? err.stack : err);
+    return res.status(500).json({ message: "Server error while creating referral" });
   }
 };
 
 /**
  * GET /api/referrals/info/:code
+ * code is expected to be referrerUserId (string) or a user ObjectId
+ *
+ * This endpoint will:
+ *  - try Referred.findOne({ referrerUserId: code })
+ *  - if not found and code is ObjectId, try Referred.findOne({ referrerId: code })
+ *  - if still not found and code is valid ObjectId, try Student.findById(code) and synthesize response
  */
 export const getReferralInfo = async (req, res, next) => {
   try {
     const { code } = req.params;
-    const refer = await Referred.findOne({ refCode: code }).populate("referrerId", "student_ID fullName mail_ID phoneNo");
-    if (!refer) return res.status(404).json({ message: "Referral not found" });
+    if (!code) return res.status(400).json({ message: "Referral code is required" });
 
-    res.status(200).json({
-      referrer: {
-        id: refer.referrerId?._id ?? null,
-        name: refer.referrerId?.fullName ?? null,
-        student_ID: refer.referrerStudentID ?? refer.referrerId?.student_ID ?? null,
-        userId: refer.referrerUserId ?? refer.referrerId?._id ?? null,
-      },
-      referredName: refer.referredName || null,
-      referredEmail: refer.referredEmail || null,
-      referredPhone: refer.referredPhone || null,
-      collegeName: refer.collegeName || null,
-      year: refer.year || null,
-    });
+    console.log("[getReferralInfo] code:", code);
+
+    // 1) Try lookup by referrerUserId (string)
+    let refer = await Referred.findOne({ referrerUserId: code }).populate("referrerId", "student_ID fullName mail_ID phoneNo").lean();
+    if (refer) {
+      return res.status(200).json({
+        referrer: {
+          id: refer.referrerId?._id ?? null,
+          name: refer.referrerId?.fullName ?? refer.referrerStudentID ?? null,
+          student_ID: refer.referrerStudentID ?? refer.referrerId?.student_ID ?? null,
+          userId: refer.referrerUserId ?? refer.referrerId?._id ?? null,
+        },
+        referredName: refer.referredName || null,
+        referredEmail: refer.referredEmail || null,
+        referredPhone: refer.referredPhone || null,
+        collegeName: refer.collegeName || null,
+        year: refer.year || null,
+      });
+    }
+
+    // 2) If code is ObjectId, try lookup by referrerId
+    if (mongoose.Types.ObjectId.isValid(code)) {
+      refer = await Referred.findOne({ referrerId: code }).populate("referrerId", "student_ID fullName mail_ID phoneNo").lean();
+      if (refer) {
+        return res.status(200).json({
+          referrer: {
+            id: refer.referrerId?._id ?? null,
+            name: refer.referrerId?.fullName ?? refer.referrerStudentID ?? null,
+            student_ID: refer.referrerStudentID ?? refer.referrerId?.student_ID ?? null,
+            userId: refer.referrerUserId ?? refer.referrerId?._id ?? null,
+          },
+          referredName: refer.referredName || null,
+          referredEmail: refer.referredEmail || null,
+          referredPhone: refer.referredPhone || null,
+          collegeName: refer.collegeName || null,
+          year: refer.year || null,
+        });
+      }
+    }
+
+    // 3) Fallback: try find Student by id and synthesize referrer
+    if (mongoose.Types.ObjectId.isValid(code)) {
+      const student = await Student.findById(code, "student_ID fullName mail_ID phoneNo").lean();
+      if (student) {
+        return res.status(200).json({
+          referrer: {
+            id: student._id || null,
+            name: student.fullName || null,
+            student_ID: student.student_ID || null,
+            userId: student._id || null,
+          },
+          referredName: null,
+          referredEmail: null,
+          referredPhone: null,
+          collegeName: null,
+          year: null,
+        });
+      }
+    }
+
+    // Nothing found
+    return res.status(404).json({ message: "Referral not found" });
   } catch (err) {
+    console.error("[getReferralInfo] ERROR:", err && err.stack ? err.stack : err);
     next(err);
   }
 };
 
 /**
- * POST /api/referrals/register?ref=REFCODE
- * body: { fullName, phoneNo, mail_ID, college, branch, year, dob, phoneOTP }
+ * POST /api/referrals/register?userId=REFUSERID
  */
 export const registerWithReferral = async (req, res, next) => {
   try {
-    const { ref } = req.query;
-    if (!ref) return res.status(400).json({ message: "Referral code missing" });
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ message: "Referral userId missing" });
 
     const { fullName, phoneNo, mail_ID, college, branch, year, dob, phoneOTP } = req.body;
     if (!fullName || !phoneNo || !mail_ID || !college || !branch || !year || !dob || !phoneOTP) {
       return res.status(400).json({ message: "All registration fields, including OTP, are required" });
     }
 
-    const refer = await Referred.findOne({ refCode: ref });
-    if (!refer) return res.status(400).json({ message: "Invalid referral code" });
-    if (refer.referredStudentId) return res.status(400).json({ message: "This referral link has already been used" });
+    const refer = await Referred.findOne({ referrerUserId: userId });
+    if (!refer) {
+      // If no Referred record, still allow registration (we can create one or proceed)
+      console.warn("[registerWithReferral] no Referred record for userId:", userId);
+      // Optionally: create minimal Referred doc here or proceed — we'll proceed and not block.
+    }
 
     const phoneOTPEntry = await Otp.findOne({ otpfor: phoneNo.toString(), type: "phone" });
     if (!phoneOTPEntry) return res.status(400).json({ message: "Phone OTP not found or expired" });
@@ -148,22 +225,16 @@ export const registerWithReferral = async (req, res, next) => {
     const existEmail = await Student.findOne({ mail_ID });
     if (existEmail) return res.status(400).json({ message: "Email already registered" });
 
-    // Auto-generate student_ID with globally unique sequence number
+    // Auto-generate student_ID
     let nextNumber = 1;
-    let student_ID = "";
-    let exists = true;
-    // Find all student_IDs and extract their sequence numbers
     const allStudents = await Student.find({}, { student_ID: 1 }).lean();
     const usedNumbers = new Set();
-    allStudents.forEach(s => {
+    allStudents.forEach((s) => {
       const match = s.student_ID && s.student_ID.match(/(\d{4})$/);
       if (match) usedNumbers.add(parseInt(match[1], 10));
     });
-    // Find the lowest unused sequence number
-    while (usedNumbers.has(nextNumber)) {
-      nextNumber++;
-    }
-    student_ID = `RCR-RSR-${nextNumber.toString().padStart(4, "0")}`;
+    while (usedNumbers.has(nextNumber)) nextNumber++;
+    const student_ID = `RCR-RSR-${nextNumber.toString().padStart(4, "0")}`;
 
     const newStudent = await Student.create({
       student_ID,
@@ -178,28 +249,33 @@ export const registerWithReferral = async (req, res, next) => {
 
     await Otp.deleteMany({ otpfor: phoneNo.toString(), type: "phone" });
 
-    const referralRecord = await Referred.findOneAndUpdate(
-      { refCode: ref, referredStudentId: null },
-      {
-        referredStudentId: newStudent._id,
-        referredName: fullName,
-        referredEmail: mail_ID,
-        referredPhone: phoneNo,
-        collegeName: college,
-        year: year,
-        referredDate: new Date(),
-      },
-      { new: true }
-    );
+    // Update or create Referred record to reflect referred student (if exist)
+    let referralRecord = null;
+    try {
+      referralRecord = await Referred.findOneAndUpdate(
+        { referrerUserId: userId },
+        {
+          $set: {
+            referredStudentId: newStudent._id,
+            referredName: fullName,
+            referredEmail: mail_ID,
+            referredPhone: phoneNo,
+            collegeName: college,
+            year: year,
+            referredDate: new Date(),
+          },
+        },
+        { new: true, upsert: false }
+      );
+    } catch (e) {
+      console.warn("[registerWithReferral] could not update Referred record:", e?.message || e);
+    }
 
-    // defensive email send: trim/validate recipient and log useful info
     const recipientEmail = (mail_ID || newStudent?.mail_ID || "").toString().trim();
-
-    // --- Send the referral confirmation email with all required labels populated ---
     if (recipientEmail) {
       try {
         await sendReferralConfirmationEmail(recipientEmail, fullName, {
-          referrerStudentID: refer.referrerStudentID || refer.referrerUserId || "-",
+          referrerStudentID: (refer && refer.referrerStudentID) || userId || "-",
           rsatId: student_ID,
           dob: newStudent?.dob ?? dob,
           testDate: process.env.RSAT_TEST_DATE || "19th Jan 2026",
@@ -208,43 +284,19 @@ export const registerWithReferral = async (req, res, next) => {
       } catch (mailErr) {
         console.error("[registerWithReferral] sendReferralConfirmationEmail ERROR:", mailErr?.message || mailErr);
       }
-    } else {
-      console.warn("[registerWithReferral] skipping confirmation email: recipient empty");
     }
 
-    // Send referral confirmation email with all details
-    if (mail_ID) {
-      try {
-        await sendReferralConfirmationEmail(mail_ID, fullName, {
-          referrerStudentID: refer.referrerStudentID || null,
-          dob: dob,
-          college: college,
-          branch: branch,
-          year: year,
-          phoneNo: phoneNo,
-        });
-      } catch (emailErr) {
-        console.error("Failed to send referral confirmation email:", emailErr);
-      }
-    } else {
-      console.warn("No email provided; skipping referral confirmation email.");
-    }
-
-    // send credentials email after registration (keep existing credentials email behavior)
     if (mail_ID) {
       try {
         await sendCredentialsEmail(mail_ID, fullName, student_ID);
-        console.log("Credentials email sent successfully to:", mail_ID);
       } catch (emailErr) {
         console.error("Failed to send credentials email:", emailErr);
       }
-    } else {
-      console.warn("No email provided; skipping credentials email.");
     }
 
     const token = generateAuthToken(newStudent, null, res);
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Registration successful, referral recorded, and confirmation email sent (if available).",
       student: newStudent,
       referral: referralRecord,

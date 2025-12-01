@@ -59,21 +59,12 @@ export const SupportAPI = {
 
 // Referral API
 export const ReferralAPI = {
-  // Create referral (authenticated). Pass optional axios config to include Authorization header.
   createReferral: (data = {}, config = {}) => api.post("/referrals/create", data, config),
-
-  // Get referral info by referral code
   getReferralInfo: (code) => api.get(`/referrals/info/${encodeURIComponent(code)}`),
-
-  // Register with referral (public)
-  registerWithReferral: (data, ref) => {
-    if (!ref) throw new Error("Referral code is required for registration.");
-    return api.post(`/referrals/register?ref=${encodeURIComponent(ref)}`, data);
-
-  },
-  sendReferralOTP: (data) => {
-    return api.post("/referrals/send-otp", data);
-  },
+  sendReferralOTP: (data) => api.post("/referrals/send-otp", data),
+  registerWithReferral: (payload, userId) => api.post(`/referrals/register?userId=${encodeURIComponent(userId)}`, payload),
+  // optionally add getStudentById if you want
+  getStudentById: (id) => api.get(`/students/${id}`),
 };
 
 
