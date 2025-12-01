@@ -9,6 +9,7 @@ import Support from "./src/routers/supportRouter.js";
 import referralRoutes from "./src/routers/refferedRouter.js";
 import Admin from "./src/routers/adminRouter.js";
 import AdmitCard from "./src/routers/admitRouter.js";
+import Caller from "./src/routers/callerRouter.js"
 
 dotenv.config();
 const app = express();
@@ -41,6 +42,8 @@ app.use("/referrals", referralRoutes);
 app.use("/admin", Admin);
 // Use Admit Card router
 app.use("/admit-cards", AdmitCard);
+// Use Caller router
+app.use("/callers", Caller);
 
 // Centralized error handler (should be last middleware)
 app.use((err, res) => {

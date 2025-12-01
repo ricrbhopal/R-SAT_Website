@@ -13,7 +13,7 @@ const callerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Referred",
   },
-  admintCard_ID: {
+  admitCard_ID: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "AdmitCard",
   },

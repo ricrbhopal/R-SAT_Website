@@ -1,66 +1,95 @@
-// middleware/authMiddleware.js
-import jwt from 'jsonwebtoken';
-import Student from '../models/authModel.js';
+import jwt from "jsonwebtoken";
+import Student from "../models/authModel.js";
+import Admin from "../models/adminAuth.js"; // change path if needed
 
-// Use JWT secret from env. If missing, log a warning so devs notice.
-let JWT_SECRET = process.env.JWT_SECRET||'kjkjk4jkl45klkl1@23423hjkhjkbgui@2@3';
-if (!JWT_SECRET) {
-  // Provide a development fallback so local dev doesn't return 500.
-  // WARNING: This should NOT be used in production. Set JWT_SECRET in your .env.
-  JWT_SECRET = 'dev_fallback_jwt_secret';
-  console.warn('Warning: JWT_SECRET is not set. Using development fallback secret. Set JWT_SECRET in .env for production.');
+// -------------------------
+// JWT SECRET
+// -------------------------
+let JWT_SECRET = process.env.JWT_SECRET || "dev_secret_fallback";
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠ JWT_SECRET not found! Using fallback secret.");
 }
 
+// -------------------------
+// PROTECT (Authentication)
+// -------------------------
 export const protect = async (req, res, next) => {
   try {
-    // 1) Try to read token from cookie first
     let token = null;
-    if (req.cookies && req.cookies.token) {
+
+    // 1) Token from Cookie
+    if (req.cookies?.token) {
       token = req.cookies.token;
     }
 
-    // 2) fallback: Authorization header (Bearer <token>)
-    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
+    // 2) Token from Authorization Header
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
     }
 
+    // 3) No token found
     if (!token) {
-      const error = new Error('Not authorized, token missing');
-      error.statusCode = 401;
-      throw error;
+      return res.status(401).json({ message: "Not authorized — token missing" });
     }
 
-    // verify token
+    // 4) Verify Token
     const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.user_id || decoded.id || decoded._id;
 
-    // decoded payload should contain user's id - our token uses `user_id`
-    const userId = decoded.user_id || decoded.userId || decoded._id || decoded.id;
-    if (!userId) {
-      const error = new Error('Invalid token payload');
-      error.statusCode = 401;
-      throw error;
-    }
-    const student = await Student.findById(userId).select('-password -__v');
-    if (!student) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
+    if (!userId)
+      return res.status(401).json({ message: "Invalid token payload" });
+
+    // -------------------------
+    // 5) Identify User Type
+    // -------------------------
+    let user = null;
+
+    // Try Admin
+    user = await Admin.findById(userId).select("-password -__v");
+    if (!user) {
+      // Try Student
+      user = await Student.findById(userId).select("-password -__v");
     }
 
-    // attach to req.user
-    req.user = student;
+    if (!user)
+      return res.status(401).json({ message: "User not found for this token" });
+
+    // 6) Attach User Object
+    req.user = user;
     next();
   } catch (err) {
-    next(err);
+    console.error("Auth Error:", err);
+    return res.status(401).json({ message: "Not authorized — Invalid token" });
   }
 };
 
+// -------------------------
+// requireRole([...roles])
+// -------------------------
+export const requireRole = (roles = []) => {
+  return (req, res, next) => {
+    if (!req.user)
+      return res.status(401).json({ message: "Not authenticated" });
 
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: `Access denied — ${roles.join(", ")} only`,
+      });
+    }
 
-// server/src/middleware/isAdmin.js
-export default function isAdmin(req, res, next) {
-  // Example: req.user set by auth middleware (JWT)
+    next();
+  };
+};
+
+// -------------------------
+// isAdmin => Shortcut Middleware
+// -------------------------
+export const isAdmin = (req, res, next) => {
   if (!req.user) return res.status(401).json({ message: "Not authenticated" });
-  if (req.user.role !== "admin") return res.status(403).json({ message: "Admin only" });
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access only" });
+  }
+
   next();
-}
+};
