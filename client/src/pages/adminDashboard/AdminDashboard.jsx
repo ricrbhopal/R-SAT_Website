@@ -81,8 +81,15 @@ export default function AdminDashboard() {
   ];
 
   useEffect(() => {
-    // On mount, check profile to see if user is authenticated
+    // On mount, check for token in sessionStorage
     let mounted = true;
+    const token = sessionStorage.getItem("admin_token");
+    if (token) {
+      setIsAuthenticated(true);
+      setAuthChecked(true);
+      return;
+    }
+    // If no token, check profile (fallback for cookie-based auth)
     const checkAuth = async () => {
       try {
         await AdminAPI.getProfileAdmin();
@@ -91,6 +98,7 @@ export default function AdminDashboard() {
       } catch (err) {
         if (!mounted) return;
         setIsAuthenticated(false);
+        setShowLoginModal(true);
       } finally {
         if (!mounted) return;
         setAuthChecked(true);
@@ -104,7 +112,10 @@ export default function AdminDashboard() {
 
   // Called after inline login success (get data from AdminLoginFinal's onSuccess)
   const handleLoginSuccess = (data) => {
-    // data.user available — mark authenticated and close modal
+    // Save token to sessionStorage if available
+    if (data?.token) {
+      sessionStorage.setItem("admin_token", data.token);
+    }
     setIsAuthenticated(true);
     setShowInlineLogin(false);
     setShowLoginModal(false);

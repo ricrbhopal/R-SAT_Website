@@ -209,19 +209,17 @@ export const registerWithReferral = async (req, res, next) => {
       return res.status(400).json({ message: "All registration fields, including OTP, are required" });
     }
 
-    const refer = await Referred.findOne({ referrerUserId: userId });
-    if (!refer) {
-      // If no Referred record, still allow registration (we can create one or proceed)
-      console.warn("[registerWithReferral] no Referred record for userId:", userId);
-      // Optionally: create minimal Referred doc here or proceed — we'll proceed and not block.
-    }
+    // Try to find existing referred record (may be null)
+    let refer = await Referred.findOne({ referrerUserId: userId }).lean();
 
+    // Validate OTP exists
     const phoneOTPEntry = await Otp.findOne({ otpfor: phoneNo.toString(), type: "phone" });
     if (!phoneOTPEntry) return res.status(400).json({ message: "Phone OTP not found or expired" });
 
     const isPhoneOTPValid = await bcrypt.compare(phoneOTP.toString().trim(), phoneOTPEntry.otp);
     if (!isPhoneOTPValid) return res.status(400).json({ message: "Invalid Phone OTP" });
 
+    // Email must be unique
     const existEmail = await Student.findOne({ mail_ID });
     if (existEmail) return res.status(400).json({ message: "Email already registered" });
 
@@ -236,6 +234,7 @@ export const registerWithReferral = async (req, res, next) => {
     while (usedNumbers.has(nextNumber)) nextNumber++;
     const student_ID = `RCR-RSR-${nextNumber.toString().padStart(4, "0")}`;
 
+    // Create new Student (referred)
     const newStudent = await Student.create({
       student_ID,
       fullName,
@@ -247,35 +246,53 @@ export const registerWithReferral = async (req, res, next) => {
       dob: new Date(dob),
     });
 
+    // remove OTP entries for phone
     await Otp.deleteMany({ otpfor: phoneNo.toString(), type: "phone" });
 
-    // Update or create Referred record to reflect referred student (if exist)
-    let referralRecord = null;
-    try {
-      referralRecord = await Referred.findOneAndUpdate(
-        { referrerUserId: userId },
-        {
-          $set: {
-            referredStudentId: newStudent._id,
-            referredName: fullName,
-            referredEmail: mail_ID,
-            referredPhone: phoneNo,
-            collegeName: college,
-            year: year,
-            referredDate: new Date(),
-          },
-        },
-        { new: true, upsert: false }
-      );
-    } catch (e) {
-      console.warn("[registerWithReferral] could not update Referred record:", e?.message || e);
+    // If no Referred record exists, fetch referrer Student (to populate referrerStudentID/referrerId)
+    let referrerStudent = null;
+    if (!refer) {
+      try {
+        referrerStudent = await Student.findById(userId).lean();
+      } catch (err) {
+        // ignore; we will still create a Referred doc with referrerUserId as provided
+        console.warn("[registerWithReferral] could not fetch referrer Student by id:", userId, err?.message || err);
+      }
     }
 
+    // Update (or create) the Referred record for this referrerUserId.
+    // Use upsert:true so we create a record if none exists.
+    const updateFields = {
+      // set the referred person details
+      referredStudentId: newStudent._id,
+      referredName: fullName,
+      referredEmail: mail_ID,
+      referredPhone: phoneNo,
+      collegeName: college,
+      year: year,
+      referredDate: new Date(),
+    };
+
+    const setOnInsert = {
+      // ensure required/referrer fields exist on creation
+      referrerUserId: userId,
+      referrerId: referrerStudent?._id ?? null,
+      referrerStudentID: referrerStudent?.student_ID ?? null,
+      createdAt: new Date(),
+    };
+
+    const referralRecord = await Referred.findOneAndUpdate(
+      { referrerUserId: userId }, // query
+      { $set: updateFields, $setOnInsert: setOnInsert }, // update
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    // Send confirmation and credentials emails
     const recipientEmail = (mail_ID || newStudent?.mail_ID || "").toString().trim();
     if (recipientEmail) {
       try {
         await sendReferralConfirmationEmail(recipientEmail, fullName, {
-          referrerStudentID: (refer && refer.referrerStudentID) || userId || "-",
+          referrerStudentID: (refer && refer.referrerStudentID) || referrerStudent?.student_ID || userId || "-",
           rsatId: student_ID,
           dob: newStudent?.dob ?? dob,
           testDate: process.env.RSAT_TEST_DATE || "19th Jan 2026",
@@ -285,7 +302,6 @@ export const registerWithReferral = async (req, res, next) => {
         console.error("[registerWithReferral] sendReferralConfirmationEmail ERROR:", mailErr?.message || mailErr);
       }
     }
-
     if (mail_ID) {
       try {
         await sendCredentialsEmail(mail_ID, fullName, student_ID);

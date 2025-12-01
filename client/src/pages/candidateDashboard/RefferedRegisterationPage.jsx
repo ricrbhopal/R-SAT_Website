@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ReferralAPI } from "../../config/api.js";
+import { AdminAPI } from "../../config/api.js";
 
 /**
  * RefferedRegisterationPage
@@ -29,13 +30,7 @@ export default function RefferedRegisterationPage() {
   const refParam = rawRef ? decodeURIComponent(String(rawRef).trim()) : "";
   const studentIdParam = query.get("studentId") || query.get("sid") || "";
 
-  // debug immediate logs so we see if component mounts at all
-  console.groupCollapsed("[RefferedRegisterationPage] mount");
-  console.log("window.location.href:", window.location.href);
-  console.log("rawRef param:", rawRef);
-  console.log("refParam (decoded):", refParam);
-  console.log("studentIdParam:", studentIdParam);
-  console.groupEnd();
+
 
   const [referrer, setReferrer] = useState(null);
   const [loadingReferrer, setLoadingReferrer] = useState(false);
@@ -110,19 +105,35 @@ export default function RefferedRegisterationPage() {
           console.warn("[fetchReferrer] ReferralAPI.getReferralInfo failed:", err?.response?.status, err?.response?.data || err.message || err);
         }
 
-        // 2) If the code looks like a Mongo ObjectId, synthesize minimal referrer (allow registration)
+        // 2) If the code looks like a Mongo ObjectId, try to fetch student info
         const looksLikeObjectId = /^[0-9a-fA-F]{24}$/.test(codeToTry);
         if (looksLikeObjectId) {
-          console.warn("[fetchReferrer] code looks like ObjectId. Synthesizing minimal referrer so registration can proceed.");
-          const synthetic = {
-            id: codeToTry,
-            userId: codeToTry,
-            student_ID: null,
-            fullName: "Referrer (unverified)",
-          };
-          setReferrer(synthetic);
-          toast.info("Referral link detected. Referrer details not verified but you can continue.");
-          return;
+          try {
+            const studentRes = await AdminAPI.getStudentById(codeToTry);
+            const student = studentRes?.data;
+            if (student) {
+              const fallbackRef = {
+                id: student._id || codeToTry,
+                userId: student._id || codeToTry,
+                student_ID: student.student_ID || null,
+                fullName: student.fullName || "Referrer",
+              };
+              setReferrer(fallbackRef);
+              toast.info("Referral link detected. Registered by " + (student.fullName || "Referrer"));
+              return;
+            }
+          } catch (studentErr) {
+            // fallback to synthetic minimal referrer
+            const synthetic = {
+              id: codeToTry,
+              userId: codeToTry,
+              student_ID: null,
+              fullName: "Referrer (unverified)",
+            };
+            setReferrer(synthetic);
+            toast.info("Referral link detected. Referrer details not verified but you can continue.");
+            return;
+          }
         }
 
         // 3) Fallback: not found
@@ -297,18 +308,6 @@ export default function RefferedRegisterationPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4 sm:px-6 lg:px-8 mt-18">
       <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick pauseOnFocusLoss draggable pauseOnHover theme="light" />
-
-      {/* Debug panel (visible on page) */}
-      <div className="max-w-2xl mx-auto mb-4">
-        <div className="bg-white p-3 rounded shadow text-xs text-gray-700">
-          <div><strong>Debug:</strong></div>
-          <div>URL: <span className="font-mono">{window.location.href}</span></div>
-          <div>refParam: <span className="font-mono">{String(refParam)}</span></div>
-          <div>studentIdParam: <span className="font-mono">{String(studentIdParam)}</span></div>
-          <div>referrer (state): <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(referrer, null, 2)}</pre></div>
-          <div className="text-red-600">{!isRegistrationAllowed ? "Registration currently blocked: missing ref param" : "Registration allowed: ref param present"}</div>
-        </div>
-      </div>
 
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mt-10">

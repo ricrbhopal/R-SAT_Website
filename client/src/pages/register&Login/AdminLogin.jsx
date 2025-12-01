@@ -49,14 +49,14 @@ export default function AdminLoginFinal({ onSuccess, autoRedirect = true }) {
       const data = resp?.data || {};
       showSuccess(data?.message || "Login successful");
 
+      // Save token to sessionStorage
+      if (data.token) sessionStorage.setItem("admin_token", data.token);
+
       // Call parent if provided (preferred for SPA state handling)
       if (typeof onSuccess === "function") {
         onSuccess(data);
         return;
       }
-
-      // Optionally store token (NOT recommended for security) — uncomment only if you must:
-      // if (data.token) localStorage.setItem("admin_token", data.token);
 
       // Role-based redirect using returned user.role
       const role = data?.user?.role || "";
