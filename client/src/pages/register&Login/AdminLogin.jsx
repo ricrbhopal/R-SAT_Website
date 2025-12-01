@@ -3,20 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminAPI } from "../../config/api";
 
-/**
- * Admin login component (phone + password)
- * - Calls AdminAPI.loginAdmin({ phone, password })
- * - Redirects to role-based dashboard:
- *    admin   -> /admin/dashboard
- *    manager -> /manager/dashboard
- *    caller  -> /caller/dashboard
- *
- * Props:
- * - onSuccess?: (data) => void  // optional callback with response data
- * - autoRedirect?: boolean      // default true: redirect when no onSuccess provided
- *
- * NOTE: Backend also sets an HttpOnly cookie. Avoid storing token in localStorage unless necessary.
- */
+
 
 export default function AdminLoginFinal({ onSuccess, autoRedirect = true }) {
   const navigate = useNavigate();

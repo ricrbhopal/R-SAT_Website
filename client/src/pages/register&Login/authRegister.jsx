@@ -557,7 +557,7 @@ const AuthRegister = () => {
                     </svg>
                   )}
                   <span className="text-base sm:text-lg lg:text-xl">
-                    {registering ? "Creating Your Account..." : "Create R-SAT Account"}
+                    {registering ? "Submitting..." : "Submit Registration"}
                   </span>
                 </button>
               </div>
