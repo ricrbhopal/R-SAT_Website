@@ -31,7 +31,7 @@ import {
   getAllResults,
   createResult,
   DeleteSupportQuery,
-  getProfileAdmin,
+getAdminProfileById,
   logoutAdmin,
   loginAdmin,
   registerAdmin,
@@ -39,10 +39,11 @@ import {
   sendAdminOtp
 
 } from "../controller/adminController.js";
-import {  } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
+router.post("/login", loginAdmin);
 
+router.get("/profile/:id", getAdminProfileById);
 
 // User Router
 router.get("/users", getAllUsers);
@@ -96,8 +97,6 @@ router.post("/results/create", createResult);
 // Admin Auth Router
 router.post("/register", registerAdmin);
 router.post("/verify-otp", verifyAdminOtp);
-router.post("/login", loginAdmin);
 router.post("/logout", logoutAdmin);
 router.post("/send-otp", sendAdminOtp);
-router.get("/profile", getProfileAdmin);
 export default router;

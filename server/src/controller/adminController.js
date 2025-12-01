@@ -1216,48 +1216,21 @@ export const verifyAdminOtp = async (req, res, next) => {
 export const loginAdmin  = async (req, res, next) => {
   try {
     const { phone, password } = req.body;
-
-    if (!phone || !password) {
-      const err = new Error("phone and password are required");
-      err.statusCode = 400;
-      return next(err);
-    }
+    if (!phone || !password) return res.status(400).json({ message: "phone and password are required" });
 
     const user = await AdminAuth.findOne({ phone: phone.toString() });
-    if (!user) {
-      const err = new Error("Invalid credentials");
-      err.statusCode = 401;
-      return next(err);
-    }
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      const err = new Error("Invalid credentials");
-      err.statusCode = 401;
-      return next(err);
-    }
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    const payload = {
-      id: user._id,
-      role: user.role,
-      phone: user.phone,
-    };
-
+    const payload = { id: user._id, role: user.role, phone: user.phone };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
     const safeUser = sanitizeUser(user);
 
-    return res.status(200).json({
-      message: "Login successful",
-      user: safeUser,
-      token,
-    });
+    return res.status(200).json({ message: "Login successful", user: safeUser, token });
   } catch (err) {
     next(err);
   }
@@ -1277,34 +1250,36 @@ export const logoutAdmin = (req, res, next) => {
 };
 
 
-/**
- * GET PROFILE (requires auth)
- */
-export const getProfileAdmin = async (req, res, next) => {
+
+
+// adminController.js mein yeh function add karo
+export const getAdminProfileById = async (req, res, next) => {
   try {
-    const authUser = req.user; // from auth middleware
+    const userId = req.params.id;
 
-    if (!authUser || !authUser.id) {
-      const err = new Error("Not authenticated");
-      err.statusCode = 401;
-      return next(err);
+    if (!userId) {
+      return res.status(400).json({ message: "User ID required" });
     }
 
-    const user = await AdminAuth.findById(authUser.id)
-      .select("-password -__v")
-      .lean();
-
+    // AdminAuth model use karo
+    const user = await AdminAuth.findById(userId).select("-password -__v");
+    
     if (!user) {
-      const err = new Error("User not found");
-      err.statusCode = 404;
-      return next(err);
+      return res.status(404).json({ message: "Admin user not found" });
     }
 
-    res.status(200).json({
-      message: "Profile fetched successfully",
-      user,
+    return res.status(200).json({
+      success: true,
+      message: "Admin profile retrieved",
+      user
     });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    console.error("[getAdminProfileById] Error:", error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+    
+    next(error);
   }
 };

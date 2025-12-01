@@ -1,95 +1,46 @@
-import jwt from "jsonwebtoken";
-import Student from "../models/authModel.js";
-import Admin from "../models/adminAuth.js"; // change path if needed
+import jwt from 'jsonwebtoken';
+import Student from '../models/authModel.js';
+import Caller from '../models/callerModel.js';
+import AdminAuth from '../models/adminAuth.js';
 
-// -------------------------
-// JWT SECRET
-// -------------------------
-let JWT_SECRET = process.env.JWT_SECRET || "dev_secret_fallback";
-if (!process.env.JWT_SECRET) {
-  console.warn("⚠ JWT_SECRET not found! Using fallback secret.");
+let JWT_SECRET = process.env.JWT_SECRET || 'kjkjk4jkl45klkl1@23423hjkhjkbgui@2@3';
+if (!JWT_SECRET) {
+  JWT_SECRET = 'dev_fallback_jwt_secret';
+  console.warn('Warning: JWT_SECRET is not set. Using development fallback secret. Set JWT_SECRET in .env for production.');
 }
 
-// -------------------------
-// PROTECT (Authentication)
-// -------------------------
 export const protect = async (req, res, next) => {
   try {
     let token = null;
-
-    // 1) Token from Cookie
-    if (req.cookies?.token) {
+    if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
-
-    // 2) Token from Authorization Header
-    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
     }
-
-    // 3) No token found
     if (!token) {
-      return res.status(401).json({ message: "Not authorized — token missing" });
+      const error = new Error('Not authorized, token missing');
+      error.statusCode = 401;
+      throw error;
     }
-
-    // 4) Verify Token
     const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.user_id || decoded.id || decoded._id;
-
-    if (!userId)
-      return res.status(401).json({ message: "Invalid token payload" });
-
-    // -------------------------
-    // 5) Identify User Type
-    // -------------------------
-    let user = null;
-
-    // Try Admin
-    user = await Admin.findById(userId).select("-password -__v");
-    if (!user) {
-      // Try Student
-      user = await Student.findById(userId).select("-password -__v");
+    const userId = decoded.user_id || decoded.userId || decoded._id || decoded.id;
+    if (!userId) {
+      const error = new Error('Invalid token payload');
+      error.statusCode = 401;
+      throw error;
     }
-
-    if (!user)
-      return res.status(401).json({ message: "User not found for this token" });
-
-    // 6) Attach User Object
+    let user = await Student.findById(userId).select('-password -__v');
+    if (!user) user = await Caller.findById(userId).select('-password -__v');
+    if (!user) user = await AdminAuth.findById(userId).select('-password -__v');
+    if (!user) {
+      const error = new Error('User not found');
+      error.statusCode = 404;
+      throw error;
+    }
     req.user = user;
     next();
   } catch (err) {
-    console.error("Auth Error:", err);
-    return res.status(401).json({ message: "Not authorized — Invalid token" });
+    next(err);
   }
-};
-
-// -------------------------
-// requireRole([...roles])
-// -------------------------
-export const requireRole = (roles = []) => {
-  return (req, res, next) => {
-    if (!req.user)
-      return res.status(401).json({ message: "Not authenticated" });
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: `Access denied — ${roles.join(", ")} only`,
-      });
-    }
-
-    next();
-  };
-};
-
-// -------------------------
-// isAdmin => Shortcut Middleware
-// -------------------------
-export const isAdmin = (req, res, next) => {
-  if (!req.user) return res.status(401).json({ message: "Not authenticated" });
-
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Admin access only" });
-  }
-
-  next();
 };

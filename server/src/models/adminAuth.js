@@ -9,26 +9,15 @@ const adminAuthSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Referred',
     },
-    username: { 
-        type: String, 
-        required: true, 
-    },
-    role:{
-        enum: ['admin', 'manager', 'caller'],
-        type: String,
-        default: 'admin',   
-    },
-    phone: { 
-        type: String, 
-        required: true,
-        unique: true, 
-    },
-    password: {
-        type: String,
-        required: true,
-    },
+  username: { type: String, required: true, unique: true },
+  phone: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ["admin", "manager", "caller"], default: "caller" },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+    
 }, { timestamps: true });
 
-const AdminAuth = mongoose.model('AdminAuth', adminAuthSchema);
+const Admin = mongoose.model('Admin', adminAuthSchema);
 
-export default AdminAuth;
+export default Admin;

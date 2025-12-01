@@ -36,8 +36,18 @@ export default function AdminLoginFinal({ onSuccess, autoRedirect = true }) {
       const data = resp?.data || {};
       showSuccess(data?.message || "Login successful");
 
+
+      // Save user object to sessionStorage for use in other pages
+      if (data.user) {
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+      } else if (data.student) {
+        sessionStorage.setItem("user", JSON.stringify(data.student));
+      }
       // Save token to sessionStorage
-      if (data.token) sessionStorage.setItem("admin_token", data.token);
+      if (data.token) {
+        sessionStorage.setItem("admin_token", data.token);
+        sessionStorage.setItem("token", data.token); // for global access
+      }
 
       // Call parent if provided (preferred for SPA state handling)
       if (typeof onSuccess === "function") {

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { listCallers } from "../../../server/src/controller/callerController";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:6501";
 
@@ -132,7 +133,7 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
   // Admin Auth Router  registerAdmin: (data) => api.post("/admin/register", data),
   loginAdmin: (data) => api.post("/admin/login", data),
   logoutAdmin: () => api.post("/admin/logout"),
-  getProfileAdmin: () => api.get("/admin/profile"),
+  getAdminProfileById: (id) => api.get(`/admin/profile/${id}`),
   registerAdmin: (data) => api.post("/admin/register", data),
   verifyAdminOtp: (data) => api.post("/admin/verify-otp", data),
   sendAdminOtp: (data) => api.post("/admin/send-otp", data),
@@ -149,6 +150,11 @@ export const AdmitCardAPI = {
   markAttendanceWithToken: (data) => api.post("/admit-cards/mark-attendance", data),
   scanAttendance: (id) => api.get(`/admit-cards/scan-attendance/${id}`),
   downloadAdmitCard: (id) => api.get(`/admit-cards/${id}/download`, { responseType: 'blob' }),
+};
+
+
+export const CallerAPI = {
+listCallers: () => api.get("/callers/list"),
 };
 
 export default api;

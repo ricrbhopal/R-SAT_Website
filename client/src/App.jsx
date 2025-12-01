@@ -12,6 +12,9 @@ import Admindashboard from "./pages/adminDashboard/AdminDashboard.jsx";
 import ManagerDashboard from "./pages/managerDashboard/ManagerDashboard.jsx";
 import Login from "./pages/register&Login/AdminLogin.jsx";
 import AdminRegister from "./pages/adminDashboard/AdminRegister.jsx";
+import CallerDashboard from "./pages/callerDashboard/CallerDashboard.jsx";
+import CallerRefferedRegisteration from "./pages/callerDashboard/CallerRefferedRegisteration.jsx";
+
 import "./App.css";
 
 function App() {
@@ -29,10 +32,12 @@ function App() {
           path="/candidateDashboard/RefferedRegisterationPage"
           element={<ReferredRegistrationPage />}
         />
+        <Route path="/callerDashboard/RefferedRegisterationPage" element={<CallerRefferedRegisteration />} />
         <Route path="/admin/dashboard" element={<Admindashboard />} />
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/caller/dashboard" element={<CallerDashboard />} />
       </Routes>
 
       <Footer />
