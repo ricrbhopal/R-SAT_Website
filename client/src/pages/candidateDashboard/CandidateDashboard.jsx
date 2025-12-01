@@ -1,3 +1,4 @@
+// client/src/pages/candidateDashboard/CandidateDashboard.jsx
 import React, { useEffect, useState } from "react";
 import {
   FiUser,
@@ -8,8 +9,8 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import Profile from "./ProfilePage.jsx";
-import Demo from "../candidateDashboard/BookDemoPage.jsx";
-import Support from "../candidateDashboard/QueriesPage.jsx";
+import Demo from "./BookDemoPage.jsx";
+import Support from "./QueriesPage.jsx";
 import Reffered from "./RefferedPage.jsx";
 import AdmitCard from "./AdmitCardPage.jsx";
 import { useNavigate } from "react-router-dom";
@@ -23,9 +24,31 @@ export default function CandidateDashboard() {
 
   const navigate = useNavigate();
 
-  // ----- Hooks must run unconditionally (placed before any early returns) -----
+  // localStorage key for selected tab
+  const STORAGE_KEY = "candidate_selected_action";
 
-  // fetch profile
+  // ----- Initialize selectedId from localStorage (persisted). Default to 1 (Profile).
+  const [selectedId, setSelectedId] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? Number(raw) : null;
+      if (parsed && [1, 2, 3, 4, 5, 6].includes(parsed)) return parsed;
+    } catch (e) {
+      // ignore localStorage errors
+    }
+    return 1;
+  });
+
+  // Persist selectedId -> localStorage (keeps selection after reload)
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, String(selectedId));
+    } catch (e) {
+      // ignore
+    }
+  }, [selectedId]);
+
+  // Fetch profile
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -42,7 +65,7 @@ export default function CandidateDashboard() {
     fetchProfile();
   }, []);
 
-  // check token and redirect if not logged in
+  // Redirect to login if no token
   useEffect(() => {
     const token = sessionStorage.getItem("token");
     if (!token) {
@@ -51,19 +74,55 @@ export default function CandidateDashboard() {
     }
   }, [navigate]);
 
+  // ONE-TIME refresh after login:
+  // If user has a token and we haven't refreshed the dashboard once in this session,
+  // set a session flag and reload once. This avoids infinite reload loops.
+  useEffect(() => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const refreshed = sessionStorage.getItem("dashboardRefreshed");
+      if (token && refreshed !== "true") {
+        // mark refreshed so we don't reload again in this session
+        sessionStorage.setItem("dashboardRefreshed", "true");
+        // full reload so all components mount fresh
+        window.location.reload();
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+    // empty deps so it runs once on mount
+  }, []);
+
+  // Ensure page always starts at the top after any reload / mount.
+  // Some browsers attempt to restore scroll position after reload, so we force top.
+  useEffect(() => {
+    // immediate attempt
+    try {
+      window.scrollTo(0, 0);
+    } catch (e) {
+      // ignore
+    }
+    // also ensure in next paint/frame
+    requestAnimationFrame(() => {
+      try {
+        window.scrollTo(0, 0);
+      } catch (e) {}
+    });
+  }, []);
+
   // quickActions declared inside component so we can reference it when initializing selection
   const quickActions = [
     {
       id: 1,
       title: "Profile",
-      content: <Profile />,
+      content: <Profile key="profile" />,
       icon: <FiUser className="w-5 h-5 text-blue-600" />,
       accent: "bg-blue-100",
     },
     {
       id: 2,
       title: "Admit Card",
-      content: <AdmitCard />,
+      content: <AdmitCard key="admit" />,
       icon: <FiDownload className="w-5 h-5 text-red-600" />,
       accent: "bg-red-100",
     },
@@ -79,7 +138,7 @@ export default function CandidateDashboard() {
       title: "Referred",
       content: (
         <div className="p-4">
-          <Reffered />
+          <Reffered key="referred" />
         </div>
       ),
       icon: <FiUsers className="w-5 h-5 text-pink-600" />,
@@ -88,49 +147,21 @@ export default function CandidateDashboard() {
     {
       id: 5,
       title: "Book Demo Classes",
-      content: <Demo />,
+      content: <Demo key="demo" />,
       icon: <FiCalendar className="w-5 h-5 text-purple-600" />,
       accent: "bg-purple-100",
     },
     {
       id: 6,
       title: "Help Center",
-      content: <Support />,
+      content: <Support key="support" />,
       icon: <FiMail className="w-5 h-5 text-yellow-600" />,
       accent: "bg-yellow-100",
     },
   ];
 
-  // localStorage key
-  const STORAGE_KEY = "candidate_selected_action";
-
-  // initialize selected id from localStorage or default to profile (id:1)
-  const [selectedId, setSelectedId] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const parsed = raw ? Number(raw) : null;
-      if (parsed && quickActions.some((q) => q.id === parsed)) return parsed;
-    } catch (e) {
-      // ignore localStorage errors (e.g. SSR) and fallback
-    }
-    return 1; // default to Profile card
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(selectedId));
-    } catch (e) {
-      // ignore
-    }
-  }, [selectedId]);
-
   // get the selected action object
-  const selectedAction = quickActions.find((q) => q.id === selectedId);
-
-  // (optional) Ensure the Profile tab is always selected by default on mount
-  useEffect(() => {
-    setSelectedId(1);
-  }, []);
+  const selectedAction = quickActions.find((q) => q.id === selectedId) || quickActions[0];
 
   // ----- Conditional UI for loading / error -----
   if (loading) {
@@ -175,6 +206,23 @@ export default function CandidateDashboard() {
     );
   }
 
+  // Handler when clicking a quick action:
+  // Save selection to localStorage (so after reload selected tab can be restored),
+  // then perform a full window reload so the tab starts from initial state.
+  const handleActionClick = (actionId) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, String(actionId));
+    } catch (e) {
+      // ignore storage errors
+    }
+    // ensure scroll top (best-effort) before reload
+    try {
+      window.scrollTo(0, 0);
+    } catch (e) {}
+    // full reload; after reload selectedId will be restored from localStorage and components mount fresh
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-blue-50/30 p-4 justify-between max-auto sm:p-6 mt-15">
       <div className="max-w-7xl mx-auto mt-6">
@@ -194,7 +242,7 @@ export default function CandidateDashboard() {
             {quickActions.map((action) => (
               <button
                 key={action.id}
-                onClick={() => setSelectedId(action.id)}
+                onClick={() => handleActionClick(action.id)}
                 aria-pressed={selectedId === action.id}
                 className={`shrink-0 min-w-40 text-left p-4 cursor-pointer rounded-2xl border shadow-sm transition-transform duration-150 flex items-center gap-3
                     ${
@@ -203,25 +251,19 @@ export default function CandidateDashboard() {
                         : "bg-white border-gray-200 hover:shadow-md"
                     }`}
               >
-                <div className={`p-2 rounded-lg ${action.accent}`}>
-                  {action.icon}
-                </div>
-                <div className="text-sm font-medium text-gray-900">
-                  {action.title}
-                </div>
+                <div className={`p-2 rounded-lg ${action.accent}`}>{action.icon}</div>
+                <div className="text-sm font-medium text-gray-900">{action.title}</div>
               </button>
             ))}
           </div>
         </div>
 
         {/* Main content */}
-        <div className="flex flex-col   mt-6">
+        <div className="flex flex-col mt-6">
           <main className="flex-1">
-            <div className="bg-white rounded-2xl ">
-              <div className="flex   mb-4">
-                <div className="text-sm text-gray-500">
-                  {selectedAction?.desc}
-                </div>
+            <div className="bg-white rounded-2xl p-6">
+              <div className="flex mb-4">
+                <div className="text-sm text-gray-500">{selectedAction?.desc}</div>
               </div>
 
               <div className="mt-4">{selectedAction?.content}</div>
