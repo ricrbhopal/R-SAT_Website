@@ -1,5 +1,5 @@
 // client/src/pages/RefferedRegisterationPage.jsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -13,7 +13,7 @@ import { ReferralAPI, AdminAPI } from "../../config/api.js";
 
 const useQuery = () => {
   const { search } = useLocation();
-  return new URLSearchParams(search);
+  return React.useMemo(() => new URLSearchParams(search), [search]);
 };
 
 function updateFormField(setForm, key, value) {
@@ -21,48 +21,6 @@ function updateFormField(setForm, key, value) {
 }
 
 export default function RefferedRegisterationPage() {
-  // Example: Fetch admin/caller profile if needed
-  useEffect(() => {
-    let mounted = true;
-
-    async function fetchProfile() {
-      try {
-        const res = await AdminAPI.getProfileAdmin();
-        if (!mounted) return;
-
-        const data = res?.data?.user;
-        if (data) {
-          // SAFE: don't spread a possibly-null referrer; use functional updater
-          setReferrer((prev) => ({
-            ...(prev || {}),
-            username: data.username,
-            role: data.role,
-            phone: data.phone || prev?.phone,
-            id: data._id || prev?.id,
-          }));
-        } else {
-          // helpful debug log if backend returned a message but no user object
-          console.warn("[fetchProfile] called getProfileAdmin but no user in response:", res?.data);
-        }
-      } catch (err) {
-        // surface errors so you can see if auth/cors/cookie issues exist
-        console.error(
-          "[fetchProfile] AdminAPI.getProfileAdmin error:",
-          err?.response?.status,
-          err?.response?.data || err.message || err
-        );
-        // optional UX: show brief toast (commented out so it doesn't annoy users)
-        // toast.warn("Could not load caller profile (you may not be logged in)");
-      }
-    }
-
-    fetchProfile();
-    return () => {
-      mounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const query = useQuery();
 
   // Accept multiple param names, including caller/admin link
@@ -99,6 +57,40 @@ export default function RefferedRegisterationPage() {
   const resendTimerRef = useRef(null);
   const mountedRef = useRef(true);
 
+  // Fetch profile if needed — must run after refParam and setReferrer are declared
+  useEffect(() => {
+    async function fetchProfileIfNeeded() {
+      // if we already have a meaningful name, skip
+      if (referrer?.name) return;
+      const id = refParam || studentIdParam;
+      if (!id) return;
+
+      try {
+        if (!AdminAPI || !AdminAPI.getAdminProfileById) {
+          console.log("[fetchProfileIfNeeded] AdminAPI.getAdminProfileById not defined");
+          return;
+        }
+        const res = await AdminAPI.getAdminProfileById(id);
+        const data = res?.data?.user || res?.data;
+        if (data && mountedRef.current) {
+          setReferrer((prev) => ({
+            ...(prev || {}),
+            name: data.username || data.name || prev?.name,
+            role: data.role || prev?.role,
+            phone: data.phone || prev?.phone,
+            id: data._id || prev?.id,
+          }));
+        }
+      } catch (err) {
+        console.error("[fetchProfileIfNeeded] AdminAPI.getAdminProfileById error:", err?.response?.status, err?.response?.data || err.message || err);
+      }
+    }
+
+    fetchProfileIfNeeded();
+    // only depends on the identifier and the referrer state presence
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refParam, studentIdParam, referrer]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -110,7 +102,10 @@ export default function RefferedRegisterationPage() {
     };
   }, []);
 
+  // Main referral fetch logic (tries ReferralAPI then AdminAPI fallbacks)
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchReferrer() {
       console.group("[fetchReferrer] start");
       console.log("Trying to fetch referrer info for:", { refParam, studentIdParam });
@@ -130,46 +125,41 @@ export default function RefferedRegisterationPage() {
         // 1) Preferred: referrals/info route (handles both student & caller/admin)
         try {
           console.log("[fetchReferrer] calling ReferralAPI.getReferralInfo with:", codeToTry);
-          const res = await ReferralAPI.getReferralInfo(codeToTry);
-          console.log("[fetchReferrer] getReferralInfo response:", res?.status, res?.data);
-          const data = res?.data || {};
-          if (data?.referrer) {
-            // If caller/admin, show username; if student, show fullName
-            let rr = {};
-            if (data.referrer.caller) {
-              rr = {
-                id: data.referrer.caller.id || null,
-                userId: data.referrer.caller.userId || data.referrer.caller.id || null,
-                fullName: data.referrer.caller.name || "Caller",
-                role: data.referrer.caller.role || "Caller",
-                phone: data.referrer.caller.phone || null,
-                type: "caller",
-              };
-            } else if (data.referrer.student) {
-              rr = {
-                id: data.referrer.student.id || null,
-                userId: data.referrer.student.userId || data.referrer.student.id || null,
-                student_ID: data.referrer.student.student_ID || null,
-                fullName:
-                  data.referrer.student.name || data.referrer.student.fullName || "Referrer",
-                type: "student",
-              };
+          if (ReferralAPI && ReferralAPI.getReferralInfo) {
+            const res = await ReferralAPI.getReferralInfo(codeToTry);
+            console.log("[fetchReferrer] getReferralInfo response:", res?.status, res?.data);
+            const data = res?.data || {};
+            if (data?.referrer) {
+              let rr = {};
+              if (data.referrer.caller) {
+                rr = {
+                  id: data.referrer.caller.id || null,
+                  userId: data.referrer.caller.userId || data.referrer.caller.id || null,
+                  fullName: data.referrer.caller.name || "Caller",
+                  role: data.referrer.caller.role || "Caller",
+                  phone: data.referrer.caller.phone || null,
+                  type: "caller",
+                };
+              } else if (data.referrer.student) {
+                rr = {
+                  id: data.referrer.student.id || null,
+                  userId: data.referrer.student.userId || data.referrer.student.id || null,
+                  student_ID: data.referrer.student.student_ID || null,
+                  fullName: data.referrer.student.name || data.referrer.student.fullName || "Referrer",
+                  type: "student",
+                };
+              }
+              console.log("[fetchReferrer] parsed referrer from referrals/info:", rr);
+              if (!cancelled && mountedRef.current) setReferrer(rr);
+              return;
+            } else {
+              console.warn("[fetchReferrer] referrals/info returned no referrer object", res?.data);
             }
-            console.log("[fetchReferrer] parsed referrer from referrals/info:", rr);
-            setReferrer(rr);
-            return;
           } else {
-            console.warn(
-              "[fetchReferrer] referrals/info returned no referrer object",
-              res?.data
-            );
+            console.log("[fetchReferrer] ReferralAPI.getReferralInfo not available");
           }
         } catch (err) {
-          console.warn(
-            "[fetchReferrer] ReferralAPI.getReferralInfo failed:",
-            err?.response?.status,
-            err?.response?.data || err.message || err
-          );
+          console.warn("[fetchReferrer] ReferralAPI.getReferralInfo failed:", err?.response?.status, err?.response?.data || err.message || err);
         }
 
         // 2) Try AdminAPI.getCallerById (caller/admin lookup)
@@ -188,7 +178,7 @@ export default function RefferedRegisterationPage() {
                 raw: caller,
               };
               console.log("[fetchReferrer] found caller via AdminAPI.getCallerById:", rr);
-              setReferrer(rr);
+              if (!cancelled && mountedRef.current) setReferrer(rr);
               toast.info("Referral link detected (caller).");
               return;
             }
@@ -196,10 +186,7 @@ export default function RefferedRegisterationPage() {
             console.log("[fetchReferrer] AdminAPI.getCallerById not available");
           }
         } catch (err) {
-          console.warn(
-            "[fetchReferrer] AdminAPI.getCallerById failed:",
-            err?.response?.data || err.message || err
-          );
+          console.warn("[fetchReferrer] AdminAPI.getCallerById failed:", err?.response?.data || err.message || err);
         }
 
         // 3) Try AdminAPI.getAdminById (if your admin model is different)
@@ -218,7 +205,7 @@ export default function RefferedRegisterationPage() {
                 raw: admin,
               };
               console.log("[fetchReferrer] found admin via AdminAPI.getAdminById:", rr);
-              setReferrer(rr);
+              if (!cancelled && mountedRef.current) setReferrer(rr);
               toast.info("Referral link detected (admin).");
               return;
             }
@@ -226,10 +213,7 @@ export default function RefferedRegisterationPage() {
             console.log("[fetchReferrer] AdminAPI.getAdminById not available");
           }
         } catch (err) {
-          console.warn(
-            "[fetchReferrer] AdminAPI.getAdminById failed:",
-            err?.response?.data || err.message || err
-          );
+          console.warn("[fetchReferrer] AdminAPI.getAdminById failed:", err?.response?.data || err.message || err);
         }
 
         // 4) Try to fetch Student by id (legacy/student referrer)
@@ -250,21 +234,15 @@ export default function RefferedRegisterationPage() {
                   raw: student,
                 };
                 console.log("[fetchReferrer] found student via AdminAPI.getStudentById:", fallbackRef);
-                setReferrer(fallbackRef);
-                toast.info(
-                  "Referral link detected. Registered by " + (student.fullName || "Referrer")
-                );
+                if (!cancelled && mountedRef.current) setReferrer(fallbackRef);
+                toast.info("Referral link detected. Registered by " + (student.fullName || "Referrer"));
                 return;
               }
             } else {
               console.log("[fetchReferrer] AdminAPI.getStudentById not available");
             }
           } catch (studentErr) {
-            console.warn(
-              "[fetchReferrer] AdminAPI.getStudentById failed:",
-              studentErr?.response?.data || studentErr.message || studentErr
-            );
-            // fallback to synthetic minimal referrer if needed
+            console.warn("[fetchReferrer] AdminAPI.getStudentById failed:", studentErr?.response?.data || studentErr.message || studentErr);
             const synthetic = {
               id: codeToTry,
               userId: codeToTry,
@@ -273,25 +251,27 @@ export default function RefferedRegisterationPage() {
               type: "unknown",
             };
             console.log("[fetchReferrer] using synthetic fallback for objectId:", synthetic);
-            setReferrer(synthetic);
-            toast.info(
-              "Referral link detected. Referrer details not verified but you can continue."
-            );
+            if (!cancelled && mountedRef.current) setReferrer(synthetic);
+            toast.info("Referral link detected. Referrer details not verified but you can continue.");
             return;
           }
         }
 
         // 5) Final fallback: not found
         console.warn("[fetchReferrer] referral not found for code:", codeToTry);
-        setReferrer(null);
+        if (!cancelled && mountedRef.current) setReferrer(null);
         toast.error("Referral not found or expired.");
       } finally {
-        if (mountedRef.current) setLoadingReferrer(false);
+        if (!cancelled && mountedRef.current) setLoadingReferrer(false);
         console.groupEnd();
       }
     }
 
     fetchReferrer();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refParam, studentIdParam]);
 
@@ -317,7 +297,7 @@ export default function RefferedRegisterationPage() {
     }
   }, [resendSeconds]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     if (!form.fullName.trim()) return "Please enter full name.";
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!form.referredEmail.trim()) return "Please enter email.";
@@ -331,7 +311,7 @@ export default function RefferedRegisterationPage() {
     if (!otpSent) return "Please verify your phone by sending OTP first.";
     if (!phoneOTP.trim()) return "Please enter the OTP sent to your phone.";
     return null;
-  };
+  }, [form, otpSent, phoneOTP]);
 
   const handleSendOTP = async () => {
     console.group("[handleSendOTP]");
@@ -359,6 +339,9 @@ export default function RefferedRegisterationPage() {
       if (refParam) body.ref = refParam;
       if (studentIdParam && !refParam) body.ref = studentIdParam;
       console.log("[handleSendOTP] request body:", body);
+      if (!ReferralAPI || !ReferralAPI.sendReferralOTP) {
+        throw new Error("ReferralAPI.sendReferralOTP not available");
+      }
       const res = await ReferralAPI.sendReferralOTP(body);
       console.log("[handleSendOTP] response:", res?.status, res?.data);
       if (!mountedRef.current) {
@@ -370,7 +353,7 @@ export default function RefferedRegisterationPage() {
       toast.success("OTP sent to your phone.");
     } catch (err) {
       console.error("[handleSendOTP] error:", err?.response?.status, err?.response?.data || err.message || err);
-      const msg = err?.response?.data?.message || "Failed to send OTP. Try again later.";
+      const msg = err?.response?.data?.message || err.message || "Failed to send OTP. Try again later.";
       setOtpError(msg);
       toast.error(msg);
     } finally {
@@ -421,6 +404,9 @@ export default function RefferedRegisterationPage() {
       const refToSend = refParam || studentIdParam;
       console.log("[handleSubmit] payload:", payload, "sending to registerWithReferral with ref:", refToSend);
 
+      if (!ReferralAPI || !ReferralAPI.registerWithReferral) {
+        throw new Error("ReferralAPI.registerWithReferral not available");
+      }
       const res = await ReferralAPI.registerWithReferral(payload, refToSend);
       console.log("[handleSubmit] registerWithReferral response:", res?.status, res?.data);
       toast.success(res?.data?.message || "Registration successful!");
@@ -442,7 +428,7 @@ export default function RefferedRegisterationPage() {
       setResendSeconds(0);
     } catch (err) {
       console.error("[handleSubmit] error:", err?.response?.status, err?.response?.data || err.message || err);
-      const msg = err?.response?.data?.message || "Failed to register. Please try again.";
+      const msg = err?.response?.data?.message || err.message || "Failed to register. Please try again.";
       toast.error(msg);
     } finally {
       if (mountedRef.current) setSubmitting(false);
@@ -484,11 +470,7 @@ export default function RefferedRegisterationPage() {
                   ) : referrer ? (
                     <>
                       <p className="text-blue-600 font-bold">
-                        Referred by: {
-                          referrer?.type === "caller"
-                            ? referrer?.username || referrer?.fullName || "Caller"
-                            : referrer?.fullName || "Referrer"
-                        }
+                        Referred by: {referrer?.name || referrer?.fullName || "Referrer"}
                       </p>
                       {referrer?.type === "caller" && (
                         <>
@@ -499,9 +481,7 @@ export default function RefferedRegisterationPage() {
                         </>
                       )}
                       <p className="text-sm text-gray-700">
-                        {referrer?.type === "caller"
-                          ? `You are registering using ${referrer?.username || referrer?.fullName || "Caller"}'s referral link.`
-                          : `You are registering using ${referrer?.fullName || "Referrer"}'s referral link.`}
+                        {`You are registering using ${referrer?.name || referrer?.fullName || "Referrer"}'s referral link.`}
                       </p>
                     </>
                   ) : (
