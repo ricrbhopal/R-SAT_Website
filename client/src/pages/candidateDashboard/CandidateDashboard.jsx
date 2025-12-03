@@ -56,7 +56,11 @@ export default function CandidateDashboard() {
         const payload = response?.data;
         setProfile(payload?.student || payload || {});
       } catch (err) {
-        setError("Failed to fetch profile. Please try again later.");
+        if (err.response?.status === 400) {
+          setError("Invalid request. Please check your account details.");
+        } else {
+          setError("Failed to fetch profile. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }

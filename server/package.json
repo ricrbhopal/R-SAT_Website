@@ -5,9 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
   },
   "dependencies": {
+    "@prisma/adapter-mssql": "^7.0.1",
+    "@prisma/client": "^6.18.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
@@ -20,16 +24,20 @@
     "fs": "^0.0.1-security",
     "install": "^0.13.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.19.3",
+    "mongoose": "^9.0.0",
+    "mssql": "^12.2.0",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "npm": "^11.6.4",
     "path": "^0.12.7",
     "pdfkit": "^0.17.2",
     "qrcode": "^1.5.4",
-    "streamifier": "^0.1.1"
+    "sequelize": "^6.37.7",
+    "streamifier": "^0.1.1",
+    "tedious": "^19.1.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "prisma": "^6.18.0"
   }
 }

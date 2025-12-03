@@ -1,0 +1,60 @@
+generator client {
+  provider      = "prisma-client-js"
+  engineType    = "binary"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id         String   @id @default(uuid())
+  student_id String?
+  reffer_id  String?
+  username   String   @unique
+  phone      String   @unique
+  password   String
+  role       String   @default("caller")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("adminAuth") // Map to the correct table name
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  otpfor    String
+  otp       String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+model Student {
+  id         String   @id @default(uuid())
+  student_ID String   @unique
+  fullName   String
+  phoneNo    String
+  mail_ID    String?
+  college    String
+  branch     String
+  year       String
+  dob        DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  admitCards AdmitCard[] // Add this relation field
+}
+
+model AdmitCard {
+  id         String    @id @default(uuid())
+  studentId  String    @unique
+  RSAT       String
+  status     String    @default("Inactive")
+  issuedDate DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+}

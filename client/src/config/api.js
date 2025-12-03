@@ -34,12 +34,12 @@ api.interceptors.request.use(
 
 
 export const AuthAPI = {
-  sendOTP: (data) => api.post("/auth/send-otp", data),
-  register: (data) => api.post("/auth/register", data),
-  sendCredentials: (data) => api.post("/auth/send-credentials", data),
-  login: (data) => api.post("/auth/login", data),
-  logout: () => api.post("/auth/logout"),
-  getStudentProfile: () => api.get("/auth/profile"),
+  sendOTP: (data) => api.post("/student/send-otp", data),
+  register: (data) => api.post("/student/register", data),
+  sendCredentials: (data) => api.post("/student/send-credentials", data),
+  login: (data) => api.post("/student/login", data),
+  logout: () => api.post("/student/logout"),
+  getStudentProfile: () => api.get("/student/profile"),
 };
 
 export const DemoAPI = {
@@ -154,7 +154,7 @@ export const AdmitCardAPI = {
 
 
 export const CallerAPI = {
-listCallers: () => api.get("/callers/list"),
+listCallers: () => api.get("/callers/"),
 };
 
 export default api;

@@ -40,6 +40,7 @@ export default function Students({ students = [], loading = false, searchTerm = 
                       <div><span className="text-gray-500 text-xs">College:</span><div className="font-medium text-gray-900 truncate">{student.college}</div></div>
                       <div><span className="text-gray-500 text-xs">Branch:</span><div className="font-medium text-gray-900">{student.branch}</div></div>
                       <div><span className="text-gray-500 text-xs">Year:</span><div className="font-medium text-gray-900">{student.year}</div></div>
+                      <div><span className="text-gray-500 text-xs">Password:</span><div className="font-medium text-gray-900">{student.password}</div></div>
                     </div>
                   </div>
                 )}

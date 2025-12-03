@@ -36,42 +36,29 @@ export default function AdminLoginFinal({ onSuccess, autoRedirect = true }) {
       const data = resp?.data || {};
       showSuccess(data?.message || "Login successful");
 
-
-      // Save user object to sessionStorage for use in other pages
       if (data.user) {
         sessionStorage.setItem("user", JSON.stringify(data.user));
+        const role = data.user.role;
+        if (role === "admin") {
+          navigate("/admin/dashboard");
+        } else if (role === "caller") {
+          navigate("/caller/dashboard");
+        } else if (role === "manager") {
+          navigate("/manager/dashboard");
+        } else {
+          showError("Invalid role. Please contact support.");
+        }
       } else if (data.student) {
         sessionStorage.setItem("user", JSON.stringify(data.student));
       }
-      // Save token to sessionStorage
+
       if (data.token) {
         sessionStorage.setItem("admin_token", data.token);
-        sessionStorage.setItem("token", data.token); // for global access
-      }
-
-      // Call parent if provided (preferred for SPA state handling)
-      if (typeof onSuccess === "function") {
-        onSuccess(data);
-        return;
-      }
-
-      // Role-based redirect using returned user.role
-      const role = data?.user?.role || "";
-      if (autoRedirect) {
-        if (role === "admin") {
-          navigate("/admin/dashboard");
-        } else if (role === "manager") {
-          navigate("/manager/dashboard");
-        } else if (role === "caller") {
-          navigate("/caller/dashboard");
-        } else {
-          // fallback: go to a generic dashboard or login page
-          navigate("/admin/dashboard");
-        }
+        sessionStorage.setItem("token", data.token);
       }
     } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || "Login failed";
-      showError(msg);
+      console.error("[AdminLogin] Error:", err);
+      showError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -137,8 +124,6 @@ export default function AdminLoginFinal({ onSuccess, autoRedirect = true }) {
               </button>
             </div>
           </div>
-
-   
 
           <div>
             <button

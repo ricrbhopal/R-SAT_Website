@@ -17,6 +17,7 @@ const resultSchema = new mongoose.Schema({
   total: { type: Number, required: true },
   percentage: { type: Number, required: true },
   scholarShip: { type: Number, required: true },
+  check: { type: Boolean, default: false },
 });
 
 const Result = mongoose.model("Result", resultSchema);

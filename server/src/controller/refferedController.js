@@ -1,8 +1,8 @@
 // server/src/controller/refferedController.js
 import mongoose from "mongoose";
 import Referred from "../models/refferedModel.js";
-import Student from "../models/authModel.js";
-import Admin from "../models/adminAuth.js"; // adjust if your Admin model path/name differs
+import Student from "../models/StudentModel.js";
+import Admin from "../models/AdminModel.js"; // adjust if your Admin model path/name differs
 import { generateAuthToken } from "../utils/genAuthToken.js";
 import { sendOTPPhone } from "../utils/phoneService.js";
 import { sendCredentialsEmail, sendReferralConfirmationEmail } from "../utils/emailService.js";

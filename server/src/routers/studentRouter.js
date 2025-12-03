@@ -5,10 +5,10 @@ import {
   Register,
   SendCredentials,
   Login,
-  Logout,
+
   getStudentProfile
 
-} from '../controller/authjController.js';
+} from "../controller/studentController.js";
 
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -27,10 +27,8 @@ router.post('/send-credentials', SendCredentials);
 // POST /api/students/login
 router.post('/login', Login);
 
-// POST /api/students/logout
-router.post('/logout', Logout);
 
-//get student profile
+//get student profile (protected)
 router.get('/profile', protect, getStudentProfile);
 
 

@@ -1,34 +1,27 @@
-// client/src/pages/callerDashboard/CallerDashboard.jsx
+// client/src/src/pages/callerDashboard/CallerDashboard.jsx
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Copy,
-  Link2,
   Share2,
-  CheckCircle2,
-  MessageSquare,
   RefreshCw,
-  Zap,
-  Sparkles,
-  Building2,
-  PhoneCall,
+  Users,
+  Calendar,
+  TrendingUp
 } from "lucide-react";
-import { Bar } from "react-chartjs-2";
+import { Doughnut } from "react-chartjs-2";
 import {
   Chart,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
+  ArcElement,
   Tooltip,
-  Legend,
+  Legend
 } from "chart.js";
-Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+Chart.register(ArcElement, Tooltip, Legend);
 
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import CountUp from "react-countup";
-import { ReferralAPI } from "../../config/api.js";
+import { ReferralAPI, CallerAPI } from "../../config/api.js";
 
 /* ----------------- Utilities ----------------- */
 function getStoredToken() {
@@ -48,23 +41,27 @@ function getStoredToken() {
   return null;
 }
 
-/* Heuristic: check if referral record looks like a completed registration via referral */
-function looksLikeReferralRegistration(r) {
-  if (!r || typeof r !== "object") return false;
-  if (r.registeredWithReferral === true) return true;
-  if (r.source && String(r.source).toLowerCase().includes("ref")) return true;
-  if (r.referrer || r.ref || r.referredBy || r.referrerId) return true;
-  // if status says successful/registered
-  if (r.status && ["successful", "registered", "completed"].includes(String(r.status).toLowerCase())) return true;
-  return false;
+function monthIndexFromIso(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return null;
+    return d.getMonth();
+  } catch {
+    return null;
+  }
 }
 
-/* Aggregate monthly data into chart-friendly arrays */
-function buildChartData(monthlyData) {
-  // monthlyData expected: [{month: "Jan", registrations: 3}, ...]
-  const labels = monthlyData.map((m) => m.month);
-  const values = monthlyData.map((m) => Number(m.registrations || 0));
-  return { labels, values };
+function buildMonthlyFromReferred(referredArray) {
+  const months = [
+    "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+  const counts = new Array(12).fill(0);
+  referredArray.forEach((r) => {
+    const dateStr = r?.referredDate || r?.createdAt || r?.referredDate;
+    const idx = monthIndexFromIso(dateStr);
+    if (idx !== null && idx >= 0 && idx < 12) counts[idx] += 1;
+  });
+  return months.map((m, i) => ({ month: m, registrations: counts[i] }));
 }
 
 /* ----------------- Component ----------------- */
@@ -77,6 +74,7 @@ export default function CallerReffered() {
     _id: "",
     fullName: "",
     role: "caller",
+    avatarColor: ""
   });
   const [monthlyData, setMonthlyData] = useState([
     { month: "Jan", registrations: 0 },
@@ -93,89 +91,81 @@ export default function CallerReffered() {
     { month: "Dec", registrations: 0 },
   ]);
   const [recentReferrals, setRecentReferrals] = useState([]);
-  const [, setCurrentQuote] = useState("Share confidently — quality outreach converts.");
-
-  const motivationQuotes = [
-    "Share confidently — quality outreach converts.",
-    "One clear message can change a student's future.",
-    "Small, consistent efforts create lasting results.",
-    "Be professional. Be helpful. Earn trust.",
-  ];
 
   useEffect(() => {
-    // seed user info & quote
+    // Initialize user info with random avatar color
     try {
       const userRaw = sessionStorage.getItem("user");
       if (userRaw) {
         const u = JSON.parse(userRaw);
+        const colors = ["#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b"];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        
         setUserInfo({
           username: u.username || "",
           _id: u._id || "",
           fullName: u.fullName || u.username || "",
           role: u.role || "caller",
+          avatarColor: randomColor
         });
       }
     } catch (e) {}
-    setCurrentQuote(motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)]);
-  }, []); // run once
+  }, []);
 
   useEffect(() => {
-    // fetch referral link, monthly stats, recent referrals
     const token = getStoredToken();
-    if (!token) {
-      setLoading(false);
-      return toast.error("Please login to view your dashboard.");
-    }
-
     let isMounted = true;
+    
     async function fetchAll() {
       setLoading(true);
       try {
-        const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-
-        // 1) create/get referral link
-        if (ReferralAPI && ReferralAPI.createReferral) {
-          const linkResp = await ReferralAPI.createReferral({}, { headers: { authorization: authHeader } });
-          const linkData = linkResp?.data || {};
-          const link =
-            linkData?.referralLink ||
-            (linkData?.ref && linkData.ref.referrerUserId
-              ? `${window.location.origin}/candidateDashboard/RefferedRegisterationPage?userId=${encodeURIComponent(
-                  linkData.ref.referrerUserId
-                )}`
-              : "");
-          if (isMounted && link) setReferralLink(link);
-
-          // backend might return monthly/reg stats inside response
-          if (linkData?.monthlyRegistrations) {
-            if (isMounted) setMonthlyData(linkData.monthlyRegistrations);
+        if (CallerAPI && CallerAPI.listCallers) {
+          const headers = {};
+          if (token) headers.authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+          const res = await CallerAPI.listCallers({}, { headers });
+          const items = res?.data?.data || res?.data || [];
+          const referredOnly = items.map((it) => it?.referred).filter(Boolean);
+          
+          if (isMounted) {
+            setRecentReferrals(referredOnly);
+            const monthly = buildMonthlyFromReferred(referredOnly);
+            setMonthlyData(monthly);
           }
-          if (linkData?.recentReferrals) {
-            if (isMounted) setRecentReferrals(linkData.recentReferrals);
-          }
-        }
-
-        // 2) try dedicated endpoints (if available)
-        if (ReferralAPI.getMonthlyRegistrations) {
-          try {
-            const mRes = await ReferralAPI.getMonthlyRegistrations({}, { headers: { authorization: authHeader } });
-            if (isMounted && mRes?.data) setMonthlyData(mRes.data);
-          } catch (e) {
-            // ignore — fallback kept
+        } else if (ReferralAPI && ReferralAPI.getRecentReferrals) {
+          const headers = {};
+          if (token) headers.authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+          const r = await ReferralAPI.getRecentReferrals({}, { headers });
+          const data = r?.data || [];
+          const referredOnly = data.filter(Boolean);
+          
+          if (isMounted) {
+            setRecentReferrals(referredOnly);
+            setMonthlyData(buildMonthlyFromReferred(referredOnly));
           }
         }
 
-        if (ReferralAPI.getRecentReferrals) {
-          try {
-            const rRes = await ReferralAPI.getRecentReferrals({}, { headers: { authorization: authHeader } });
-            if (isMounted && rRes?.data) setRecentReferrals(rRes.data);
-          } catch (e) {
-            // ignore
+        // Get or create referral link
+        try {
+          if (ReferralAPI && ReferralAPI.createReferral) {
+            const headers = {};
+            if (token) headers.authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+            const linkResp = await ReferralAPI.createReferral({}, { headers });
+            const linkData = linkResp?.data || {};
+            const link =
+              linkData?.referralLink ||
+              (linkData?.ref && linkData.ref.referrerUserId
+                ? `${window.location.origin}/candidateDashboard/RefferedRegisterationPage?userId=${encodeURIComponent(
+                    linkData.ref.referrerUserId
+                  )}`
+                : "");
+            if (isMounted && link) setReferralLink(link);
           }
+        } catch (e) {
+          console.log("Link creation skipped");
         }
       } catch (err) {
-        console.error("Dashboard fetch error:", err);
-        toast.error("Failed to load dashboard data.");
+        console.error("fetchAll error:", err);
+        toast.error("Failed to fetch data. Please try again.");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -187,14 +177,21 @@ export default function CallerReffered() {
     };
   }, []);
 
-  // prepared values
-  
-  const registeredFromLink = recentReferrals.filter(looksLikeReferralRegistration);
-  const totalRegistered = registeredFromLink.length;
-  const converted = registeredFromLink.filter((r) => String((r.status || "").toLowerCase()) === "successful").length;
-  const conversionRate = totalRegistered ? Math.round((converted / totalRegistered) * 100) : 0;
+  // Totals for UI
+  // totalRegistered = total referred records
+  const totalRegistered = recentReferrals.length;
 
+  // current month index and registrations for current month
+  const currentMonthIndex = new Date().getMonth(); // 0..11
+  const monthRegistrations = (monthlyData && monthlyData[currentMonthIndex] && Number(monthlyData[currentMonthIndex].registrations || 0)) || 0;
 
+  // total registrations across months (sum)
+  const totalAllMonths = monthlyData.reduce((s, m) => s + Number(m.registrations || 0), 0);
+
+  // Avoid mismatch: prefer using actual counted totals (recentReferrals length) if that better represents "totalRegistered"
+  // For chart we will use: [thisMonth, rest = totalRegistered - thisMonth] but fallback to totalAllMonths if recentReferrals is zero
+  const basisTotal = totalRegistered || totalAllMonths || 0;
+  const rest = Math.max(0, basisTotal - monthRegistrations);
 
   /* Actions */
   const handleCopy = async () => {
@@ -202,10 +199,10 @@ export default function CallerReffered() {
     try {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
-      toast.success("Referral link copied.");
-      setTimeout(() => setCopied(false), 1800);
+      toast.success("🎉 Link copied to clipboard!");
+      setTimeout(() => setCopied(false), 1600);
     } catch (e) {
-      toast.error("Copy failed.");
+      toast.error("Failed to copy.");
     }
   };
 
@@ -213,9 +210,12 @@ export default function CallerReffered() {
     if (!referralLink) return toast.error("No referral link available.");
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Join via referral", text: "Register here:", url: referralLink });
+        await navigator.share({ 
+          title: "Join My Network", 
+          text: "Register using my referral link for exclusive benefits!", 
+          url: referralLink 
+        });
       } catch (e) {
-        // user cancelled or failed — fallback to copy
         handleCopy();
       }
     } else {
@@ -225,17 +225,20 @@ export default function CallerReffered() {
 
   const handleRegenerate = async () => {
     const token = getStoredToken();
-    if (!token) return toast.error("Please login to regenerate.");
+    if (!ReferralAPI || !ReferralAPI.createReferral) {
+      return toast.error("Referral API not available.");
+    }
     setLoading(true);
     try {
-      const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-      const res = await ReferralAPI.createReferral({}, { headers: { authorization: authHeader } });
-      const data = res?.data || {};
-      if (data?.referralLink) {
-        setReferralLink(data.referralLink);
-        toast.success("Referral link regenerated.");
+      const headers = {};
+      if (token) headers.authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      const res = await ReferralAPI.createReferral({}, { headers });
+      const link = res?.data?.referralLink || "";
+      if (link) {
+        setReferralLink(link);
+        toast.success("✨ Link regenerated successfully!");
       } else {
-        toast.info("No new link returned by API.");
+        toast.info("No new link generated.");
       }
     } catch (e) {
       console.error(e);
@@ -245,193 +248,251 @@ export default function CallerReffered() {
     }
   };
 
-  /* Minor animation variants */
-  const fadeIn = { hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45 } } };
-
-  // Build simple dark chart settings (keeps same structure)
-  const chart = buildChartData(monthlyData);
-  const barData = {
-    labels: chart.labels,
+  /* Doughnut Chart Configuration - corrected */
+  const chartData = {
+    labels: ['This Month', 'Other Months'],
     datasets: [
       {
-        label: "Registrations",
-        data: chart.values,
-        backgroundColor: "rgba(16,185,129,0.9)", // teal-green accent
-        borderRadius: 6,
-        barPercentage: 0.6,
-      },
-    ],
+        data: [monthRegistrations, rest],
+        backgroundColor: [
+          'rgba(56, 189, 248, 0.8)',
+          'rgba(30, 41, 59, 0.4)'
+        ],
+        borderColor: [
+          'rgba(56, 189, 248, 1)',
+          'rgba(30, 41, 59, 0.6)'
+        ],
+        borderWidth: 1,
+        borderRadius: 8,
+        spacing: 5,
+        cutout: '70%'
+      }
+    ]
   };
-  const barOptions = {
+
+  const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
-      tooltip: { mode: "index", intersect: false },
-      title: { display: false },
-    },
-    scales: {
-      x: {
-        grid: { display: false, drawBorder: false },
-        ticks: { color: "#9CA3AF" },
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#94a3b8',
+          padding: 20,
+          font: {
+            size: 12
+          }
+        }
       },
-      y: {
-        beginAtZero: true,
-        grid: { color: "rgba(148,163,184,0.06)" },
-        ticks: { color: "#9CA3AF", stepSize: Math.max(1, Math.ceil(Math.max(...chart.values) / 4 || 1)) },
-      },
-    },
+      tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        titleColor: '#e2e8f0',
+        bodyColor: '#cbd5e1',
+        borderColor: '#334155',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8
+      }
+    }
   };
+
+  const fadeIn = { 
+    hidden: { opacity: 0, y: 20 }, 
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { 
+        duration: 0.5,
+        ease: "easeOut"
+      } 
+    } 
+  };
+
+  const userInitials = userInfo.fullName
+    ? userInfo.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : "CC";
 
   return (
-    <div className="h-[890px] bg-gray-900 text-gray-100 p-6  ">
-      <ToastContainer position="top-right" />
-
+    <div className="h-[890px] bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100 p-4 md:p-6  
+    ">
+      <ToastContainer 
+        position="top-right"
+        theme="dark"
+        toastClassName="bg-gray-800 text-gray-100 border border-gray-700"
+      />
+      
       <div className="max-w-6xl mx-auto">
-        {/* header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 mt-10">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-sky-700 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Building2 className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Caller Dashboard</h1>
-              <p className="text-sm text-gray-400">Professional referral overview — shows only registrations made via your link</p>
-            </div>
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8"
+        >
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              Caller Dashboard
+            </h1>
+            <p className="text-sm text-gray-400 mt-2">
+              Track your referrals and performance
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-xs text-gray-400">Caller</div>
-              <div className="font-medium text-white">{userInfo.fullName || userInfo.username || "You"}</div>
-              <div className="text-xs text-gray-400">ID: {userInfo._id ? userInfo._id.substring(0, 8) : "—"}</div>
-            </div>
-            <div className="bg-gray-800 rounded-xl p-2 shadow">
-              <PhoneCall className="w-6 h-6 text-cyan-400" />
-            </div>
-          </div>
-        </div>
+    
+        </motion.div>
 
-        {/* main */}
-        <motion.div initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}>
-          {/* top: link + stats */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            {/* link card */}
-            <motion.div variants={fadeIn} className="lg:col-span-2 bg-gray-800 rounded-2xl p-5 shadow border border-gray-700">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Your referral link</h2>
-                  <p className="text-sm text-gray-400 mt-1">Share this with students — registrations via this link will be tracked here.</p>
+        <motion.div 
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.1
+              }
+            }
+          }}
+          className="space-y-6"
+        >
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <motion.div variants={fadeIn} className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-5 border border-gray-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5">
+                  <Users className="w-5 h-5 text-cyan-400" />
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button onClick={handleRegenerate} disabled={loading} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-700/80 text-sm text-gray-200">
-                    <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-                  </button>
-                  <button onClick={handleShare} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-cyan-600 hover:bg-cyan-500 text-white text-sm">
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
-                </div>
+                <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
+                  {monthRegistrations > 0 ? 'Active' : '—'}
+                </span>
               </div>
-
-              <div className="mt-4 bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm break-words">
-                {loading ? (
-                  <div className="flex items-center gap-3 text-gray-400">
-                    <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" /> Preparing link...
-                  </div>
-                ) : referralLink ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 text-sm text-cyan-300 break-all">{referralLink}</div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={handleCopy} className="px-3 py-1 rounded-md bg-gray-800 text-cyan-300 text-sm flex items-center gap-2">
-                        <Copy className="w-4 h-4" /> {copied ? "Copied" : "Copy"}
-                      </button>
-                      <button onClick={() => (window.location.href = `sms:?body=${encodeURIComponent(`Register here: ${referralLink}`)}`)} className="px-3 py-1 rounded-md bg-gray-800 text-purple-300 text-sm flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" /> SMS
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500">No referral link available</div>
-                )}
+              <div className="text-2xl font-bold text-white mb-1">
+                <CountUp end={totalRegistered} duration={2} />
               </div>
-
-              {/* small tips */}
-              <div className="mt-4 flex items-center gap-3 text-sm text-gray-400">
-                <Zap className="w-5 h-5 text-amber-400" />
-                <div>Tip: Add a short personal note when sharing — it increases trust and conversions.</div>
+              <div className="text-sm text-gray-400">Total Referrals</div>
+              <div className="mt-3 pt-3 border-t border-gray-800 flex items-center gap-2 text-xs text-cyan-300">
+                <TrendingUp className="w-3 h-3" />
+                <span>Active this month: {monthRegistrations}</span>
               </div>
             </motion.div>
 
-            {/* stats small column */}
-            <motion.aside variants={fadeIn} className="bg-gray-800 rounded-2xl p-4 shadow border border-gray-700 flex flex-col gap-4">
-              <div>
-                <h3 className="text-sm text-gray-400">This month</h3>
-                <div className="mt-1 text-2xl font-semibold text-white">
-                  <CountUp end={monthlyData.reduce((s, m) => s + Number(m.registrations || 0), 0)} duration={1.2} />
+            <motion.div variants={fadeIn} className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-5 border border-gray-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                  <Calendar className="w-5 h-5 text-purple-400" />
                 </div>
-                <div className="text-xs text-gray-400">Total registrations (monthly)</div>
+                <span className="text-xs font-medium px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-400">
+                  Current
+                </span>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-gray-900 rounded-md text-center border border-gray-700">
-                  <div className="text-sm text-gray-400">Registered</div>
-                  <div className="text-lg font-medium text-white">{totalRegistered}</div>
-                </div>
-                <div className="p-3 bg-gray-900 rounded-md text-center border border-gray-700">
-                  <div className="text-sm text-gray-400">Conversion</div>
-                  <div className="text-lg font-medium text-white">{conversionRate}%</div>
-                </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                <CountUp end={monthRegistrations} duration={2} />
               </div>
-
-              <div className="mt-2 text-xs text-gray-500">Only students who completed registration via your link are counted.</div>
-            </motion.aside>
+              <div className="text-sm text-gray-400">Monthly Registrations</div>
+              <div className="mt-3 pt-3 border-t border-gray-800 flex items-center gap-2 text-xs text-purple-300">
+                <TrendingUp className="w-3 h-3" />
+                <span>Peak: {Math.max(...monthlyData.map(m => m.registrations))}</span>
+              </div>
+            </motion.div>
           </div>
 
-
-
-          {/* recent registered referrals table */}
-          <motion.div variants={fadeIn} className="bg-gray-800 rounded-2xl p-4 shadow border border-gray-700">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="text-md font-semibold text-white">Recent registered referrals</h4>
-                <p className="text-sm text-gray-400">Only registrations that originated from your referral link</p>
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Referral Link */}
+            <motion.div variants={fadeIn} className="lg:col-span-2 bg-gray-900/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-white mb-2">Your Referral Link</h2>
+                  <p className="text-sm text-gray-400">Share this link to track referrals</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 text-sm transition-colors"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </button>
+                </div>
               </div>
-              <div className="text-sm text-gray-400">{registeredFromLink.length} total</div>
-            </div>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-400 border-b border-gray-700">
-                    <th className="py-2 px-3">Name</th>
-                    <th className="py-2 px-3">Contact</th>
-                    <th className="py-2 px-3">Status</th>
-                    <th className="py-2 px-3">Registered At</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {registeredFromLink && registeredFromLink.length ? (
-                    registeredFromLink.slice(0, 10).map((r, i) => (
-                      <tr key={r._id || i} className="border-b last:border-b-0 hover:bg-gray-700/40">
-                        <td className="py-3 px-3 font-medium text-white">{r.fullName || r.name || r.mail_ID || "—"}</td>
-                        <td className="py-3 px-3 text-gray-300">{r.phoneNo || r.mail_ID || r.email || "—"}</td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${ (r.status || "").toLowerCase() === "successful" ? "bg-green-100 text-green-800" : (r.status || "").toLowerCase() === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800" }`}>
-                            {r.status || "registered"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-gray-400">{r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}</td>
-                      </tr>
-                    ))
+              {/* Link Box */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative bg-gray-950/80 border border-gray-800 rounded-xl p-4">
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-3 py-8">
+                      <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-gray-400">Generating your referral link...</span>
+                    </div>
+                  ) : referralLink ? (
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="text-xs text-gray-500 mb-1">Your unique link</div>
+                        <div className="font-mono text-sm text-cyan-300 break-all bg-gray-900/50 rounded-lg p-3">
+                          {referralLink}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={handleCopy}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-medium transition-all duration-300"
+                        >
+                          <Copy className="w-4 h-4" />
+                          {copied ? "Copied!" : "Copy Link"}
+                        </button>
+                        <button
+                          onClick={handleShare}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium transition-colors"
+                        >
+                          <Share2 className="w-4 h-4" />
+                          Share
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <tr>
-                      <td colSpan={4} className="py-6 text-center text-gray-400">No registrations yet via your referral link.</td>
-                    </tr>
+                    <div className="text-center py-8 text-gray-500">
+                      No referral link available
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right Column - Doughnut Chart */}
+            <motion.div variants={fadeIn} className="bg-gray-900/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-1">Registration Distribution</h3>
+                <p className="text-sm text-gray-400">This month vs all time</p>
+              </div>
+              <div className="h-64 relative">
+                <Doughnut data={chartData} options={chartOptions} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-white mb-1">
+                      {monthRegistrations}
+                    </div>
+                    <div className="text-xs text-gray-400">This Month</div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 text-center text-sm text-gray-400">
+                Total: {basisTotal} registrations
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 pt-6 border-t border-gray-800/50 text-center text-sm text-gray-500"
+        >
+          <p>Dashboard updates in real-time</p>
         </motion.div>
       </div>
     </div>

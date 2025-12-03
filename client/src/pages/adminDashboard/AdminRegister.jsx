@@ -92,17 +92,29 @@ export default function AdminRegisterProfessionalFinal_v2() {
   const register = async (ev) => {
     ev.preventDefault();
     clear();
-    if (!name.trim()) return show("error", "Full name is required");
-    if (!validPhone(phone)) return show("error", "Invalid phone");
-    if (!password || password.length < 6) return show("error", "Password must be at least 6 chars");
+    if (!name.trim()) {
+      return show("error", "Full name is required");
+    }
+    if (!validPhone(phone)) {
+      return show("error", "Invalid phone number. Must be 10–15 digits.");
+    }
+    if (!password || password.length < 6) {
+      return show("error", "Password must be at least 6 characters long.");
+    }
     try {
       setLoading(true);
-      const payload = { username: name.trim(), phone: phone.trim(), password, role };
+      const payload = {
+        username: name.trim(),
+        phone: phone.trim(),
+        password,
+        role,
+      };
+      console.log("Payload being sent:", payload); // Debugging
       const resp = await AdminAPI.registerAdmin(payload);
-      show("success", resp?.data?.message || "User created");
+      show("success", resp?.data?.message || "User registered successfully.");
       setStep(4);
     } catch (e) {
-      show("error", e?.response?.data?.message || e?.message || "Registration failed");
+      show("error", e?.response?.data?.message || e?.message || "Registration failed. Please try again.");
     } finally { setLoading(false); }
   };
 

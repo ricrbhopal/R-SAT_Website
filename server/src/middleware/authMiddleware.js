@@ -1,46 +1,75 @@
-import jwt from 'jsonwebtoken';
-import Student from '../models/authModel.js';
-import Caller from '../models/callerModel.js';
-import AdminAuth from '../models/adminAuth.js';
+// protect.js
+import jwt from "jsonwebtoken";
+import prisma from "../../prismaClient.js";
 
-let JWT_SECRET = process.env.JWT_SECRET || 'kjkjk4jkl45klkl1@23423hjkhjkbgui@2@3';
-if (!JWT_SECRET) {
-  JWT_SECRET = 'dev_fallback_jwt_secret';
-  console.warn('Warning: JWT_SECRET is not set. Using development fallback secret. Set JWT_SECRET in .env for production.');
-}
+const JWT_SECRET = process.env.JWT_SECRET || "dev_fallback_jwt_secret";
 
 export const protect = async (req, res, next) => {
   try {
-    let token = null;
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
+    // get token from cookie or header
+    let token = req.cookies?.token ?? null;
+    if (!token && req.headers.authorization?.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
     }
-    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+
     if (!token) {
-      const error = new Error('Not authorized, token missing');
-      error.statusCode = 401;
-      throw error;
+      // 401 so frontend knows auth missing
+      return res.status(401).json({ message: "Not authorized, token missing" });
     }
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.user_id || decoded.userId || decoded._id || decoded.id;
+
+    // verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.error("JWT verify failed:", err.message);
+      return res.status(401).json({ message: "Token invalid or expired" });
+    }
+
+    // accept many possible id keys
+    const userId =
+      decoded.user_id ??
+      decoded.userId ??
+      decoded._id ??
+      decoded.id ??
+      decoded.sub; // 'sub' often used in some token generators
+
     if (!userId) {
-      const error = new Error('Invalid token payload');
-      error.statusCode = 401;
-      throw error;
+      console.warn("protect: token decoded but no user id field found:", decoded);
+      return res
+        .status(400)
+        .json({ message: "Invalid token payload: userId missing" });
     }
-    let user = await Student.findById(userId).select('-password -__v');
-    if (!user) user = await Caller.findById(userId).select('-password -__v');
-    if (!user) user = await AdminAuth.findById(userId).select('-password -__v');
+
+    // try finding user in prisma models (adjust model names to yours)
+    let user = null;
+    try {
+      user = await prisma.student.findUnique({ where: { id: String(userId) } });
+    } catch (e) {
+      // continue
+    }
     if (!user) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
+      try {
+        user = await prisma.caller.findUnique({ where: { id: String(userId) } });
+      } catch (e) {}
     }
+    if (!user) {
+      try {
+        user = await prisma.admin.findUnique({ where: { id: String(userId) } });
+      } catch (e) {}
+    }
+
+    if (!user) {
+      console.warn(`protect: user not found for id=${userId}`);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // attach user to req (remove sensitive fields if any)
+    if (user.password) delete user.password;
     req.user = user;
     next();
   } catch (err) {
-    next(err);
+    console.error("protect middleware error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };

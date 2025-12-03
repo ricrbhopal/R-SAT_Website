@@ -1,63 +1,47 @@
+// server.js
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import ConnectDB from "./src/config/db.js";
-import Auth from "./src/routers/authRouter.js";
-import Demo from "./src/routers/soltRouter.js";
-import Support from "./src/routers/supportRouter.js";
-import referralRoutes from "./src/routers/refferedRouter.js";
-import Admin from "./src/routers/adminRouter.js";
-import AdmitCard from "./src/routers/admitRouter.js";
-import Caller from "./src/routers/callerRouter.js"
-
 dotenv.config();
-const app = express();
 
-// Middleware
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "https://rsat.ricr.in/api"],
-    credentials: true,
-  })
-);
+import connectDB from "./src/config/db.js"; // this is your MSSQL connector
+import Admin from "./src/routers/adminRouter.js"; // keep your routers
+import Student from "./src/routers/studentRouter.js";
+
+const app = express();
+app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
 app.use(express.json());
-// parse cookies so `req.cookies` is available to auth middleware
 app.use(cookieParser());
 
 // Test route
-app.get("/", (req, res) => {
-  res.send("Server is running successfully 🚀");
+app.get("/", (req, res) => res.send("Server running..."));
+
+// test-sql route (example)
+app.get("/test-sql", async (req, res) => {
+  try {
+    const pool = await connectDB();
+    const result = await pool.request().query("SELECT TOP 5 * FROM dbo.Users");
+    res.json({ ok: true, rows: result.recordset });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
-// Use Auth router
-app.use("/auth", Auth);
-// Use Demo router
-app.use("/slot", Demo);
-// Use Support router
-app.use("/support", Support);
-// Use Reffered router
-app.use("/referrals", referralRoutes);
-// Use Admin router
+// Routes
 app.use("/admin", Admin);
-// Use Admit Card router
-app.use("/admit-cards", AdmitCard);
-// Use Caller router
-app.use("/callers", Caller);
+app.use("/student", Student);
 
-// Centralized error handler (should be last middleware)
-app.use((err, res) => {
-  console.error("Server Error:", err);
-  const status = err.statusCode || err.status || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message, status });
-});
+const PORT = process.env.PORT || 4500;
 
-// Port setup
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  
-  ConnectDB();
-});
+(async () => {
+  try {
+    await connectDB(); // connect to SQL Server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("DB connect fail:", err.message || err);
+    process.exit(1);
+  }
+})();

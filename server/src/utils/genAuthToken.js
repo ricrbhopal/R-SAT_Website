@@ -3,18 +3,16 @@ import jwt from 'jsonwebtoken';
 
 export const generateAuthToken = (user, team, res) => {
   const payload = {
-    user_id: user._id,
+    user_id: user.id || user._id, // Use `user.id` as a fallback
     role: user.role || 'Leader',
   };
 
   if (team && team._id) payload.team_id = team._id;
 
-  // JWT expires in 50 days
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: 50 * 24 * 60 * 60, // 50 days in seconds
   });
 
-  // Cookie expire after 50 days
   res.cookie('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -24,7 +22,6 @@ export const generateAuthToken = (user, team, res) => {
 
   return token;
 };
-
 
 export function createPresentToken(admitCardId) {
   return jwt.sign(
