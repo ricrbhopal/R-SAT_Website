@@ -20,18 +20,25 @@ export const setAuthToken = (token) => {
 };
 
 
-// Add a request interceptor to include the token
+// Add a request interceptor to attach Authorization header from sessionStorage
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      // Try sessionStorage first
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      if (token) {
+        config.headers = config.headers ?? {};
+        // if token already has "Bearer " prefix, don't double-prefix
+        config.headers.Authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      }
+    } catch (e) {
+      // ignore storage errors
+      console.warn("Could not read token from storage:", e?.message || e);
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
-
 
 export const AuthAPI = {
   sendOTP: (data) => api.post("/student/send-otp", data),

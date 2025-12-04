@@ -13,7 +13,7 @@ export const protect = async (req, res, next) => {
     }
 
     if (!token) {
-      // 401 so frontend knows auth missing
+      console.error("Token missing in request");
       return res.status(401).json({ message: "Not authorized, token missing" });
     }
 
@@ -21,6 +21,7 @@ export const protect = async (req, res, next) => {
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
+      console.log("Decoded token:", decoded);
     } catch (err) {
       console.error("JWT verify failed:", err.message);
       return res.status(401).json({ message: "Token invalid or expired" });
@@ -45,31 +46,20 @@ export const protect = async (req, res, next) => {
     let user = null;
     try {
       user = await prisma.student.findUnique({ where: { id: String(userId) } });
+      console.log("User found:", user);
     } catch (e) {
-      // continue
-    }
-    if (!user) {
-      try {
-        user = await prisma.caller.findUnique({ where: { id: String(userId) } });
-      } catch (e) {}
-    }
-    if (!user) {
-      try {
-        user = await prisma.admin.findUnique({ where: { id: String(userId) } });
-      } catch (e) {}
+      console.error("Error finding user in database:", e.message);
     }
 
     if (!user) {
-      console.warn(`protect: user not found for id=${userId}`);
-      return res.status(404).json({ message: "User not found" });
+      console.warn("No user found for userId:", userId);
+      return res.status(401).json({ message: "Not authorized, user not found" });
     }
 
-    // attach user to req (remove sensitive fields if any)
-    if (user.password) delete user.password;
     req.user = user;
     next();
-  } catch (err) {
-    console.error("protect middleware error:", err);
-    return res.status(500).json({ message: "Internal Server Error" });
+  } catch (error) {
+    console.error("Error in protect middleware:", error);
+    next(error);
   }
 };

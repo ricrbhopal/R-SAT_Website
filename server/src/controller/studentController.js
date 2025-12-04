@@ -361,22 +361,17 @@ export const GetDemoSlots = async (req, res, next) => {
 
 
 
-
-// Allowed image types
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 
-// ======= HELPERS =======
-
-// Convert JS array -> JSON string for DB storage
+// Helpers to serialize/parse responses (Prisma schema uses String for responses)
 const stringifyResponses = (arr) => {
   try {
     return JSON.stringify(Array.isArray(arr) ? arr : []);
   } catch (e) {
-    return JSON.stringify([]);
+    return "[]";
   }
 };
 
-// Parse DB field (string) -> JS array
 const parseResponses = (rowOrString) => {
   if (!rowOrString) return [];
   const raw = typeof rowOrString === "string" ? rowOrString : rowOrString.responses;
@@ -388,26 +383,6 @@ const parseResponses = (rowOrString) => {
   }
 };
 
-// Resolve student id: prefer req.user, then body.studentId, then body.email lookup
-const resolveStudentId = async (body = {}, user = null) => {
-  const uid = (user && (user.id || user._id)) || null;
-  if (uid) return uid.toString();
-
-  if (body.studentId && typeof body.studentId === "string" && body.studentId.trim() !== "") {
-    return body.studentId;
-  }
-
-  if (body.email && typeof body.email === "string") {
-    const email = body.email.toLowerCase().trim();
-    const student = await prisma.student.findFirst({ where: { mail_ID: email }, select: { id: true } });
-    if (!student) throw new Error("Student not found for provided email");
-    return student.id;
-  }
-
-  throw new Error("Unable to resolve student. Authenticate or provide email/studentId");
-};
-
-// Upload buffer to Cloudinary via stream (for multer memoryStorage)
 const uploadBufferToCloudinary = (buffer, folder = "support_images") =>
   new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -420,64 +395,78 @@ const uploadBufferToCloudinary = (buffer, folder = "support_images") =>
     streamifier.createReadStream(buffer).pipe(uploadStream);
   });
 
-// ======= SubmitSupportQuery (fixed) =======
+// Accept many shapes for user id both in auth middleware and controllers
+const getUserIdFromReqUser = (reqUser) => {
+  if (!reqUser) return null;
+  // Common possibilities
+  return (
+    reqUser.id ??
+    reqUser._id ??
+    reqUser.user_id ??
+    reqUser.userId ??
+    reqUser.sub ??
+    reqUser._userId ??
+    null
+  );
+};
+
+// Submit support query
 export const SubmitSupportQuery = async (req, res, next) => {
   try {
-    // Defensive check: ensure Prisma model exists
     if (!prisma || typeof prisma.supportQuery?.create !== "function") {
-      console.error("Prisma supportQuery model missing. Models:", prisma?.$parent ? Object.keys(prisma.$parent) : Object.keys(prisma || {}));
-      return res.status(500).json({
-        success: false,
-        message: "Server misconfiguration: SupportQuery model not available on Prisma client. Run `npx prisma generate` and `npx prisma db push`.",
-      });
+      console.error("Prisma supportQuery model missing. Models:", Object.keys(prisma || {}));
+      return res.status(500).json({ message: "Server misconfiguration: SupportQuery model missing." });
     }
 
     const { subject, description, email } = req.body;
     if (!subject || !description) {
-      return res.status(400).json({ success: false, message: "Subject and description are required" });
+      return res.status(400).json({ message: "Subject and description are required" });
     }
 
-    // Resolve student id
-    let studentId;
+    // Resolve studentId preference: req.user (if present) -> body.studentId -> body.email lookup
+    let studentId = null;
     try {
-      studentId = await resolveStudentId({ email, studentId: req.body.studentId }, req.user);
+      const uid = getUserIdFromReqUser(req.user);
+      if (uid) {
+        studentId = String(uid);
+      } else if (req.body.studentId) {
+        studentId = String(req.body.studentId);
+      } else if (email) {
+        const student = await prisma.student.findFirst({ where: { mail_ID: email.toLowerCase().trim() }, select: { id: true } });
+        if (!student) return res.status(400).json({ message: "Student not found for provided email" });
+        studentId = student.id;
+      } else {
+        return res.status(400).json({ message: "Unable to resolve student. Authenticate or provide email/studentId" });
+      }
     } catch (err) {
-      return res.status(400).json({ success: false, message: err.message });
+      console.error("Resolve student error:", err);
+      return res.status(400).json({ message: err.message });
     }
 
-    // Image handling (optional)
+    // Image upload handling if file present (multer memoryStorage recommended)
     let imageUrl = null;
     let imagePublicId = null;
 
     if (req.file) {
-      // Validate mime type
       if (!ALLOWED_IMAGE_TYPES.includes(req.file.mimetype)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid file type. Only images (jpeg, png, gif, webp, svg) are allowed.",
-        });
+        return res.status(400).json({ message: "Invalid file type. Only images are allowed." });
       }
-
       try {
         if (req.file.buffer) {
           const result = await uploadBufferToCloudinary(req.file.buffer, "support_images");
           imageUrl = result.secure_url;
           imagePublicId = result.public_id;
         } else if (req.file.path) {
-          const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "support_images",
-            resource_type: "image",
-          });
+          const result = await cloudinary.uploader.upload(req.file.path, { folder: "support_images", resource_type: "image" });
           imageUrl = result.secure_url;
           imagePublicId = result.public_id;
         }
-      } catch (uploadError) {
-        console.error("Cloudinary upload error:", uploadError);
-        return res.status(500).json({ success: false, message: "Image upload failed", error: uploadError.message });
+      } catch (uploadErr) {
+        console.error("Cloudinary upload error:", uploadErr);
+        return res.status(500).json({ message: "Image upload failed", error: uploadErr.message });
       }
     }
 
-    // Create support query - NOTE: responses must be a string per schema
     const created = await prisma.supportQuery.create({
       data: {
         studentId,
@@ -485,151 +474,120 @@ export const SubmitSupportQuery = async (req, res, next) => {
         description,
         imageUrl,
         imagePublicId,
-        responses: stringifyResponses([]), // <--- pass string
+        responses: stringifyResponses([]),
       },
       include: {
         student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
       },
     });
 
-    // Convert responses string -> array before returning to client
-    const resultToSend = { ...created, responses: parseResponses(created) };
+    // Convert responses string -> array for client
+    const result = { ...created, responses: parseResponses(created) };
 
-    return res.status(201).json({ success: true, message: "Support query submitted successfully", query: resultToSend });
+    return res.status(201).json({ message: "Support query submitted successfully", query: result });
   } catch (error) {
     console.error("SubmitSupportQuery error:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-/**
- * GetAllSupportQueries (admin)
- * GET /support/all-queries?status=open&page=1&limit=20
- */
-// GetAllSupportQueries (parse responses)
-export const GetAllSupportQueries = async (req, res, next) => {
-  try {
-    const { status, page = 1, limit = 50 } = req.query;
-    const where = {};
-    if (status) {
-      const allowed = ["open", "in_progress", "resolved"];
-      if (!allowed.includes(status)) return res.status(400).json({ success: false, message: "Invalid status filter" });
-      where.status = status;
-    }
-
-    const take = Math.min(Number(limit) || 50, 200);
-    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
-
-    const [total, rows] = await Promise.all([
-      prisma.supportQuery.count({ where }),
-      prisma.supportQuery.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take,
-        include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
-      }),
-    ]);
-
-    const queries = rows.map((r) => ({ ...r, responses: parseResponses(r) }));
-    return res.status(200).json({ success: true, total, page: Number(page) || 1, limit: take, queries });
-  } catch (error) {
-    console.error("GetAllSupportQueries error:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
-  }
-};
-;
-
-/**
- * GetStudentSupportQueries
- * GET /support/student-queries
- */
-// GetStudentSupportQueries (parse responses before returning)
+// Get support queries for logged-in student
 export const GetStudentSupportQueries = async (req, res, next) => {
   try {
-    const userId = (req.user && (req.user.id || req.user._id)) || null;
-    if (!userId) return res.status(401).json({ success: false, message: "Authentication required" });
+    const uid = getUserIdFromReqUser(req.user);
 
+    // If req.user exists but we still got null uid, log it and return 401
+    if (!uid) {
+      console.warn("Unauthorized access: req.user is", req.user);
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // fetch queries
     const rows = await prisma.supportQuery.findMany({
-      where: { studentId: userId.toString() },
+      where: { studentId: String(uid) },
       orderBy: { createdAt: "desc" },
       include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
     });
 
     const queries = rows.map((r) => ({ ...r, responses: parseResponses(r) }));
-    return res.status(200).json({ success: true, queries });
+    // return array directly (frontend expects array)
+    return res.status(200).json(queries);
   } catch (error) {
     console.error("GetStudentSupportQueries error:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-/**
- * UpdateSupportQueryStatus
- * PUT /support/update-status/:queryId
- * body: { status }
- */
+// Get all support queries (admin)
+export const GetAllSupportQueries = async (req, res, next) => {
+  try {
+    const filter = {};
+    if (req.query.status) {
+      const allowed = ["open", "in_progress", "resolved"];
+      if (!allowed.includes(req.query.status)) return res.status(400).json({ message: "Invalid status filter" });
+      filter.status = req.query.status;
+    }
+
+    const rows = await prisma.supportQuery.findMany({
+      where: filter,
+      orderBy: { createdAt: "desc" },
+      include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
+    });
+
+    const queries = rows.map((r) => ({ ...r, responses: parseResponses(r) }));
+    return res.status(200).json(queries);
+  } catch (error) {
+    console.error("GetAllSupportQueries error:", error);
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Update status (admin)
 export const UpdateSupportQueryStatus = async (req, res, next) => {
   try {
     const { queryId } = req.params;
     const { status } = req.body;
-
     const allowed = ["open", "in_progress", "resolved"];
     if (!allowed.includes(status)) return res.status(400).json({ message: "Invalid status value" });
 
-    // updateMany used to return count for not-found handling
-    const updated = await prisma.supportQuery.updateMany({
+    const updated = await prisma.supportQuery.update({
       where: { id: queryId },
       data: { status },
-    });
-
-    if (updated.count === 0) return res.status(404).json({ message: "Support query not found" });
-
-    const query = await prisma.supportQuery.findUnique({
-      where: { id: queryId },
       include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
     });
 
-    return res.status(200).json({ message: "Support query status updated", query });
+    return res.status(200).json({ message: "Support query status updated", query: { ...updated, responses: parseResponses(updated) } });
   } catch (error) {
     console.error("UpdateSupportQueryStatus error:", error);
-    next(error);
+    if (error.code === "P2025") return res.status(404).json({ message: "Support query not found" });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-/**
- * AddSupportQueryResponse
- * POST /support/:queryId/respond
- * body: { message, responder? }
- */
-// AddSupportQueryResponse (fixed)
+// Add response (admin/support agent)
 export const AddSupportQueryResponse = async (req, res, next) => {
   try {
     const { queryId } = req.params;
     const { message, responder } = req.body;
-
-    if (!message || message.trim() === "") return res.status(400).json({ success: false, message: "Response message is required" });
+    if (!message || !message.trim()) return res.status(400).json({ message: "Response message is required" });
 
     const responderName = (req.user && (req.user.name || req.user.fullName)) || responder;
-    if (!responderName) return res.status(400).json({ success: false, message: "Responder name required (authenticate or send responder in body)" });
+    if (!responderName) return res.status(400).json({ message: "Responder name required" });
 
-    // fetch existing responses (string)
     const existing = await prisma.supportQuery.findUnique({ where: { id: queryId }, select: { responses: true } });
-    if (!existing) return res.status(404).json({ success: false, message: "Support query not found" });
+    if (!existing) return res.status(404).json({ message: "Support query not found" });
 
-    const current = parseResponses(existing); // parse string -> array
+    const current = parseResponses(existing);
     const newResp = { responder: responderName, message, date: new Date().toISOString() };
-    const updatedResponses = [...current, newResp];
-
     const updated = await prisma.supportQuery.update({
       where: { id: queryId },
-      data: { responses: stringifyResponses(updatedResponses), status: "in_progress" },
+      data: { responses: stringifyResponses([...current, newResp]), status: "in_progress" },
       include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
     });
 
-    return res.status(200).json({ success: true, message: "Response added to support query", query: { ...updated, responses: parseResponses(updated) } });
+    return res.status(200).json({ message: "Response added to support query", query: { ...updated, responses: parseResponses(updated) } });
   } catch (error) {
     console.error("AddSupportQueryResponse error:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
