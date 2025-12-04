@@ -154,26 +154,64 @@ export const deleteUser = async (req, res, next) => {
 // Referred
 // ------------------------------------------------------------------
 
+// GET /admin/reffered-users
+// server/src/controller/adminController.js (or wherever)
 export const getRefferedUsers = async (req, res, next) => {
   try {
+    // optional query params: page, limit
+    const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || "200", 10)));
+    const skip = (page - 1) * limit;
+
     const referredUsers = await prisma.referred.findMany({
       include: {
-        referrer: {
+        // matches your model: student = the student who referred
+        student: {
           select: {
+            id: true,
             student_ID: true,
             fullName: true,
             mail_ID: true,
             phoneNo: true,
           },
         },
+        // caller = Admin / caller who referred
+        caller: {
+          select: {
+            id: true,
+            username: true,
+            role: true,
+            phone: true,
+          },
+        },
+        // referredStudent = the user who actually registered (if any)
+        referredStudent: {
+          select: {
+            id: true,
+            student_ID: true,
+            fullName: true,
+            mail_ID: true,
+          },
+        },
       },
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip,
+      take: limit,
     });
-    return res.status(200).json(referredUsers);
+
+    // Optionally return total count for pagination
+    const total = await prisma.referred.count();
+
+    return res.status(200).json({ data: referredUsers, total });
   } catch (err) {
+    console.error("[getRefferedUsers] ERROR:", err);
     next(err);
   }
 };
 
+// PUT /admin/reffered-users/:id
 export const putRefferedUserDetails = async (req, res, next) => {
   try {
     const referredId = req.params.id;
@@ -192,7 +230,9 @@ export const putRefferedUserDetails = async (req, res, next) => {
       where: { id: referredId },
       data: mappedData,
       include: {
-        referrer: { select: { student_ID: true, fullName: true, mail_ID: true, phoneNo: true } },
+        referrerUser: { select: { student_ID: true, fullName: true, mail_ID: true, phoneNo: true } },
+        referrerCaller: { select: { username: true, role: true, phone: true } },
+        referredStudent: { select: { student_ID: true, fullName: true, mail_ID: true } },
       },
     });
 
@@ -209,6 +249,7 @@ export const putRefferedUserDetails = async (req, res, next) => {
   }
 };
 
+// DELETE /admin/reffered-users/:id
 export const deleteRefferedUser = async (req, res, next) => {
   try {
     const referredId = req.params.id;
@@ -218,23 +259,32 @@ export const deleteRefferedUser = async (req, res, next) => {
     if (err.code === "P2025") {
       return res.status(404).json({ message: "Referred user not found" });
     }
+    console.error("[deleteRefferedUser] Error:", err);
     next(err);
   }
 };
 
+// GET /admin/reffered-users/:id
 export const getRefferedUserById = async (req, res, next) => {
   try {
     const referredId = req.params.id;
     const referredUser = await prisma.referred.findUnique({
       where: { id: referredId },
-      include: { referrer: { select: { student_ID: true, fullName: true, mail_ID: true, phoneNo: true } } },
+      include: {
+        referrerUser: { select: { student_ID: true, fullName: true, mail_ID: true, phoneNo: true } },
+        referrerCaller: { select: { username: true, role: true, phone: true } },
+        referredStudent: { select: { student_ID: true, fullName: true, mail_ID: true } },
+      },
     });
+
     if (!referredUser) return res.status(404).json({ message: "Referred user not found" });
     return res.status(200).json(referredUser);
   } catch (err) {
+    console.error("[getRefferedUserById] Error:", err);
     next(err);
   }
 };
+
 
 // ------------------------------------------------------------------
 // Demo Classes
@@ -981,5 +1031,128 @@ export const getAdminProfileById = async (req, res, next) => {
   }
 };
 
-// Debug Prisma client models
-console.log('[DEBUG] Prisma client models:', Object.keys(prisma));
+
+export const getReferralInfo = async (req, res, next) => {
+  try {
+    const { code } = req.params;
+    if (!code) return res.status(400).json({ message: "Referral code is required" });
+
+    // 1) by refCode
+    let refer = await prisma.referred.findFirst({
+      where: { refCode: code },
+      include: { student: true, caller: true, referredStudent: true },
+    });
+    if (refer) {
+      return res.status(200).json({
+        referrer: {
+          id: refer.callerId ?? refer.studentId ?? null,
+          name: refer.caller ? refer.caller.username ?? null : refer.student ? refer.student.fullName ?? null : refer.referrerStudentID ?? null,
+          student_ID: refer.referrerStudentID ?? refer.student?.student_ID ?? null,
+          userId: refer.studentId ?? refer.callerId ?? null,
+          type: refer.callerId ? "caller" : "student",
+        },
+        referredName: refer.referredName || null,
+        referredEmail: refer.referredEmail || null,
+        referredPhone: refer.referredPhone || null,
+        collegeName: refer.collegeName || null,
+        year: refer.year || null,
+      });
+    }
+
+    // 2) by studentId
+    refer = await prisma.referred.findFirst({
+      where: { studentId: code },
+      include: { student: true },
+    });
+    if (refer) {
+      return res.status(200).json({
+        referrer: {
+          id: refer.student?.id ?? null,
+          name: refer.student?.fullName ?? refer.referrerStudentID ?? null,
+          student_ID: refer.referrerStudentID ?? refer.student?.student_ID ?? null,
+          userId: refer.studentId ?? null,
+          type: "student",
+        },
+        referredName: refer.referredName || null,
+        referredEmail: refer.referredEmail || null,
+        referredPhone: refer.referredPhone || null,
+        collegeName: refer.collegeName || null,
+        year: refer.year || null,
+      });
+    }
+
+    // 3) by callerId
+    refer = await prisma.referred.findFirst({
+      where: { callerId: code },
+      include: { caller: true },
+    });
+    if (refer) {
+      return res.status(200).json({
+        referrer: {
+          id: refer.caller?.id ?? null,
+          name: refer.caller?.username ?? null,
+          role: refer.caller?.role ?? null,
+          phone: refer.caller?.phone ?? null,
+          userId: refer.callerId ?? null,
+          type: "caller",
+        },
+        referredName: refer.referredName || null,
+        referredEmail: refer.referredEmail || null,
+        referredPhone: refer.referredPhone || null,
+        collegeName: refer.collegeName || null,
+        year: refer.year || null,
+      });
+    }
+
+    // 4) treat code as an ObjectId-like id -> fallback lookup in Student and Admin
+    // Prisma uses UUIDs so we just try findUnique by id
+    const student = await prisma.student.findUnique({
+      where: { id: code },
+      select: { id: true, student_ID: true, fullName: true, mail_ID: true, phoneNo: true },
+    });
+    if (student) {
+      return res.status(200).json({
+        referrer: {
+          id: student.id,
+          name: student.fullName || null,
+          student_ID: student.student_ID || null,
+          userId: student.id,
+          type: "student",
+        },
+        referredName: null,
+        referredEmail: null,
+        referredPhone: null,
+        collegeName: null,
+        year: null,
+      });
+    }
+
+    const admin = await prisma.admin.findUnique({
+      where: { id: code },
+      select: { id: true, username: true, role: true, phone: true },
+    });
+    if (admin) {
+      return res.status(200).json({
+        referrer: {
+          id: admin.id,
+          name: admin.username || null,
+          role: admin.role || null,
+          phone: admin.phone || null,
+          userId: admin.id,
+          type: "caller",
+        },
+        referredName: null,
+        referredEmail: null,
+        referredPhone: null,
+        collegeName: null,
+        year: null,
+      });
+    }
+
+    return res.status(404).json({ message: "Referral not found" });
+  } catch (err) {
+    console.error("[getReferralInfo] ERROR:", err && err.stack ? err.stack : err);
+    next(err);
+  }
+};
+

@@ -99,4 +99,8 @@ router.post("/register", registerAdmin);
 router.post("/verify-otp", verifyAdminOtp);
 router.post("/logout", logoutAdmin);
 router.post("/send-otp", sendAdminOtp);
+
+
+
+
 export default router;

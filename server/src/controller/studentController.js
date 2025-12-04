@@ -872,14 +872,40 @@ export const getReferralInfo = async (req, res, next) => {
  * POST /api/referrals/register?userId=REFUSERID
  * userId may be a Student.id OR Admin.id (caller) OR refCode
  */
+// server/src/controller/authController.js  (or wherever registerWithReferral lives)
+// (ESM style — adjust imports above this function as needed)
+
 export const registerWithReferral = async (req, res, next) => {
   try {
+    // DEBUG: show raw incoming data for quick diagnosis
+    console.log("[registerWithReferral] req.query.userId:", req.query?.userId);
+    console.log("[registerWithReferral] req.body raw:", req.body);
+    console.log("[registerWithReferral] req.headers content-type:", req.headers["content-type"]);
+
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ message: "Referral userId missing" });
 
-    const { fullName, phoneNo, mail_ID, college, branch, year, dob, phoneOTP } = req.body || {};
-    if (!fullName || !phoneNo || !mail_ID || !college || !branch || !year || !dob || !phoneOTP) {
-      return res.status(400).json({ message: "All registration fields, including OTP, are required" });
+    // Normalize/unwrap body keys (make sure names match what frontend sends)
+    const {
+      fullName,
+      phoneNo,
+      mail_ID,
+      college,
+      branch,
+      year,
+      dob,
+      phoneOTP,
+    } = req.body || {};
+
+    // Improved validation: report exactly which fields missing
+    const required = ["fullName", "phoneNo", "mail_ID", "college", "branch", "year", "dob", "phoneOTP"];
+    const missing = required.filter((k) => {
+      const v = req.body?.[k];
+      return v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+    });
+    if (missing.length) {
+      console.warn("[registerWithReferral] missing fields:", missing, "received body keys:", Object.keys(req.body || {}));
+      return res.status(400).json({ message: "Missing required fields", missing });
     }
 
     // Find referred record if exists
@@ -893,20 +919,23 @@ export const registerWithReferral = async (req, res, next) => {
       },
     });
 
-    // Validate OTP exists
+    // Validate OTP exists (phone OTP)
     const phoneOTPEntry = await prisma.otp.findFirst({
       where: { otpfor: String(phoneNo), type: "phone" },
     });
     if (!phoneOTPEntry) {
+      console.warn("[registerWithReferral] phone OTP entry not found for:", phoneNo);
       return res.status(400).json({ message: "Phone OTP not found or expired" });
     }
 
+    // Ensure bcrypt is available in this file scope
     const isPhoneOTPValid = await bcrypt.compare(String(phoneOTP).trim(), phoneOTPEntry.otp);
     if (!isPhoneOTPValid) {
+      console.warn("[registerWithReferral] invalid phone OTP for:", phoneNo);
       return res.status(400).json({ message: "Invalid Phone OTP" });
     }
 
-    // Email must be unique
+    // Email uniqueness check
     const existEmail = await prisma.student.findFirst({ where: { mail_ID } });
     if (existEmail) {
       return res.status(400).json({ message: "Email already registered" });
@@ -937,7 +966,7 @@ export const registerWithReferral = async (req, res, next) => {
       },
     });
 
-    // remove OTP entries for phone
+    // remove OTP entries for phone (cleanup)
     await prisma.otp.deleteMany({ where: { otpfor: String(phoneNo), type: "phone" } });
 
     // If refer not exists, try to find referrer student/admin based on userId
@@ -998,11 +1027,19 @@ export const registerWithReferral = async (req, res, next) => {
       referralRecord = await prisma.referred.create({ data: createData });
     }
 
-    const populatedReferral = await populateReferredRecordById(referralRecord.id);
+    // If you have a helper to populate referral with relations, call it; otherwise return created referral simple object
+    let populatedReferral = referralRecord;
+    try {
+      if (typeof populateReferredRecordById === "function") {
+        populatedReferral = await populateReferredRecordById(referralRecord.id);
+      }
+    } catch (err) {
+      console.warn("[registerWithReferral] populateReferredRecordById failed:", err?.message || err);
+    }
 
     // Send confirmation & credentials (best effort)
     const recipientEmail = (mail_ID || newStudent.mail_ID || "").toString().trim();
-    if (recipientEmail) {
+    if (recipientEmail && typeof sendReferralConfirmationEmail === "function") {
       try {
         await sendReferralConfirmationEmail(recipientEmail, fullName, {
           referrerStudentID: populatedReferral?.referrerStudentID ?? referrerStudent?.student_ID ?? (referrerAdmin ? referrerAdmin.username : userId) ?? "-",
@@ -1015,7 +1052,7 @@ export const registerWithReferral = async (req, res, next) => {
         console.error("[registerWithReferral] sendReferralConfirmationEmail ERROR:", mailErr?.message || mailErr);
       }
     }
-    if (mail_ID) {
+    if (mail_ID && typeof sendCredentialsEmail === "function") {
       try {
         await sendCredentialsEmail(mail_ID, fullName, student_ID);
       } catch (emailErr) {
@@ -1024,7 +1061,14 @@ export const registerWithReferral = async (req, res, next) => {
     }
 
     // Generate token (assumes this sets cookie on res inside)
-    const token = generateAuthToken(newStudent, null, res);
+    let token = null;
+    try {
+      if (typeof generateAuthToken === "function") {
+        token = generateAuthToken(newStudent, null, res);
+      }
+    } catch (tokErr) {
+      console.warn("[registerWithReferral] generateAuthToken ERROR:", tokErr?.message || tokErr);
+    }
 
     return res.status(201).json({
       message: "Registration successful, referral recorded, and confirmation email sent (if available).",

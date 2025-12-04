@@ -6,9 +6,9 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthAPI } from "../../config/api.js";
 
 /**
- * RefferedRegisterationPage
- * - Uses AuthAPI for referral endpoints (as provided)
- * - Aggressive console logging for debugging
+ * RefferedRegisterationPage (final)
+ * - Uses AuthAPI endpoints: getReferralInfo, sendReferralOTP, registerWithReferral
+ * - Client-side validation and defensive logging
  */
 
 const useQuery = () => {
@@ -172,18 +172,18 @@ export default function RefferedRegisterationPage() {
   }, [resendSeconds]);
 
   const validateForm = () => {
-    if (!form.fullName.trim()) return "Please enter full name.";
+    if (!form.fullName.trim()) return "Full name is required.";
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!form.referredEmail.trim()) return "Please enter email.";
-    if (!emailRe.test(form.referredEmail.trim())) return "Please enter a valid email.";
-    if (!form.referredPhone.trim()) return "Please enter phone number.";
-    if (!/^[0-9]{6,15}$/.test(form.referredPhone.trim())) return "Please enter a valid phone number (6-15 digits).";
-    if (!form.collegeName.trim()) return "Please enter college name.";
-    if (!form.branch.trim()) return "Please enter branch.";
-    if (!form.year.trim()) return "Please select academic year.";
-    if (!form.dob.trim()) return "Please enter date of birth.";
-    if (!otpSent) return "Please verify your phone by sending OTP first.";
-    if (!phoneOTP.trim()) return "Please enter the OTP sent to your phone.";
+    if (!form.referredEmail.trim()) return "Email is required.";
+    if (!emailRe.test(form.referredEmail.trim())) return "Enter a valid email.";
+    if (!form.referredPhone.trim()) return "Phone number is required.";
+    if (!/^[0-9]{6,15}$/.test(form.referredPhone.trim())) return "Enter a valid phone number (6-15 digits).";
+    if (!form.collegeName.trim()) return "College name is required.";
+    if (!form.branch.trim()) return "Branch is required.";
+    if (!form.year.trim()) return "Academic year is required.";
+    if (!form.dob.trim()) return "Date of birth is required.";
+    if (!otpSent) return "Please verify your phone by sending OTP.";
+    if (!phoneOTP.trim()) return "Enter the OTP sent to your phone.";
     return null;
   };
 
@@ -191,16 +191,24 @@ export default function RefferedRegisterationPage() {
     console.group("[handleSendOTP]");
     setOtpError("");
     const phone = String(form.referredPhone || "").trim();
-    console.log("Sending OTP to:", phone, "refParam:", refParam || undefined);
+    const fullName = String(form.fullName || "").trim();
 
     if (!/^[0-9]{6,15}$/.test(phone)) {
-      console.warn("[handleSendOTP] invalid phone:", phone);
       const msg = "Enter a valid phone number before requesting OTP.";
       setOtpError(msg);
       toast.error(msg);
       console.groupEnd();
       return;
     }
+
+    if (!fullName) {
+      const msg = "Full name is required to send OTP.";
+      setOtpError(msg);
+      toast.error(msg);
+      console.groupEnd();
+      return;
+    }
+
     if (otpLoading) {
       console.log("[handleSendOTP] already loading");
       console.groupEnd();
@@ -209,10 +217,10 @@ export default function RefferedRegisterationPage() {
     setOtpLoading(true);
 
     try {
-      const body = { phoneNo: phone };
+      const body = { phoneNo: phone, fullName };
       if (refParam) body.ref = refParam;
       console.log("[handleSendOTP] request body:", body);
-      const res = await AuthAPI.sendReferralOTP(body); // AuthAPI endpoint
+      const res = await AuthAPI.sendReferralOTP(body);
       console.log("[handleSendOTP] response:", res?.status, res?.data);
       if (!mountedRef.current) {
         console.warn("[handleSendOTP] component unmounted after OTP send");
@@ -237,6 +245,19 @@ export default function RefferedRegisterationPage() {
     console.group("[handleSubmit] start");
     console.log("refParam:", refParam, "studentIdParam:", studentIdParam, "referrer:", referrer);
 
+    // Log all form field values for debugging
+    console.log("Form values:", {
+      fullName: form.fullName,
+      referredEmail: form.referredEmail,
+      referredPhone: form.referredPhone,
+      collegeName: form.collegeName,
+      branch: form.branch,
+      year: form.year,
+      dob: form.dob,
+      phoneOTP: phoneOTP,
+      otpSent: otpSent,
+    });
+
     if (!refParam && !studentIdParam) {
       console.warn("[handleSubmit] no referral param - blocking submit");
       toast.error("Referral code is missing. Please check the link.");
@@ -259,6 +280,7 @@ export default function RefferedRegisterationPage() {
     }
 
     setSubmitting(true);
+
     try {
       const payload = {
         fullName: form.fullName.trim(),
@@ -271,8 +293,21 @@ export default function RefferedRegisterationPage() {
         phoneOTP: phoneOTP.trim(),
       };
 
-      console.log("[handleSubmit] payload:", payload, "sending to registerWithReferral with ref:", refParam || studentIdParam);
-      const res = await AuthAPI.registerWithReferral(payload, refParam || studentIdParam); // AuthAPI endpoint
+      // Client-side final guard and debug
+      const missing = [];
+      ["fullName", "phoneNo", "mail_ID", "college", "branch", "year", "dob", "phoneOTP"].forEach((k) => {
+        if (!payload[k] || (typeof payload[k] === "string" && payload[k].trim() === "")) missing.push(k);
+      });
+      if (missing.length) {
+        console.warn("[handleSubmit] Aborting: missing fields:", missing);
+        toast.error("Please fill OTP and all required fields: " + missing.join(", "));
+        setSubmitting(false);
+        console.groupEnd();
+        return;
+      }
+
+      console.log("[handleSubmit] FINAL payload about to send:", payload);
+      const res = await AuthAPI.registerWithReferral(payload, refParam || studentIdParam);
       console.log("[handleSubmit] registerWithReferral response:", res?.status, res?.data);
       toast.success(res?.data?.message || "Registration successful!");
 
@@ -293,15 +328,14 @@ export default function RefferedRegisterationPage() {
       setResendSeconds(0);
     } catch (err) {
       console.error("[handleSubmit] error:", err?.response?.status, err?.response?.data || err.message || err);
-      const msg = err?.response?.data?.message || "Failed to register. Please try again.";
+      const msg = err?.response?.data?.message || (err?.response?.data?.missing ? `Missing: ${err.response.data.missing.join(", ")}` : "Failed to register. Please try again.");
       toast.error(msg);
     } finally {
-      if (mountedRef.current) setSubmitting(false);
+      setSubmitting(false);
       console.groupEnd();
     }
   };
 
-  // ENABLE button if we have any reference param (user wants single shareable link)
   const isRegistrationAllowed = Boolean(refParam || studentIdParam);
 
   return (

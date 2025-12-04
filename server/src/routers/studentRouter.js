@@ -31,7 +31,18 @@ const router = express.Router();
 router.post('/send-otp', SendOTP);
 
 // POST /api/students/register
-router.post('/register', Register);
+// Route dispatch: if `userId` query param is present, treat this as a referral registration
+// and forward to `registerWithReferral`. Otherwise, handle as a normal `Register`.
+router.post('/register', (req, res, next) => {
+  try {
+    if (req.query && (req.query.userId || req.query.ref || req.query.code)) {
+      return registerWithReferral(req, res, next);
+    }
+    return Register(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // POST /api/students/send-credentials
 router.post('/send-credentials', SendCredentials);
@@ -93,7 +104,6 @@ router.post("/create", protect, createReferral);
 // get referral info (public)
 router.get("/info/:code", getReferralInfo);
 
-// register via referral (public)
-router.post("/register", registerWithReferral);
+// (old direct registration mapping removed - handled above)
 
 export default router;

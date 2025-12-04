@@ -5,13 +5,14 @@ import { saveAs } from "file-saver";
 import { AdminAPI } from "../../config/api.js";
 import EditModalPage from "./modals/StudentRefferalsModals.jsx/editModal";
 import DeleteModalPage from "./modals/StudentRefferalsModals.jsx/deleteModal";
-import { FiSearch, FiX } from "react-icons/fi"; // added search icon
+import { FiSearch, FiX } from "react-icons/fi";
 
 const PageSizeOptions = [10, 25, 50, 100];
 
 function normalizeRow(row) {
   const r = { ...(row || {}) };
 
+  // prefer an existing object referrer, otherwise synthesize from legacy fields
   let ref = r.referrerId ?? r.referrer ?? null;
 
   if (!ref || typeof ref === "string") {
@@ -23,11 +24,9 @@ function normalizeRow(row) {
         r.student_ID ??
         r.studentId ??
         null,
-      mail_ID:
-        r.referrerEmail ?? r.referrerMail ?? r.mail_ID ?? r.email ?? null,
-      phoneNo:
-        r.referrerPhone ?? r.referrerPhoneNo ?? r.phoneNo ?? r.phone ?? null,
-      _id: r.referrerUserId ?? null,
+      mail_ID: r.referrerEmail ?? r.referrerMail ?? r.mail_ID ?? r.email ?? null,
+      phoneNo: r.referrerPhone ?? r.referrerPhoneNo ?? r.phoneNo ?? r.phone ?? null,
+      _id: r.referrerUserId ?? r.referrerId ?? r.referrerCallerId ?? null,
     };
   } else {
     ref = {
@@ -42,6 +41,7 @@ function normalizeRow(row) {
 
   r.referrerId = ref;
 
+  // normalize common fields / legacy names
   r.referredName = r.referredName ?? r.fullName ?? r.name ?? "";
   r.referredEmail = r.referredEmail ?? r.mail_ID ?? r.email ?? "";
   r.referredPhone = r.referredPhone ?? r.phoneNo ?? r.phone ?? "";
@@ -49,6 +49,9 @@ function normalizeRow(row) {
   r.year = r.year ?? r.academicYear ?? "";
   r.refCode = r.refCode ?? r.referralCode ?? "";
   r.referredDate = r.referredDate ?? r.createdAt ?? null;
+
+  // ensure stable id for lists / keys
+  r._id = r._id ?? r.id ?? r._id ?? r.referrerId?._id ?? null;
 
   return r;
 }
@@ -89,26 +92,88 @@ export default function ReferredPage() {
   const fetchReferredUsers = async () => {
     try {
       setLoading(true);
-      const params = { page, limit: pageSize, q: query };
+      setError("");
+      const params = { page, limit: pageSize, q: query, status: statusFilter };
+
+      // AdminAPI.getRefferedUsers should accept the params object (implementation in api wrapper)
       const response = await AdminAPI.getRefferedUsers(params);
 
-      // Ensure the data is extracted correctly
-      if (response && response.data) {
-        // normalize rows for consistent UI (optional)
-        const normalized = Array.isArray(response.data)
-          ? response.data.map(normalizeRow)
-          : [];
-        setReferredUsers(normalized); // Update state with the data array
-        setTotal(response.total ?? (Array.isArray(response.data) ? response.data.length : 0)); // Update total count
-      } else {
-        setReferredUsers([]); // Fallback to empty array if no data
-        setTotal(0);
+      // Parse many possible response shapes:
+      // - array (response.data = [...])
+      // - object { data: [...], total }
+      // - object { referredUsers: [...], total }
+      // - response.data could itself be the array
+      let arr = [];
+      let totalCount = 0;
+
+      if (!response) {
+        throw new Error("No response from server");
       }
+
+      // axios responses usually have .data
+      const payload = response.data ?? response;
+
+      if (Array.isArray(payload)) {
+        arr = payload;
+        totalCount = payload.length;
+      } else if (payload && Array.isArray(payload.data)) {
+        arr = payload.data;
+        totalCount = payload.total ?? payload.count ?? payload.data.length;
+      } else if (payload && Array.isArray(payload.referredUsers)) {
+        arr = payload.referredUsers;
+        totalCount = payload.total ?? payload.count ?? payload.referredUsers.length;
+      } else if (payload && Array.isArray(payload.items)) {
+        // another common naming
+        arr = payload.items;
+        totalCount = payload.total ?? payload.count ?? payload.items.length;
+      } else {
+        // fallback: try to coerce anything in payload to array
+        if (payload && typeof payload === "object") {
+          // maybe the API returned { referredUsers: { rows: [...] } } - try deeper
+          const maybeArray =
+            payload.referredUsers?.data ??
+            payload.data?.rows ??
+            payload.rows ??
+            null;
+          if (Array.isArray(maybeArray)) {
+            arr = maybeArray;
+            totalCount = payload.total ?? maybeArray.length;
+          } else {
+            // last resort: if the server returned a single object, wrap it
+            if (Object.keys(payload).length === 0) {
+              arr = [];
+              totalCount = 0;
+            } else {
+              arr = Array.isArray(payload) ? payload : [payload];
+              totalCount = arr.length;
+            }
+          }
+        }
+      }
+
+      // Normalize rows and ensure stable _id
+      const normalized = arr.map((r) => {
+        const nr = normalizeRow(r);
+        // if still missing _id, try to synthesize from refCode or index
+        nr._id = nr._id ?? nr.refCode ?? nr.referrerId?._id ?? nr.id ?? null;
+        return nr;
+      });
+
+      if (!mountedRef.current) return;
+
+      setReferredUsers(normalized);
+      setTotal(Number(totalCount ?? normalized.length));
     } catch (err) {
       console.error("Failed to fetch referred users", err);
-      setError("Failed to fetch data.");
+      setError(
+        err?.response?.data?.message ??
+          err?.message ??
+          "Failed to fetch referred users"
+      );
+      setReferredUsers([]);
+      setTotal(0);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -146,9 +211,7 @@ export default function ReferredPage() {
   const downloadExcel = () => {
     if (!referredUsers.length) return alert("No data to export");
     const sheetData = referredUsers.map((r) => ({
-
-      "Referrer Student ID":
-        r.referrerId?.student_ID ?? r.referrerStudentID ?? "-",
+      "Referrer Student ID": r.referrerId?.student_ID ?? r.referrerStudentID ?? "-",
       "Referrer Name": r.referrerId?.fullName ?? r.fullName ?? "-",
       "Referrer Email": r.referrerId?.mail_ID ?? "-",
       "Referrer Phone": r.referrerId?.phoneNo ?? "-",
@@ -158,46 +221,36 @@ export default function ReferredPage() {
       College: r.collegeName ?? "-",
       Year: r.year ?? "-",
       "Referral Code": r.refCode ?? "-",
-      "Referred On": new Date(
-        r.referredDate ?? r.createdAt ?? Date.now()
-      ).toLocaleString(),
+      "Referred On": new Date(r.referredDate ?? r.createdAt ?? Date.now()).toLocaleString(),
     }));
 
     const ws = XLSX.utils.json_to_sheet(sheetData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Referred");
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(
-      new Blob([buf], { type: "application/octet-stream" }),
-      `referred_export_page${page}.xlsx`
-    );
+    saveAs(new Blob([buf], { type: "application/octet-stream" }), `referred_export_page${page}.xlsx`);
   };
 
-  const lastPage = useMemo(
-    () => Math.max(1, Math.ceil(total / pageSize)),
-    [total, pageSize]
-  );
+  const lastPage = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
   const stats = useMemo(() => {
     const totalReferrals = total;
     const today = new Date().toDateString();
     const todayReferrals = referredUsers.filter(
-      (user) =>
-        new Date(user.referredDate ?? user.createdAt).toDateString() === today
+      (user) => new Date(user.referredDate ?? user.createdAt).toDateString() === today
     ).length;
     return { totalReferrals, todayReferrals };
   }, [total, referredUsers]);
 
-  // --- NEW: search handlers (keeps everything else unchanged) ---
+  // search handlers
   const onQueryChange = (val) => {
     setQuery(val);
-    setPage(1); // reset to first page when searching
+    setPage(1);
   };
   const clearQuery = () => {
     setQuery("");
     setPage(1);
   };
-  // -------------------------------------------------------------
 
   // Advanced search: filter referredUsers by all relevant fields
   const filteredUsers = useMemo(() => {
@@ -231,13 +284,10 @@ export default function ReferredPage() {
             <h1 className="font-bold bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 text-3xl ">
               Referral Management
             </h1>
-            <p className="text-gray-600 mt-2 text-lg">
-              Manage and track all student referrals in one place
-            </p>
+            <p className="text-gray-600 mt-2 text-lg">Manage and track all student referrals in one place</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 items-center">
-            {/* === NEW SEARCH BAR (minimal & consistent styling) === */}
             <div className="relative w-full sm:w-72">
               <FiSearch className="absolute left-3 top-3 text-gray-400" />
               <input
@@ -247,58 +297,28 @@ export default function ReferredPage() {
                 className="w-full pl-10 pr-10 py-2 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
               {query && (
-                <button
-                  onClick={clearQuery}
-                  className="absolute right-2 top-2.5 p-1 text-gray-500 hover:text-gray-700"
-                  title="Clear search"
-                >
+                <button onClick={clearQuery} className="absolute right-2 top-2.5 p-1 text-gray-500 hover:text-gray-700" title="Clear search">
                   <FiX />
                 </button>
               )}
             </div>
-            {/* === end search bar === */}
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center gap-4">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    candidatePageBlocked ? "bg-red-500 animate-pulse" : "bg-green-500"
-                  }`}
-                ></div>
-                <span className="text-sm font-semibold text-gray-700">
-                  Candidate Page: {candidatePageBlocked ? "Blocked" : "Active"}
-                </span>
+                <div className={`w-3 h-3 rounded-full ${candidatePageBlocked ? "bg-red-500 animate-pulse" : "bg-green-500"}`}></div>
+                <span className="text-sm font-semibold text-gray-700">Candidate Page: {candidatePageBlocked ? "Blocked" : "Active"}</span>
                 <button
                   onClick={toggleCandidatePageStatus}
-                  className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-300 ${
-                    candidatePageBlocked ? "bg-red-600" : "bg-green-600"
-                  }`}
+                  className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-300 ${candidatePageBlocked ? "bg-red-600" : "bg-green-600"}`}
                 >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
-                      candidatePageBlocked ? "translate-x-7" : "translate-x-1"
-                    }`}
-                  />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${candidatePageBlocked ? "translate-x-7" : "translate-x-1"}`} />
                 </button>
               </div>
             </div>
 
-            <button
-              onClick={downloadExcel}
-              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 rounded-2xl cursor-pointer font-semibold border border-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
+            <button onClick={downloadExcel} className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 rounded-2xl cursor-pointer font-semibold border border-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Export Excel
             </button>
@@ -311,18 +331,10 @@ export default function ReferredPage() {
           <table className="w-full">
             <thead className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-b">
               <tr>
-                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">
-                  #
-                </th>
-                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">
-                  Referrer
-                </th>
-                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">
-                  Referred
-                </th>
-                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">#</th>
+                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">Referrer</th>
+                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">Referred</th>
+                <th className="text-center px-8 py-6 font-bold text-gray-700 text-sm uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
 
@@ -343,12 +355,7 @@ export default function ReferredPage() {
                   <td colSpan={4} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-4 text-red-600">
                       <p className="text-lg font-semibold">{error}</p>
-                      <button
-                        onClick={fetchReferredUsers}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
-                      >
-                        Try Again
-                      </button>
+                      <button onClick={fetchReferredUsers} className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">Try Again</button>
                     </div>
                   </td>
                 </tr>
@@ -358,12 +365,8 @@ export default function ReferredPage() {
                 <tr>
                   <td colSpan={4} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-4 text-gray-500">
-                      <p className="text-lg font-semibold">
-                        No referral records found
-                      </p>
-                      <p className="text-sm">
-                        Try adjusting your search or filters
-                      </p>
+                      <p className="text-lg font-semibold">No referral records found</p>
+                      <p className="text-sm">Try adjusting your search or filters</p>
                     </div>
                   </td>
                 </tr>
@@ -374,63 +377,34 @@ export default function ReferredPage() {
                   const referrer = r.referrerId ?? {};
                   const idxNumber = (page - 1) * pageSize + idx + 1;
                   return (
-                    <tr
-                      key={r._id ?? idx}
-                      className="hover:bg-blue-50/30 transition-colors duration-200 group"
-                    >
+                    <tr key={r._id ?? idx} className="hover:bg-blue-50/30 transition-colors duration-200 group">
                       <td className="px-8 py-6 text-center">
-                        <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 rounded-full font-semibold text-sm">
-                          {idxNumber}
-                        </span>
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-800 rounded-full font-semibold text-sm">{idxNumber}</span>
                       </td>
 
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-4">
-               
                           <div className="text-center">
-                            <p className="font-semibold text-gray-900 text-lg">
-                              {referrer.fullName ?? r.fullName ?? "-"}
-                            </p>
+                            <p className="font-semibold text-gray-900 text-lg">{referrer.fullName ?? r.fullName ?? "-"}</p>
                           </div>
                         </div>
                       </td>
 
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-4">
-                   
                           <div className="text-center">
-                            <p className="font-semibold text-gray-900 text-lg">
-                              {r.referredName ?? "-"}
-                            </p>
+                            <p className="font-semibold text-gray-900 text-lg">{r.referredName ?? "-"}</p>
                           </div>
                         </div>
                       </td>
 
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-3">
-                          <button
-                            onClick={() => handleViewDetails(r)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 group"
-                            title="View Details"
-                          >
-                            View
-                          </button>
+                          <button onClick={() => handleViewDetails(r)} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 group" title="View Details">View</button>
 
-                          <button
-                            onClick={() => handleEdit(r)}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 hover:text-green-700 transition-all duration-300 transform hover:scale-105 group"
-                            title="Edit"
-                          >
-                            Edit
-                          </button>
+                          <button onClick={() => handleEdit(r)} className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 hover:text-green-700 transition-all duration-300 transform hover:scale-105 group" title="Edit">Edit</button>
 
-                          <button
-                            onClick={() => handleDelete(r)}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:text-red-700 transition-all duration-300 transform hover:scale-105 group"
-                            title="Delete"
-                          >
-                            Delete
-                          </button>
+                          <button onClick={() => handleDelete(r)} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:text-red-700 transition-all duration-300 transform hover:scale-105 group" title="Delete">Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -443,52 +417,25 @@ export default function ReferredPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-6 border-t border-gray-200 bg-gray-50/50">
           <div className="text-sm text-gray-600 font-medium">
             Showing{" "}
-            <span className="font-bold text-gray-900">
-              {(page - 1) * pageSize + 1}
-            </span>{" "}
-            to{" "}
-            <span className="font-bold text-gray-900">
-              {Math.min(page * pageSize, total)}
-            </span>{" "}
+            <span className="font-bold text-gray-900">{(page - 1) * pageSize + 1}</span>{" "}
+            to <span className="font-bold text-gray-900">{Math.min(page * pageSize, total)}</span>{" "}
             of <span className="font-bold text-gray-900">{total}</span> results
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium"
-            >
-              Previous
-            </button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium">Previous</button>
 
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, lastPage) }, (_, i) => {
                 const pageNum = i + 1;
                 return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      page === pageNum
-                        ? "bg-green-600 text-white shadow-lg"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
+                  <button key={pageNum} onClick={() => setPage(pageNum)} className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${page === pageNum ? "bg-green-600 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}>{pageNum}</button>
                 );
               })}
               {lastPage > 5 && <span className="px-2 text-gray-500">...</span>}
             </div>
 
-            <button
-              onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-              disabled={page === lastPage}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium"
-            >
-              Next
-            </button>
+            <button onClick={() => setPage((p) => Math.min(lastPage, p + 1))} disabled={page === lastPage} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium">Next</button>
           </div>
         </div>
       </div>
@@ -498,127 +445,51 @@ export default function ReferredPage() {
           <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transform">
             <div className="flex items-center justify-between p-8 border-b border-gray-200">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Referral Details
-                </h2>
-                <p className="text-gray-600">
-                  Complete information about the referral
-                </p>
+                <h2 className="text-2xl font-bold text-gray-900">Referral Details</h2>
+                <p className="text-gray-600">Complete information about the referral</p>
               </div>
-              <button
-                onClick={handleCloseModal}
-                className="p-3 hover:bg-gray-100 rounded-2xl transition-colors duration-300"
-              >
-                Close
-              </button>
+              <button onClick={handleCloseModal} className="p-3 hover:bg-gray-100 rounded-2xl transition-colors duration-300">Close</button>
             </div>
 
             <div className="p-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">
-                    Referrer Information
-                  </h3>
-                  <DetailItem
-                    label="Full Name"
-                    value={
-                      selectedUser.referrerId?.fullName ??
-                      selectedUser.fullName ??
-                      "-"
-                    }
-                  />
-                  <DetailItem
-                    label="Student ID"
-                    value={
-                      selectedUser.referrerId?.student_ID ??
-                      selectedUser.referrerStudentID ??
-                      "-"
-                    }
-                  />
-                  <DetailItem
-                    label="Email"
-                    value={selectedUser.referrerId?.mail_ID ?? "-"}
-                  />
-                  <DetailItem
-                    label="Phone"
-                    value={selectedUser.referrerId?.phoneNo ?? "-"}
-                  />
+                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Referrer Information</h3>
+                  <DetailItem label="Full Name" value={selectedUser.referrerId?.fullName ?? selectedUser.fullName ?? "-"} />
+                  <DetailItem label="Student ID" value={selectedUser.referrerId?.student_ID ?? selectedUser.referrerStudentID ?? "-"} />
+                  <DetailItem label="Email" value={selectedUser.referrerId?.mail_ID ?? "-"} />
+                  <DetailItem label="Phone" value={selectedUser.referrerId?.phoneNo ?? "-"} />
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">
-                    Referred Information
-                  </h3>
-                  <DetailItem
-                    label="Full Name"
-                    value={selectedUser.referredName ?? "-"}
-                  />
-                  <DetailItem
-                    label="Email"
-                    value={selectedUser.referredEmail ?? "-"}
-                  />
-                  <DetailItem
-                    label="Phone"
-                    value={selectedUser.referredPhone ?? "-"}
-                  />
-                  <DetailItem
-                    label="College"
-                    value={selectedUser.collegeName ?? "-"}
-                  />
-                  <DetailItem
-                    label="Academic Year"
-                    value={selectedUser.year ?? "-"}
-                  />
+                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Referred Information</h3>
+                  <DetailItem label="Full Name" value={selectedUser.referredName ?? "-"} />
+                  <DetailItem label="Email" value={selectedUser.referredEmail ?? "-"} />
+                  <DetailItem label="Phone" value={selectedUser.referredPhone ?? "-"} />
+                  <DetailItem label="College" value={selectedUser.collegeName ?? "-"} />
+                  <DetailItem label="Academic Year" value={selectedUser.year ?? "-"} />
                 </div>
               </div>
 
               <div className="mt-8">
-                <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">
-                  Additional Information
-                </h3>
+                <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Additional Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                  <DetailItem
-                    label="Referral Code"
-                    value={selectedUser.refCode ?? "-"}
-                  />
-                  <DetailItem
-                    label="Referred On"
-                    value={new Date(
-                      selectedUser.referredDate ??
-                        selectedUser.createdAt ??
-                        Date.now()
-                    ).toLocaleString()}
-                  />
+                  <DetailItem label="Referral Code" value={selectedUser.refCode ?? "-"} />
+                  <DetailItem label="Referred On" value={new Date(selectedUser.referredDate ?? selectedUser.createdAt ?? Date.now()).toLocaleString()} />
                 </div>
               </div>
             </div>
 
             <div className="flex justify-end gap-4 p-8 border-t border-gray-200">
-              <button
-                onClick={handleCloseModal}
-                className="px-8 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-white hover:shadow-lg transition-all duration-300 font-medium"
-              >
-                Close
-              </button>
+              <button onClick={handleCloseModal} className="px-8 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-white hover:shadow-lg transition-all duration-300 font-medium">Close</button>
             </div>
           </div>
         </div>
       )}
 
-      {showEditModal && selectedUser && (
-        <EditModalPage
-          studentId={selectedUser._id}
-          onClose={handleCloseEditModal}
-        />
-      )}
+      {showEditModal && selectedUser && <EditModalPage studentId={selectedUser._id} onClose={handleCloseEditModal} />}
 
-      {showDeleteModal && selectedUser && (
-        <DeleteModalPage
-          initialData={selectedUser} // pass the whole selected object
-          studentId={selectedUser._id} // optional, kept for compatibility
-          onClose={handleCloseDeleteModal}
-        />
-      )}
+      {showDeleteModal && selectedUser && <DeleteModalPage initialData={selectedUser} studentId={selectedUser._id} onClose={handleCloseDeleteModal} />}
     </div>
   );
 }
@@ -626,9 +497,7 @@ export default function ReferredPage() {
 function DetailItem({ label, value }) {
   return (
     <div className="bg-gray-50/50 rounded-2xl p-4">
-      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-        {label}
-      </p>
+      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
       <p className="text-lg text-gray-900 mt-2 font-medium">{value}</p>
     </div>
   );
