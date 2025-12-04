@@ -65,35 +65,40 @@ export default function EditModalPage({ studentId, onClose, onUpdate }) {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!student && !studentId) {
-    alert("No student to update.");
-    return;
-  }
-  try {
-    setSaving(true);
-    // Prepare payload for Student model
-    const payload = {
-      student_ID: student.student_ID,
-      fullName: student.fullName,
-      mail_ID: student.mail_ID,
-      phoneNo: student.phoneNo,
-      college: student.college,
-      branch: student.branch,
-      year: student.year,
-      dob: student.dob,
-    };
-    const idToUpdate = student?._id ?? studentId;
-    await AdminAPI.updateStudent(idToUpdate, payload);
-    if (onUpdate) onUpdate();
-    onClose();
-  } catch (error) {
-    console.error("[EditModal] Failed to save student details:", error);
-  } finally {
-    setSaving(false);
-  }
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!student && !studentId) {
+      alert("No student to update.");
+      return;
+    }
+    try {
+      setSaving(true);
+      // Prepare payload for Student model
+      const payload = {
+        student_ID: student.student_ID,
+        fullName: student.fullName,
+        mail_ID: student.mail_ID,
+        phoneNo: student.phoneNo,
+        college: student.college,
+        branch: student.branch,
+        year: student.year,
+        dob: student.dob,
+      };
+      const idToUpdate = student?._id ?? studentId;
+
+      // Debugging logs
+      console.log("Updating student with ID:", idToUpdate);
+      console.log("Payload:", payload);
+
+      await AdminAPI.updateStudent(idToUpdate, payload);
+      if (onUpdate) onUpdate();
+      onClose();
+    } catch (error) {
+      console.error("[EditModal] Failed to save student details:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleFieldBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));

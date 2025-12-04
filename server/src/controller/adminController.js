@@ -46,7 +46,22 @@ export const getAllUsers = async (req, res, next) => {
 export const putUserDetails = async (req, res, next) => {
   try {
     const userId = req.params.id;
+
+    // Debugging log
+    console.log("Updating user with ID:", userId);
+
     const updateData = { ...req.body };
+
+    // Validate request body
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No data provided for update" });
+    }
+
+    // Validate if user exists
+    const existingUser = await prisma.student.findUnique({ where: { id: userId } });
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     // If attempting to change password here, hash it
     if (updateData.password) {
@@ -54,16 +69,21 @@ export const putUserDetails = async (req, res, next) => {
       updateData.password = await bcrypt.hash(updateData.password, salt);
     }
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.student.update({
       where: { id: userId },
       data: updateData,
       select: {
-        password: false,
         id: true,
+        student_ID: true,
         fullName: true,
         mail_ID: true,
         phoneNo: true,
-        student_ID: true,
+        college: true,
+        branch: true,
+        year: true,
+        dob: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -72,6 +92,7 @@ export const putUserDetails = async (req, res, next) => {
       user: updatedUser,
     });
   } catch (err) {
+    console.error("Error in putUserDetails:", err);
     // handle not found
     if (err.code === "P2025") {
       return res.status(404).json({ message: "User not found" });
