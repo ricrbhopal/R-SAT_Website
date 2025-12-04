@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { SupportAPI } from "../../config/api";
+import { AuthAPI } from "../../config/api"; // <-- use AuthAPI directly
 import { toast } from "react-toastify";
 import {
   MessageSquare,
@@ -49,15 +49,13 @@ const QueriesPage = () => {
   const fetchQueries = async () => {
     try {
       setLoading(true);
-      const res = await SupportAPI.GetStudentSupportQueries();
+      const res = await AuthAPI.GetStudentSupportQueries();
       setQueries(res.data || []);
     } catch (err) {
       if (err.response?.status === 401) {
         toast.error("Unauthorized. Please log in to view your queries.");
       } else {
-        toast.error(
-          err.response?.data?.message || "Failed to load support queries"
-        );
+        toast.error(err.response?.data?.message || "Failed to load support queries");
       }
     } finally {
       setLoading(false);
@@ -73,7 +71,7 @@ const QueriesPage = () => {
     }
     setSubmitting(true);
     try {
-      const res = await SupportAPI.SubmitSupportQuery(newQuery);
+      const res = await AuthAPI.SubmitSupportQuery(newQuery);
       toast.success(res.data?.message || "Query submitted successfully!");
       if (res.data?.query) setQueries((prev) => [res.data.query, ...prev]);
       setNewQuery({ subject: "", description: "" });
@@ -99,7 +97,7 @@ const QueriesPage = () => {
       toast.error("Only image files (jpeg, png, gif, webp, svg) are allowed.");
       return;
     }
-    
+
     if (file.size > MAX_FILE_SIZE) {
       toast.error(`Image exceeds ${MAX_FILE_SIZE / (1024 * 1024)} MB limit.`);
       return;
@@ -136,15 +134,13 @@ const QueriesPage = () => {
 
     try {
       setSubmitting(true);
-      const res = await SupportAPI.SubmitSupportQuery(fd);
+      const res = await AuthAPI.SubmitSupportQuery(fd);
       toast.success(res.data?.message || "Support request submitted");
       if (res.data?.query) setQueries((prev) => [res.data.query, ...prev]);
       resetImageForm();
     } catch (err) {
       console.error("submit error:", err);
-      toast.error(
-        err?.response?.data?.message || "Failed to submit support request"
-      );
+      toast.error(err?.response?.data?.message || "Failed to submit support request");
     } finally {
       setSubmitting(false);
     }
@@ -190,12 +186,8 @@ const QueriesPage = () => {
                 <MessageSquare className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Support Center
-                </h1>
-                <p className="text-gray-600 mt-2">
-                  Get help with your questions and issues
-                </p>
+                <h1 className="text-3xl font-bold text-gray-900">Support Center</h1>
+                <p className="text-gray-600 mt-2">Get help with your questions and issues</p>
               </div>
             </div>
 
@@ -207,8 +199,6 @@ const QueriesPage = () => {
                 <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
                 Refresh
               </button>
-
-
             </div>
           </div>
         </div>
@@ -220,9 +210,7 @@ const QueriesPage = () => {
             {showNewQueryForm && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Create New Query
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Create New Query</h2>
                   <button
                     onClick={() => setShowNewQueryForm(false)}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -233,15 +221,11 @@ const QueriesPage = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Subject
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
                     <input
                       type="text"
                       value={newQuery.subject}
-                      onChange={(e) =>
-                        setNewQuery({ ...newQuery, subject: e.target.value })
-                      }
+                      onChange={(e) => setNewQuery({ ...newQuery, subject: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       placeholder="Brief description of your issue"
                       required
@@ -249,14 +233,10 @@ const QueriesPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Detailed Description
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Detailed Description</label>
                     <textarea
                       value={newQuery.description}
-                      onChange={(e) =>
-                        setNewQuery({ ...newQuery, description: e.target.value })
-                      }
+                      onChange={(e) => setNewQuery({ ...newQuery, description: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none min-h-[140px]"
                       placeholder="Please provide detailed information about your issue"
                       required
@@ -286,20 +266,14 @@ const QueriesPage = () => {
 
             {/* Image Form */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Submit Query with Attachment
-              </h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Submit Query with Attachment</h2>
 
               <form onSubmit={handleImageFormSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subject
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
                   <select
                     value={imageForm.subject}
-                    onChange={(e) =>
-                      setImageForm((s) => ({ ...s, subject: e.target.value }))
-                    }
+                    onChange={(e) => setImageForm((s) => ({ ...s, subject: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
                     <option value="">Select a subject</option>
@@ -311,14 +285,10 @@ const QueriesPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
                   <textarea
                     value={imageForm.message}
-                    onChange={(e) =>
-                      setImageForm((s) => ({ ...s, message: e.target.value }))
-                    }
+                    onChange={(e) => setImageForm((s) => ({ ...s, message: e.target.value }))}
                     rows="4"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Describe your issue in detail..."
@@ -326,52 +296,25 @@ const QueriesPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Attach Image (Optional)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Attach Image (Optional)</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageInput}
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <label
-                      htmlFor="image-upload"
-                      className="cursor-pointer flex flex-col items-center gap-2"
-                    >
+                    <input type="file" accept="image/*" onChange={handleImageInput} className="hidden" id="image-upload" />
+                    <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
                       <ImageIcon className="w-8 h-8 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        Click to upload an image
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        PNG, JPG, GIF up to 10MB
-                      </span>
+                      <span className="text-sm text-gray-600">Click to upload an image</span>
+                      <span className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</span>
                     </label>
                   </div>
 
                   {imagePreview && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="flex items-center gap-4">
-                        <img
-                          src={imagePreview.url}
-                          alt={imagePreview.name}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
+                        <img src={imagePreview.url} alt={imagePreview.name} className="w-16 h-16 object-cover rounded-lg" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {imagePreview.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {(imagePreview.size / (1024 * 1024)).toFixed(2)} MB
-                          </p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{imagePreview.name}</p>
+                          <p className="text-sm text-gray-500">{(imagePreview.size / (1024 * 1024)).toFixed(2)} MB</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={removeSelectedImage}
-                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                        >
+                        <button type="button" onClick={removeSelectedImage} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
@@ -404,12 +347,8 @@ const QueriesPage = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Your Queries
-                </h2>
-                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                  {queries.length}
-                </span>
+                <h2 className="text-xl font-semibold text-gray-900">Your Queries</h2>
+                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">{queries.length}</span>
               </div>
 
               {loading ? (
@@ -419,47 +358,26 @@ const QueriesPage = () => {
               ) : queries.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No queries yet
-                  </h3>
-                  <p className="text-gray-500 text-sm">
-                    Submit your first query to get started
-                  </p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No queries yet</h3>
+                  <p className="text-gray-500 text-sm">Submit your first query to get started</p>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[515px] overflow-y-auto">
                   {queries.map((q) => (
-                    <div
-                      key={q._id}
-                      className="bg-gray-50 rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-colors"
-                    >
+                    <div key={q.id} className="bg-gray-50 rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-colors">
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight">
-                          {q.subject}
-                        </h3>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                            q.status
-                          )}`}
-                        >
+                        <h3 className="font-semibold text-gray-900 text-sm leading-tight">{q.subject}</h3>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(q.status)}`}>
                           {getStatusIcon(q.status)}
-                          <span className="capitalize">
-                            {q.status || "Unknown"}
-                          </span>
+                          <span className="capitalize">{q.status || "Unknown"}</span>
                         </span>
                       </div>
 
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                        {q.description}
-                      </p>
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{q.description}</p>
 
                       {q.imageUrl && (
                         <div className="mb-3">
-                          <img
-                            src={q.imageUrl}
-                            alt="attachment"
-                            className="h-20 w-full object-cover rounded-lg"
-                          />
+                          <img src={q.imageUrl} alt="attachment" className="h-20 w-full object-cover rounded-lg" />
                         </div>
                       )}
 
@@ -469,9 +387,7 @@ const QueriesPage = () => {
                           {new Date(q.createdAt).toLocaleDateString()}
                         </div>
                         <button
-                          onClick={() =>
-                            navigator.clipboard?.writeText(q._id)
-                          }
+                          onClick={() => navigator.clipboard?.writeText(q.id)}
                           className="hover:text-gray-700 transition-colors"
                           title="Copy ticket ID"
                         >
@@ -483,7 +399,7 @@ const QueriesPage = () => {
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           <div className="flex items-center gap-2 text-xs text-gray-700 font-medium mb-2">
                             <MessageSquare className="w-3 h-3" />
-                            {q.responses.length} response{q.responses.length !== 1 ? 's' : ''}
+                            {q.responses.length} response{q.responses.length !== 1 ? "s" : ""}
                           </div>
                           <div className="space-y-2">
                             {q.responses.slice(0, 1).map((r, idx) => (

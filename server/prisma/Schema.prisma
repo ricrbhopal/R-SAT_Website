@@ -43,6 +43,8 @@ model Student {
   dob        DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  // Relation back to support queries
+  supportQueries SupportQuery[]
 
   admitCards AdmitCard[] // Add this relation field
 }
@@ -58,3 +60,39 @@ model AdmitCard {
 
   student Student @relation(fields: [studentId], references: [id])
 }
+
+
+
+model Demo {
+  id          String   @id @default(uuid())
+  studentName String?
+  email       String?
+  phone       String?
+  collegeName String?
+  year        String
+  demoSlot    String
+  type        String   @default("offline") // store "online" or "offline"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+ // ---------- SupportQuery model ----------
+model SupportQuery {
+  id            String   @id @default(uuid())
+  studentId     String?
+  subject       String?
+  description   String?
+  status        String    @default("open") // open | in_progress | resolved
+  responses     String?   // store JSON string: e.g. JSON.stringify([...])
+  imageUrl      String?
+  imagePublicId String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relation with Student model
+  student       Student?  @relation(fields: [studentId], references: [id])
+
+  @@map("SupportQuery")
+}
+

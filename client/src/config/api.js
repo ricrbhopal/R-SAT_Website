@@ -40,6 +40,15 @@ export const AuthAPI = {
   login: (data) => api.post("/student/login", data),
   logout: () => api.post("/student/logout"),
   getStudentProfile: () => api.get("/student/profile"),
+  GetDemoSlots: () => api.get("/student/getAllSlots"),
+   BookDemoSlot: (data) => api.post("/student/registerSlot", data),  
+  SubmitSupportQuery: (payload) => api.post("/student/submit-query", payload),
+  GetStudentSupportQueries: () => api.get("/student/student-queries"),
+  GetAllSupportQueries: () => api.get("/student/all-queries"),
+  UpdateSupportQueryStatus: (queryId, status) =>
+    api.put(`/student/update-status/${queryId}`, { status }),
+  AddSupportQueryResponse: (queryId, responder, message) =>
+    api.put(`/student/add-response/${queryId}`, { responder, message }),
 };
 
 export const DemoAPI = {

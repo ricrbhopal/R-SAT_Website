@@ -55,10 +55,20 @@ const uploadBufferToCloudinary = (buffer, folder = "support_images") =>
  */
 export const SubmitSupportQuery = async (req, res, next) => {
   try {
-    const { subject, description, name, email } = req.body;
+    // Defensive check: ensure prisma model exists
+    if (!prisma || typeof prisma.supportQuery?.create !== "function") {
+      console.error("Prisma supportQuery model missing. Available models:", Object.keys(prisma?.$parent || {}));
+      return res.status(500).json({
+        success: false,
+        message:
+          "Server misconfiguration: SupportQuery model not available on Prisma client. Run `npx prisma generate` and `npx prisma db push`.",
+      });
+    }
+
+    const { subject, description, email } = req.body;
 
     if (!subject || !description) {
-      return res.status(400).json({ message: "Subject and description are required" });
+      return res.status(400).json({ success: false, message: "Subject and description are required" });
     }
 
     // Resolve studentId
@@ -66,37 +76,27 @@ export const SubmitSupportQuery = async (req, res, next) => {
     try {
       studentId = await resolveStudentId({ email, studentId: req.body.studentId }, req.user);
     } catch (err) {
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ success: false, message: err.message });
     }
 
-    // Image handling: only images allowed
+    // Image handling (optional)
     let imageUrl = null;
     let imagePublicId = null;
 
     if (req.file) {
-      // Accept only image mime types
-      const allowedImageTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-        "image/svg+xml",
-      ];
-
-      if (!allowedImageTypes.includes(req.file.mimetype)) {
+      if (!ALLOWED_IMAGE_TYPES.includes(req.file.mimetype)) {
         return res.status(400).json({
+          success: false,
           message: "Invalid file type. Only images (jpeg, png, gif, webp, svg) are allowed.",
         });
       }
 
       try {
-        // If multer.memoryStorage used -> req.file.buffer exists
         if (req.file.buffer) {
           const result = await uploadBufferToCloudinary(req.file.buffer, "support_images");
           imageUrl = result.secure_url;
           imagePublicId = result.public_id;
         } else if (req.file.path) {
-          // If diskStorage used -> upload by path
           const result = await cloudinary.uploader.upload(req.file.path, {
             folder: "support_images",
             resource_type: "image",
@@ -104,35 +104,35 @@ export const SubmitSupportQuery = async (req, res, next) => {
           imageUrl = result.secure_url;
           imagePublicId = result.public_id;
         }
-      } catch (uploadError) {
-        console.error("Cloudinary upload error:", uploadError);
-        return res.status(500).json({ message: "Image upload failed", error: uploadError.message });
+      } catch (uploadErr) {
+        console.error("Cloudinary upload error:", uploadErr);
+        return res.status(500).json({ success: false, message: "Image upload failed", error: uploadErr.message });
       }
     }
 
-    // Create support query in DB
-    const newQuery = await SupportQuery.create({
-      studentId,
-      subject,
-      description,
-      imageUrl,
-      imagePublicId,
+    // Create support query
+    const created = await prisma.supportQuery.create({
+      data: {
+        studentId,
+        subject,
+        description,
+        imageUrl,
+        imagePublicId,
+        responses: [], // initialize JSON array
+        // status will default to "open" per schema
+      },
+      include: {
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+      },
     });
 
-    // Populate the studentId field for response
-    await newQuery.populate({
-      path: "studentId",
-      select: "fullName mail_ID phoneNo",
-    });
-
-    return res.status(201).json({
-      message: "Support query submitted successfully",
-      query: newQuery,
-    });
+    return res.status(201).json({ success: true, message: "Support query submitted successfully", query: created });
   } catch (error) {
-    next(error);
+    console.error("SubmitSupportQuery error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
+
 
 /**
  * Get all support queries (admin)
