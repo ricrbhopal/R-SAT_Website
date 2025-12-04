@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const referredSchema = new mongoose.Schema(
   {
     // explicit saved referrer user id (Student)
-    referrerUserId: {
+    studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Student",
       required: false,
@@ -12,16 +12,9 @@ const referredSchema = new mongoose.Schema(
     },
 
     // caller/admin who referred (Admin / Caller model)
-    referrerCallerId: {
+   CallerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
-      default: null,
-    },
-
-    // legacy field to store Student._id if used previously
-    referrerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
       default: null,
     },
 

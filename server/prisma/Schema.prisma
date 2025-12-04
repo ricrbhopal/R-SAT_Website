@@ -19,6 +19,8 @@ model Admin {
   role       String   @default("caller")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  referralsMade Referred[]
+
 
   @@map("adminAuth") // Map to the correct table name
 }
@@ -47,6 +49,9 @@ model Student {
   supportQueries SupportQuery[]
 
   admitCards AdmitCard[] // Add this relation field
+  referredRecords  Referred[] @relation("ReferredStudentRelation")
+referrals        Referred[]  // studentId से आने वाले referrals
+
 }
 
 model AdmitCard {
@@ -96,3 +101,41 @@ model SupportQuery {
   @@map("SupportQuery")
 }
 
+
+
+
+
+model Referred {
+  id               String   @id @default(uuid())
+
+  // student who referred someone (optional)
+  studentId        String?
+  student          Student? @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // caller/admin who referred
+  callerId         String?
+  caller           Admin?   @relation(fields: [callerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // referrer student unique string ID (RICR-RSR-0002 etc.)
+  referrerStudentID String?
+
+  // invited student (after registration)
+  referredStudentId String?
+  referredStudent   Student? @relation("ReferredStudentRelation", fields: [referredStudentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // invited user's prefilled details
+  referredName      String?  @default("")
+  referredEmail     String?  @default("")
+  referredPhone     String?  @default("")
+  collegeName       String?  @default("")
+  year              String?  @default("")
+
+  // unique referral code
+  refCode           String?   @unique
+
+  referredDate      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("Referred")
+}

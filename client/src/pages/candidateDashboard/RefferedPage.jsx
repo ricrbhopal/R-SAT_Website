@@ -1,6 +1,6 @@
 // client/src/pages/candidateDashboard/RefferedPage.jsx
 import React, { useState, useEffect } from "react";
-import { ReferralAPI } from "../../config/api.js";
+import { AuthAPI } from "../../config/api.js"; // <-- use AuthAPI (removed ReferralAPI)
 import { Copy, Link2, Users, Share2, CheckCircle2 } from "lucide-react";
 import ScholarshipImage from "../../assets/scholarshipp.png";
 
@@ -56,7 +56,8 @@ const RefferedPage = () => {
       setLoading(true);
       try {
         const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-        const resp = await ReferralAPI.createReferral({}, { headers: { authorization: authHeader } });
+        // AuthAPI.createReferral signature: (data = {}, config = {})
+        const resp = await AuthAPI.createReferral({}, { headers: { authorization: authHeader } });
         const data = resp?.data || {};
         const link =
           data?.referralLink ||
@@ -123,7 +124,7 @@ const RefferedPage = () => {
     setLoading(true);
     try {
       const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-      const resp = await ReferralAPI.createReferral({}, { headers: { authorization: authHeader } });
+      const resp = await AuthAPI.createReferral({}, { headers: { authorization: authHeader } });
       const data = resp?.data || {};
       const link =
         data?.referralLink ||
@@ -132,7 +133,8 @@ const RefferedPage = () => {
       if (data?.ref) setRefRecord(data.ref);
       setNotice({ type: "success", message: "Referral link is ready." });
     } catch (err) {
-      setNotice({ type: "error", message: "Could not regenerate link." });
+      console.error("regenerate error:", err);
+      setNotice({ type: "error", message: err?.response?.data?.message || "Could not regenerate link." });
     } finally {
       setLoading(false);
     }

@@ -14,6 +14,10 @@ import {
      GetAllSupportQueries,
      UpdateSupportQueryStatus,
      AddSupportQueryResponse,
+       createReferral,
+       getReferralInfo,
+       registerWithReferral,
+       sendReferralOTP
 
 } from "../controller/studentController.js";
 
@@ -75,5 +79,21 @@ router.delete("/delete-query/:queryId", protect, async (req, res, next) => {
     next(err);
   }
 });
+
+
+
+
+
+// send referral OTP (public)
+router.post("/send-otp", sendReferralOTP);
+
+// create referral (authenticated)
+router.post("/create", protect, createReferral);
+
+// get referral info (public)
+router.get("/info/:code", getReferralInfo);
+
+// register via referral (public)
+router.post("/register", registerWithReferral);
 
 export default router;

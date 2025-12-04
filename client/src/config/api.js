@@ -40,7 +40,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-export const AuthAPI = {
+export const AuthAPI = { 
   sendOTP: (data) => api.post("/student/send-otp", data),
   register: (data) => api.post("/student/register", data),
   sendCredentials: (data) => api.post("/student/send-credentials", data),
@@ -56,6 +56,14 @@ export const AuthAPI = {
     api.put(`/student/update-status/${queryId}`, { status }),
   AddSupportQueryResponse: (queryId, responder, message) =>
     api.put(`/student/add-response/${queryId}`, { responder, message }),
+  createReferral: (data = {}, config = {}) => api.post("/student/create", data, config),
+  getReferralInfo: (code) => api.get(`/student/info/${encodeURIComponent(code)}`),
+  sendReferralOTP: (data) => api.post("/student/send-otp", data),
+  registerWithReferral: (payload, userId) => api.post(`/student/register?userId=${encodeURIComponent(userId)}`, payload),
+  // optionally add getStudentById if you want
+  getStudentById: (id) => api.get(`/student/${id}`),
+
+
 };
 
 export const DemoAPI = {
@@ -76,12 +84,7 @@ export const SupportAPI = {
 
 // Referral API
 export const ReferralAPI = {
-  createReferral: (data = {}, config = {}) => api.post("/referrals/create", data, config),
-  getReferralInfo: (code) => api.get(`/referrals/info/${encodeURIComponent(code)}`),
-  sendReferralOTP: (data) => api.post("/referrals/send-otp", data),
-  registerWithReferral: (payload, userId) => api.post(`/referrals/register?userId=${encodeURIComponent(userId)}`, payload),
-  // optionally add getStudentById if you want
-  getStudentById: (id) => api.get(`/students/${id}`),
+
 };
 
 

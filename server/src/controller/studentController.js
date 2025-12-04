@@ -591,3 +591,449 @@ export const AddSupportQueryResponse = async (req, res, next) => {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
+
+
+
+
+
+/**
+ * Helper: populate a referred record (use Prisma include)
+ */
+async function populateReferredRecordById(id) {
+  if (!id) return null;
+  return prisma.referred.findUnique({
+    where: { id: String(id) },
+    include: {
+      // include related entities if they exist on your schema
+      student: true,         // the student who created the referral (referrer student)
+      caller: true,          // the admin/caller who created the referral
+      referredStudent: true, // the student who registered (if any)
+    },
+  });
+}
+
+/**
+ * POST /api/referrals/send-otp
+ * body: { phoneNo, ref? }
+ */
+export const sendReferralOTP = async (req, res, next) => {
+  try {
+    const { phoneNo, ref } = req.body;
+    if (!phoneNo) return res.status(400).json({ message: "phoneNo is required" });
+
+    // Optional: check existence of referral (best-effort)
+    if (ref) {
+      try {
+        const found = await prisma.referred.findFirst({
+          where: {
+            OR: [
+              { refCode: ref },
+              { studentId: ref },
+              { callerId: ref },
+            ],
+          },
+        });
+        if (!found) console.warn("[sendReferralOTP] no referred record found for ref:", ref);
+      } catch (e) {
+        console.warn("[sendReferralOTP] lookup failed:", e?.message || e);
+      }
+    }
+
+    // Remove previous OTPs for this phone
+    await prisma.otp.deleteMany({ where: { otpfor: String(phoneNo), type: "phone" } });
+
+    const phoneOTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+    try {
+      await sendOTPPhone(String(phoneNo), phoneOTP);
+    } catch (smsErr) {
+      console.error("[sendReferralOTP] sendOTPPhone error:", smsErr);
+      return res.status(502).json({ message: "Failed to send OTP. Try again later." });
+    }
+
+    const hashed = await bcrypt.hash(phoneOTP, 10);
+    await prisma.otp.create({
+      data: {
+        otpfor: String(phoneNo),
+        otp: hashed,
+        type: "phone",
+        createdAt: new Date(),
+      },
+    });
+
+    return res.status(200).json({ message: "OTP sent successfully" });
+  } catch (err) {
+    console.error("[sendReferralOTP] ERROR:", err);
+    next(err);
+  }
+};
+
+/**
+ * POST /api/referrals/create  (auth required)
+ * If req.user is admin/caller => create referral with callerId
+ * Else create with studentId
+ */
+export const createReferral = async (req, res, next) => {
+  try {
+    const referrer = req.user;
+    if (!referrer) return res.status(401).json({ message: "Unauthorized: login required to create referral" });
+
+    // Determine role and whether referrer is admin/caller
+    const role = String(referrer.role || "").toLowerCase();
+    const isAdminOrCaller = ["admin", "caller", "manager"].includes(role) || referrer.isAdmin === true;
+
+    const studentId = isAdminOrCaller ? null : String(referrer.id ?? referrer._id ?? referrer.userId ?? "");
+    const callerId = isAdminOrCaller ? String(referrer.id ?? referrer._id ?? "") : null;
+
+    // check if a referred record already exists for this referrer
+    let existing = null;
+    if (studentId) {
+      existing = await prisma.referred.findFirst({ where: { studentId } });
+    } else if (callerId) {
+      existing = await prisma.referred.findFirst({ where: { callerId } });
+    }
+
+    if (existing) {
+      const populated = await populateReferredRecordById(existing.id);
+      const frontendBase = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) || "https://rsat.ricr.in";
+      const referralLink = callerId
+        ? `${frontendBase.replace(/\/+$/, "")}/callerDashboard/RefferedRegisterationPage?admin_ID=${encodeURIComponent(callerId)}`
+        : `${frontendBase.replace(/\/+$/, "")}/candidateDashboard/RefferedRegisterationPage?userId=${encodeURIComponent(studentId)}`;
+      return res.status(200).json({ message: "Referral exists", ref: populated || existing, referralLink });
+    }
+
+    const { referredName = "", referredEmail = "", referredPhone = "", collegeName = "", year = "" } = req.body || {};
+
+    // Build create payload using Prisma field names
+    const payload = {
+      studentId: studentId || null,
+      callerId: callerId || null,
+      referrerStudentID: !isAdminOrCaller ? (referrer.student_ID ?? referrer.studentId ?? referrer.student_id ?? null) : null,
+      referredName,
+      referredEmail,
+      referredPhone,
+      collegeName,
+      year,
+      refCode: (studentId || callerId) ? String(studentId || callerId) : null,
+      referredDate: new Date(),
+    };
+
+    // Create
+    const newRef = await prisma.referred.create({ data: payload });
+
+    const populated = await populateReferredRecordById(newRef.id);
+
+    const frontendBase = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) || "https://rsat.ricr.in";
+    const referralLink = callerId
+      ? `${frontendBase.replace(/\/+$/, "")}/callerDashboard/RefferedRegisterationPage?admin_ID=${encodeURIComponent(callerId)}`
+      : `${frontendBase.replace(/\/+$/, "")}/candidateDashboard/RefferedRegisterationPage?userId=${encodeURIComponent(studentId)}`;
+
+    return res.status(201).json({ message: "Referral created", ref: populated || newRef, referralLink });
+  } catch (err) {
+    console.error("[createReferral] unexpected:", err && err.stack ? err.stack : err);
+    return res.status(500).json({ message: "Server error while creating referral" });
+  }
+};
+
+/**
+ * GET /api/referrals/info/:code
+ * Lookup order:
+ *  - refCode
+ *  - studentId
+ *  - callerId
+ *  - fallback: try Student.findUnique / Admin.findUnique
+ */
+export const getReferralInfo = async (req, res, next) => {
+  try {
+    const { code } = req.params;
+    if (!code) return res.status(400).json({ message: "Referral code is required" });
+
+    // 1) by refCode
+    let refer = await prisma.referred.findFirst({
+      where: { refCode: code },
+      include: { student: true, caller: true, referredStudent: true },
+    });
+    if (refer) {
+      return res.status(200).json({
+        referrer: {
+          id: refer.callerId ?? refer.studentId ?? null,
+          name: refer.caller ? refer.caller.username ?? null : refer.student ? refer.student.fullName ?? null : refer.referrerStudentID ?? null,
+          student_ID: refer.referrerStudentID ?? refer.student?.student_ID ?? null,
+          userId: refer.studentId ?? refer.callerId ?? null,
+          type: refer.callerId ? "caller" : "student",
+        },
+        referredName: refer.referredName || null,
+        referredEmail: refer.referredEmail || null,
+        referredPhone: refer.referredPhone || null,
+        collegeName: refer.collegeName || null,
+        year: refer.year || null,
+      });
+    }
+
+    // 2) by studentId
+    refer = await prisma.referred.findFirst({
+      where: { studentId: code },
+      include: { student: true },
+    });
+    if (refer) {
+      return res.status(200).json({
+        referrer: {
+          id: refer.student?.id ?? null,
+          name: refer.student?.fullName ?? refer.referrerStudentID ?? null,
+          student_ID: refer.referrerStudentID ?? refer.student?.student_ID ?? null,
+          userId: refer.studentId ?? null,
+          type: "student",
+        },
+        referredName: refer.referredName || null,
+        referredEmail: refer.referredEmail || null,
+        referredPhone: refer.referredPhone || null,
+        collegeName: refer.collegeName || null,
+        year: refer.year || null,
+      });
+    }
+
+    // 3) by callerId
+    refer = await prisma.referred.findFirst({
+      where: { callerId: code },
+      include: { caller: true },
+    });
+    if (refer) {
+      return res.status(200).json({
+        referrer: {
+          id: refer.caller?.id ?? null,
+          name: refer.caller?.username ?? null,
+          role: refer.caller?.role ?? null,
+          phone: refer.caller?.phone ?? null,
+          userId: refer.callerId ?? null,
+          type: "caller",
+        },
+        referredName: refer.referredName || null,
+        referredEmail: refer.referredEmail || null,
+        referredPhone: refer.referredPhone || null,
+        collegeName: refer.collegeName || null,
+        year: refer.year || null,
+      });
+    }
+
+    // 4) treat code as an ObjectId-like id -> fallback lookup in Student and Admin
+    // Prisma uses UUIDs so we just try findUnique by id
+    const student = await prisma.student.findUnique({
+      where: { id: code },
+      select: { id: true, student_ID: true, fullName: true, mail_ID: true, phoneNo: true },
+    });
+    if (student) {
+      return res.status(200).json({
+        referrer: {
+          id: student.id,
+          name: student.fullName || null,
+          student_ID: student.student_ID || null,
+          userId: student.id,
+          type: "student",
+        },
+        referredName: null,
+        referredEmail: null,
+        referredPhone: null,
+        collegeName: null,
+        year: null,
+      });
+    }
+
+    const admin = await prisma.admin.findUnique({
+      where: { id: code },
+      select: { id: true, username: true, role: true, phone: true },
+    });
+    if (admin) {
+      return res.status(200).json({
+        referrer: {
+          id: admin.id,
+          name: admin.username || null,
+          role: admin.role || null,
+          phone: admin.phone || null,
+          userId: admin.id,
+          type: "caller",
+        },
+        referredName: null,
+        referredEmail: null,
+        referredPhone: null,
+        collegeName: null,
+        year: null,
+      });
+    }
+
+    return res.status(404).json({ message: "Referral not found" });
+  } catch (err) {
+    console.error("[getReferralInfo] ERROR:", err && err.stack ? err.stack : err);
+    next(err);
+  }
+};
+
+/**
+ * POST /api/referrals/register?userId=REFUSERID
+ * userId may be a Student.id OR Admin.id (caller) OR refCode
+ */
+export const registerWithReferral = async (req, res, next) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ message: "Referral userId missing" });
+
+    const { fullName, phoneNo, mail_ID, college, branch, year, dob, phoneOTP } = req.body || {};
+    if (!fullName || !phoneNo || !mail_ID || !college || !branch || !year || !dob || !phoneOTP) {
+      return res.status(400).json({ message: "All registration fields, including OTP, are required" });
+    }
+
+    // Find referred record if exists
+    let refer = await prisma.referred.findFirst({
+      where: {
+        OR: [
+          { studentId: userId },
+          { callerId: userId },
+          { refCode: userId },
+        ],
+      },
+    });
+
+    // Validate OTP exists
+    const phoneOTPEntry = await prisma.otp.findFirst({
+      where: { otpfor: String(phoneNo), type: "phone" },
+    });
+    if (!phoneOTPEntry) {
+      return res.status(400).json({ message: "Phone OTP not found or expired" });
+    }
+
+    const isPhoneOTPValid = await bcrypt.compare(String(phoneOTP).trim(), phoneOTPEntry.otp);
+    if (!isPhoneOTPValid) {
+      return res.status(400).json({ message: "Invalid Phone OTP" });
+    }
+
+    // Email must be unique
+    const existEmail = await prisma.student.findFirst({ where: { mail_ID } });
+    if (existEmail) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    // Auto-generate student_ID (RCR-RSR-0001 style)
+    const allStudents = await prisma.student.findMany({ select: { student_ID: true } });
+    const usedNumbers = new Set();
+    allStudents.forEach((s) => {
+      const match = s.student_ID && s.student_ID.match(/(\d{4})$/);
+      if (match) usedNumbers.add(parseInt(match[1], 10));
+    });
+    let nextNumber = 1;
+    while (usedNumbers.has(nextNumber)) nextNumber++;
+    const student_ID = `RCR-RSR-${nextNumber.toString().padStart(4, "0")}`;
+
+    // Create new Student
+    const newStudent = await prisma.student.create({
+      data: {
+        student_ID,
+        fullName,
+        phoneNo: String(phoneNo),
+        mail_ID,
+        college,
+        branch,
+        year,
+        dob: new Date(dob),
+      },
+    });
+
+    // remove OTP entries for phone
+    await prisma.otp.deleteMany({ where: { otpfor: String(phoneNo), type: "phone" } });
+
+    // If refer not exists, try to find referrer student/admin based on userId
+    let referrerStudent = null;
+    let referrerAdmin = null;
+    if (!refer) {
+      const maybeStudent = await prisma.student.findUnique({ where: { id: userId } }).catch(() => null);
+      if (maybeStudent) referrerStudent = maybeStudent;
+      else {
+        const maybeAdmin = await prisma.admin.findUnique({ where: { id: userId } }).catch(() => null);
+        if (maybeAdmin) referrerAdmin = maybeAdmin;
+      }
+    } else {
+      if (refer.studentId) referrerStudent = await prisma.student.findUnique({ where: { id: refer.studentId } }).catch(() => null);
+      if (refer.callerId) referrerAdmin = await prisma.admin.findUnique({ where: { id: refer.callerId } }).catch(() => null);
+    }
+
+    // Prepare update / create for referred record
+    const updateFields = {
+      referredStudentId: newStudent.id,
+      referredName: fullName,
+      referredEmail: mail_ID,
+      referredPhone: String(phoneNo),
+      collegeName: college,
+      year,
+      referredDate: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Try to find existing referral record again by same query
+    const existingReferral = await prisma.referred.findFirst({
+      where: {
+        OR: [{ studentId: userId }, { callerId: userId }, { refCode: userId }],
+      },
+    });
+
+    let referralRecord;
+    if (existingReferral) {
+      referralRecord = await prisma.referred.update({
+        where: { id: existingReferral.id },
+        data: updateFields,
+      });
+    } else {
+      // build create data
+      const createData = {
+        studentId: referrerStudent ? referrerStudent.id : null,
+        callerId: referrerAdmin ? referrerAdmin.id : null,
+        referrerStudentID: referrerStudent ? referrerStudent.student_ID : null,
+        refCode: refer?.refCode ?? (referrerStudent ? String(referrerStudent.id) : (referrerAdmin ? String(referrerAdmin.id) : null)),
+        referredStudentId: newStudent.id,
+        referredName: fullName,
+        referredEmail: mail_ID,
+        referredPhone: String(phoneNo),
+        collegeName: college,
+        year,
+        referredDate: new Date(),
+      };
+      referralRecord = await prisma.referred.create({ data: createData });
+    }
+
+    const populatedReferral = await populateReferredRecordById(referralRecord.id);
+
+    // Send confirmation & credentials (best effort)
+    const recipientEmail = (mail_ID || newStudent.mail_ID || "").toString().trim();
+    if (recipientEmail) {
+      try {
+        await sendReferralConfirmationEmail(recipientEmail, fullName, {
+          referrerStudentID: populatedReferral?.referrerStudentID ?? referrerStudent?.student_ID ?? (referrerAdmin ? referrerAdmin.username : userId) ?? "-",
+          rsatId: student_ID,
+          dob: newStudent?.dob ?? dob,
+          testDate: process.env.RSAT_TEST_DATE || "19th Jan 2026",
+          venue: process.env.RSAT_VENUE || "RICR Campus - Minal Mall, 4th Floor, Minal Residency, JK Road, Bhopal (462023)",
+        });
+      } catch (mailErr) {
+        console.error("[registerWithReferral] sendReferralConfirmationEmail ERROR:", mailErr?.message || mailErr);
+      }
+    }
+    if (mail_ID) {
+      try {
+        await sendCredentialsEmail(mail_ID, fullName, student_ID);
+      } catch (emailErr) {
+        console.error("[registerWithReferral] sendCredentialsEmail ERROR:", emailErr);
+      }
+    }
+
+    // Generate token (assumes this sets cookie on res inside)
+    const token = generateAuthToken(newStudent, null, res);
+
+    return res.status(201).json({
+      message: "Registration successful, referral recorded, and confirmation email sent (if available).",
+      student: newStudent,
+      referral: populatedReferral,
+      token,
+    });
+  } catch (err) {
+    console.error("[registerWithReferral] ERROR:", err && err.stack ? err.stack : err);
+    next(err);
+  }
+};

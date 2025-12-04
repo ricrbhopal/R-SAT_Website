@@ -3,14 +3,12 @@ import React, { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { ReferralAPI } from "../../config/api.js";
-import { AdminAPI } from "../../config/api.js";
+import { AuthAPI } from "../../config/api.js";
 
 /**
  * RefferedRegisterationPage
+ * - Uses AuthAPI for referral endpoints (as provided)
  * - Aggressive console logging for debugging
- * - Enables registration button when URL contains ref/code/userId (so same link can be shared multiple times)
- * - Shows a debug panel with parsed params and referrer state
  */
 
 const useQuery = () => {
@@ -29,8 +27,6 @@ export default function RefferedRegisterationPage() {
   const rawRef = query.get("ref") || query.get("code") || query.get("referral") || query.get("userId") || "";
   const refParam = rawRef ? decodeURIComponent(String(rawRef).trim()) : "";
   const studentIdParam = query.get("studentId") || query.get("sid") || "";
-
-
 
   const [referrer, setReferrer] = useState(null);
   const [loadingReferrer, setLoadingReferrer] = useState(false);
@@ -82,10 +78,11 @@ export default function RefferedRegisterationPage() {
         }
 
         const codeToTry = refParam || studentIdParam;
-        // 1) Try referrals/info/:code
+
+        // 1) Try /student/info/:code via AuthAPI
         try {
-          console.log("[fetchReferrer] calling ReferralAPI.getReferralInfo with:", codeToTry);
-          const res = await ReferralAPI.getReferralInfo(codeToTry);
+          console.log("[fetchReferrer] calling AuthAPI.getReferralInfo with:", codeToTry);
+          const res = await AuthAPI.getReferralInfo(codeToTry);
           console.log("[fetchReferrer] getReferralInfo response:", res?.status, res?.data);
           const data = res?.data || {};
           if (data?.referrer) {
@@ -99,17 +96,18 @@ export default function RefferedRegisterationPage() {
             setReferrer(rr);
             return;
           } else {
-            console.warn("[fetchReferrer] referrals/info returned no referrer object", res?.data);
+            console.warn("[fetchReferrer] student/info returned no referrer object", res?.data);
           }
         } catch (err) {
-          console.warn("[fetchReferrer] ReferralAPI.getReferralInfo failed:", err?.response?.status, err?.response?.data || err.message || err);
+          console.warn("[fetchReferrer] AuthAPI.getReferralInfo failed:", err?.response?.status, err?.response?.data || err.message || err);
         }
 
-        // 2) If the code looks like a Mongo ObjectId, try to fetch student info
+        // 2) If the code looks like a Mongo ObjectId, try to fetch student info via AuthAPI.getStudentById
         const looksLikeObjectId = /^[0-9a-fA-F]{24}$/.test(codeToTry);
         if (looksLikeObjectId) {
           try {
-            const studentRes = await AdminAPI.getStudentById(codeToTry);
+            console.log("[fetchReferrer] trying AuthAPI.getStudentById with:", codeToTry);
+            const studentRes = await AuthAPI.getStudentById(codeToTry);
             const student = studentRes?.data;
             if (student) {
               const fallbackRef = {
@@ -123,6 +121,7 @@ export default function RefferedRegisterationPage() {
               return;
             }
           } catch (studentErr) {
+            console.warn("[fetchReferrer] AuthAPI.getStudentById failed:", studentErr?.response?.data || studentErr?.message || studentErr);
             // fallback to synthetic minimal referrer
             const synthetic = {
               id: codeToTry,
@@ -213,7 +212,7 @@ export default function RefferedRegisterationPage() {
       const body = { phoneNo: phone };
       if (refParam) body.ref = refParam;
       console.log("[handleSendOTP] request body:", body);
-      const res = await ReferralAPI.sendReferralOTP(body);
+      const res = await AuthAPI.sendReferralOTP(body); // AuthAPI endpoint
       console.log("[handleSendOTP] response:", res?.status, res?.data);
       if (!mountedRef.current) {
         console.warn("[handleSendOTP] component unmounted after OTP send");
@@ -273,7 +272,7 @@ export default function RefferedRegisterationPage() {
       };
 
       console.log("[handleSubmit] payload:", payload, "sending to registerWithReferral with ref:", refParam || studentIdParam);
-      const res = await ReferralAPI.registerWithReferral(payload, refParam || studentIdParam);
+      const res = await AuthAPI.registerWithReferral(payload, refParam || studentIdParam); // AuthAPI endpoint
       console.log("[handleSubmit] registerWithReferral response:", res?.status, res?.data);
       toast.success(res?.data?.message || "Registration successful!");
 
