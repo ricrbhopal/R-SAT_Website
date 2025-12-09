@@ -72,11 +72,9 @@ export default function AdmitCardManagePage() {
       if (res && Array.isArray(res.data)) {
         setStudents(res.data);
       } else {
-        console.error("Unexpected students response:", res);
         setStudents([]);
       }
     } catch (err) {
-      console.error("Failed to fetch students", err);
       setError("Failed to load students.");
       setStudents([]);
     } finally {
@@ -113,11 +111,9 @@ export default function AdmitCardManagePage() {
         }));
         setAdmitCards(formatted);
       } else {
-        console.error("Unexpected admitCards response:", res);
         setAdmitCards([]);
       }
     } catch (err) {
-      console.error("Error fetching admit cards:", err);
       setError("Failed to load admit cards.");
       setAdmitCards([]);
     } finally {
@@ -143,7 +139,6 @@ export default function AdmitCardManagePage() {
       setMessage({ type: "success", text: "Admit cards created successfully for all students!" });
       await fetchAllAdmitCards();
     } catch (err) {
-      console.error("Failed to create admit cards", err);
       setMessage({ type: "error", text: "Failed to create admit cards." });
     } finally {
       setSaving(false);
@@ -201,7 +196,6 @@ export default function AdmitCardManagePage() {
             }
           })
           .catch((err) => {
-            console.error(err);
             setScannerError("Error marking attendance. Try again.");
             alert("Error marking attendance.");
           })
@@ -222,7 +216,6 @@ export default function AdmitCardManagePage() {
         setScannerError("");
       }
     } catch (err) {
-      console.error("Error processing scanned result:", err);
       setScannerError("Error processing scanned result.");
       alert("Error processing scanned result.");
       setIsScannerOpen(false);
@@ -230,7 +223,6 @@ export default function AdmitCardManagePage() {
   };
 
   const handleScanError = (err) => {
-    console.error("Scanner error:", err);
     setScannerError("Camera/permission error. Please allow camera access or try another device.");
   };
 

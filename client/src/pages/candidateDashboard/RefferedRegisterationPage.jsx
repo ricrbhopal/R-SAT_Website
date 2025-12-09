@@ -65,7 +65,7 @@ export default function RefferedRegisterationPage() {
   useEffect(() => {
     async function fetchReferrer() {
       console.group("[fetchReferrer] start");
-      console.log("Trying to fetch referrer info for:", { refParam, studentIdParam });
+    
 
       try {
         setLoadingReferrer(true);
@@ -81,9 +81,9 @@ export default function RefferedRegisterationPage() {
 
         // 1) Try /student/info/:code via AuthAPI
         try {
-          console.log("[fetchReferrer] calling AuthAPI.getReferralInfo with:", codeToTry);
+    
           const res = await AuthAPI.getReferralInfo(codeToTry);
-          console.log("[fetchReferrer] getReferralInfo response:", res?.status, res?.data);
+          
           const data = res?.data || {};
           if (data?.referrer) {
             const rr = {
@@ -92,7 +92,7 @@ export default function RefferedRegisterationPage() {
               student_ID: data.referrer.student_ID || null,
               fullName: data.referrer.name || data.referrer.fullName || "Referrer",
             };
-            console.log("[fetchReferrer] parsed referrer:", rr);
+      
             setReferrer(rr);
             return;
           } else {
@@ -106,7 +106,7 @@ export default function RefferedRegisterationPage() {
         const looksLikeObjectId = /^[0-9a-fA-F]{24}$/.test(codeToTry);
         if (looksLikeObjectId) {
           try {
-            console.log("[fetchReferrer] trying AuthAPI.getStudentById with:", codeToTry);
+            
             const studentRes = await AuthAPI.getStudentById(codeToTry);
             const student = studentRes?.data;
             if (student) {
@@ -210,7 +210,7 @@ export default function RefferedRegisterationPage() {
     }
 
     if (otpLoading) {
-      console.log("[handleSendOTP] already loading");
+  
       console.groupEnd();
       return;
     }
@@ -219,9 +219,7 @@ export default function RefferedRegisterationPage() {
     try {
       const body = { phoneNo: phone, fullName };
       if (refParam) body.ref = refParam;
-      console.log("[handleSendOTP] request body:", body);
       const res = await AuthAPI.sendReferralOTP(body);
-      console.log("[handleSendOTP] response:", res?.status, res?.data);
       if (!mountedRef.current) {
         console.warn("[handleSendOTP] component unmounted after OTP send");
         return;
@@ -245,18 +243,7 @@ export default function RefferedRegisterationPage() {
     console.group("[handleSubmit] start");
     console.log("refParam:", refParam, "studentIdParam:", studentIdParam, "referrer:", referrer);
 
-    // Log all form field values for debugging
-    console.log("Form values:", {
-      fullName: form.fullName,
-      referredEmail: form.referredEmail,
-      referredPhone: form.referredPhone,
-      collegeName: form.collegeName,
-      branch: form.branch,
-      year: form.year,
-      dob: form.dob,
-      phoneOTP: phoneOTP,
-      otpSent: otpSent,
-    });
+
 
     if (!refParam && !studentIdParam) {
       console.warn("[handleSubmit] no referral param - blocking submit");
@@ -306,16 +293,13 @@ export default function RefferedRegisterationPage() {
         return;
       }
 
-      console.log("[handleSubmit] FINAL payload about to send:", payload);
       const res = await AuthAPI.registerWithReferral(payload, refParam || studentIdParam);
-      console.log("[handleSubmit] registerWithReferral response:", res?.status, res?.data);
       toast.success(res?.data?.message || "Registration successful!");
 
       const token = res?.data?.token;
       if (token) {
         try {
           sessionStorage.setItem("token", token);
-          console.log("[handleSubmit] stored token in sessionStorage");
         } catch (err) {
           console.warn("[handleSubmit] sessionStorage set error:", err);
         }

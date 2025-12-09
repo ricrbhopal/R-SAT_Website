@@ -9,7 +9,7 @@ import connectDB from "./src/config/db.js"; // this is your MSSQL connector
 import Admin from "./src/routers/adminRouter.js"; // keep your routers
 import Student from "./src/routers/StudentRouter.js";
 import AdmitCards from "./src/routers/admitRouter.js";
-  
+
 const app = express();
 
 // CORS configuration - allow both local dev and production
@@ -84,11 +84,10 @@ const PORT = process.env.PORT || 4500;
     
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📍 API available at http://localhost:${PORT}`);
-      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+
     });
   } catch (err) {
-    console.error("❌ Server startup failed:", err.message || err);
+
     console.error(err.stack);
     process.exit(1);
   }

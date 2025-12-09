@@ -144,7 +144,7 @@ export default function ResultPage() {
       }));
       setRows(initialRows);
     } catch (error) {
-      console.error(error);
+   
       toast.error("Failed to fetch students: " + (error.message || error));
     } finally {
       setLoading(false);

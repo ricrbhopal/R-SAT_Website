@@ -31,17 +31,14 @@ const SupportManager = () => {
           try {
             return typeof query.responses === 'string' ? JSON.parse(query.responses) : (query.responses || []);
           } catch (e) {
-            console.warn("Failed to parse responses JSON:", e);
             return [];
           }
         })(),
         createdAt: new Date(query.createdAt).toLocaleString(),
         updatedAt: new Date(query.updatedAt).toLocaleString(),
       }));
-      console.log("[SupportManager] Fetched queries:", mappedQueries);
       setQueries(mappedQueries);
     } catch (error) {
-      console.error("Error fetching queries:", error);
       toast.error("Failed to fetch support queries.");
     } finally {
       setLoading(false);
@@ -51,7 +48,6 @@ const SupportManager = () => {
   const updateQueryStatus = async (queryId, status) => {
     if (!queryId) {
       toast.error("Error: Query ID not found");
-      console.error("queryId is undefined or null");
       return;
     }
     try {
@@ -59,7 +55,7 @@ const SupportManager = () => {
       toast.success(response.data.message);
       fetchQueries();
     } catch (error) {
-      console.error("Error updating query status:", error);
+
       toast.error("Failed to update query status.");
     }
   };

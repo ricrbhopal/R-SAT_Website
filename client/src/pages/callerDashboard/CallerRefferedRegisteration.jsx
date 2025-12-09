@@ -317,7 +317,6 @@ export default function RefferedRegisterationPage() {
     console.group("[handleSendOTP]");
     setOtpError("");
     const phone = String(form.referredPhone || "").trim();
-    console.log("Sending OTP to:", phone, "refParam:", refParam || undefined);
 
     if (!/^[0-9]{6,15}$/.test(phone)) {
       console.warn("[handleSendOTP] invalid phone:", phone);
@@ -328,7 +327,6 @@ export default function RefferedRegisterationPage() {
       return;
     }
     if (otpLoading) {
-      console.log("[handleSendOTP] already loading");
       console.groupEnd();
       return;
     }
@@ -365,10 +363,8 @@ export default function RefferedRegisterationPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.group("[handleSubmit] start");
-    console.log("refParam:", refParam, "studentIdParam:", studentIdParam, "referrer:", referrer);
 
     if (!refParam && !studentIdParam) {
-      console.warn("[handleSubmit] no referral param - blocking submit");
       toast.error("Referral code is missing. Please check the link.");
       console.groupEnd();
       return;
@@ -376,14 +372,12 @@ export default function RefferedRegisterationPage() {
 
     const errorMsg = validateForm();
     if (errorMsg) {
-      console.warn("[handleSubmit] validation failed:", errorMsg);
       toast.error(errorMsg);
       console.groupEnd();
       return;
     }
 
     if (submitting) {
-      console.log("[handleSubmit] already submitting");
       console.groupEnd();
       return;
     }
@@ -402,20 +396,17 @@ export default function RefferedRegisterationPage() {
       };
 
       const refToSend = refParam || studentIdParam;
-      console.log("[handleSubmit] payload:", payload, "sending to registerWithReferral with ref:", refToSend);
 
       if (!ReferralAPI || !ReferralAPI.registerWithReferral) {
         throw new Error("ReferralAPI.registerWithReferral not available");
       }
       const res = await ReferralAPI.registerWithReferral(payload, refToSend);
-      console.log("[handleSubmit] registerWithReferral response:", res?.status, res?.data);
       toast.success(res?.data?.message || "Registration successful!");
 
       const token = res?.data?.token;
       if (token) {
         try {
           sessionStorage.setItem("token", token);
-          console.log("[handleSubmit] stored token in sessionStorage");
         } catch (err) {
           console.warn("[handleSubmit] sessionStorage set error:", err);
         }
@@ -427,7 +418,6 @@ export default function RefferedRegisterationPage() {
       setOtpSent(false);
       setResendSeconds(0);
     } catch (err) {
-      console.error("[handleSubmit] error:", err?.response?.status, err?.response?.data || err.message || err);
       const msg = err?.response?.data?.message || err.message || "Failed to register. Please try again.";
       toast.error(msg);
     } finally {

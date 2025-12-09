@@ -33,7 +33,6 @@ const EditDemoClassModal = ({ demoClass, onSave, onClose }) => {
           demoSlot: fetchedData.demoSlot || "",
         }));
       } catch (error) {
-        console.error("Error fetching demo class details:", error);
         toast.error("Failed to fetch demo class details. Please try again.");
       }
     };
@@ -94,7 +93,6 @@ const EditDemoClassModal = ({ demoClass, onSave, onClose }) => {
       toast.success("Demo class updated successfully!");
       onSave(response.data);
     } catch (error) {
-      console.error("Error updating demo class:", error);
       toast.error("Error updating demo class. Please try again.");
     } finally {
       setLoading(false);

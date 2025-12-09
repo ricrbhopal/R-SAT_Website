@@ -124,7 +124,7 @@ export default function OverView() {
           failed: Math.max(0, results.filter(r => r?.percentage < 60).length - Math.floor(Math.random() * 3)),
         });
       } catch (err) {
-        console.error("Dashboard error:", err);
+      
         setError("Failed to load dashboard stats. Please try again.");
       }
       setLoading(false);

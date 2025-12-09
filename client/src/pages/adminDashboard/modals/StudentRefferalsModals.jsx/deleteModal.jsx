@@ -53,7 +53,6 @@ export default function DeleteModalPage({ studentId, initialData = null, onClose
           }
         }
       } catch (err) {
-        console.error("[DeleteModal] Error fetching student:", err);
         if (!mounted) return;
         setError("Failed to fetch student details. Please try again later.");
         setStudent(null);

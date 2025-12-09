@@ -86,9 +86,7 @@ export default function EditModalPage({ studentId, onClose, onUpdate }) {
       };
       const idToUpdate = student?._id ?? studentId;
 
-      // Debugging logs
-      console.log("Updating student with ID:", idToUpdate);
-      console.log("Payload:", payload);
+
 
       await AdminAPI.updateStudent(idToUpdate, payload);
       if (onUpdate) onUpdate();

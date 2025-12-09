@@ -241,7 +241,6 @@ export default function EditModal({ studentId, initialData = null, onClose }) {
       alert("Referred user updated successfully.");
       onClose();
     } catch (error) {
-      console.error("[EditModal] Failed to save referred user details:", error?.response?.data ?? error?.message ?? error);
       const msg = error?.response?.data?.message ?? "Failed to save. Please try again.";
       alert(msg);
     } finally {

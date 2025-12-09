@@ -12,7 +12,6 @@ const DeleteDemoClassModal = ({ demoClassId, studentName, onDelete, onClose }) =
       toast.success("Demo class deleted successfully!");
       onDelete(demoClassId);
     } catch (error) {
-      console.error("Error deleting demo class:", error);
       toast.error("Error deleting demo class. Please try again.");
     } finally {
       setLoading(false);

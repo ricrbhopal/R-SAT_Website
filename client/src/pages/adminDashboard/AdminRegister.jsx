@@ -109,7 +109,6 @@ export default function AdminRegisterProfessionalFinal_v2() {
         password,
         role,
       };
-      console.log("Payload being sent:", payload); // Debugging
       const resp = await AdminAPI.registerAdmin(payload);
       show("success", resp?.data?.message || "User registered successfully.");
       setStep(4);
