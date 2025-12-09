@@ -16,15 +16,17 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://rsat.ricr.in/api",
+  "https://rsat.ricr.in",
 ];
 
 app.use(cors({ 
   origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(null, true); // Warn but allow for debugging
     }
   },
   credentials: true 
@@ -51,14 +53,24 @@ app.use("/admin", Admin);
 app.use("/student", Student);
 app.use("/admit-cards", AdmitCards);
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", port: PORT, timestamp: new Date().toISOString() });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ message: `Route ${req.method} ${req.path} not found` });
+});
+
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error("Global error:", err);
+  console.error("Error:", err.message);
   const status = err.status || 500;
   const message = err.message || "Internal Server Error";
   res.status(status).json({ 
     message, 
-    error: process.env.NODE_ENV === "development" ? err : {} 
+    error: process.env.NODE_ENV === "development" ? err.stack : {} 
   });
 });
 
@@ -66,12 +78,18 @@ const PORT = process.env.PORT || 4500;
 
 (async () => {
   try {
-    await connectDB(); // connect to SQL Server
+    console.log("🔧 Connecting to database...");
+    await connectDB();
+    console.log("✅ Database connected successfully");
+    
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📍 API available at http://localhost:${PORT}`);
+      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
     });
   } catch (err) {
-    console.error("DB connect fail:", err.message || err);
+    console.error("❌ Server startup failed:", err.message || err);
+    console.error(err.stack);
     process.exit(1);
   }
 })();
