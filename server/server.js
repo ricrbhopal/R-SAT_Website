@@ -9,7 +9,7 @@ import connectDB from "./src/config/db.js"; // this is your MSSQL connector
 import Admin from "./src/routers/adminRouter.js"; // keep your routers
 import Student from "./src/routers/StudentRouter.js";
 import AdmitCards from "./src/routers/admitRouter.js";
-
+  
 const app = express();
 
 // CORS configuration - allow both local dev and production

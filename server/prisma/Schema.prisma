@@ -48,9 +48,10 @@ model Student {
   // Relation back to support queries
   supportQueries SupportQuery[]
 
-  admitCards AdmitCard[] // Add this relation field
+  admitCards AdmitCard[] 
   referredRecords  Referred[] @relation("ReferredStudentRelation")
-referrals        Referred[]  // studentId से आने वाले referrals
+  referrals        Referred[]  // student id referrals
+  results          Result[]    // add results relation
 
 }
 
@@ -115,8 +116,6 @@ model SupportQuery {
 
 
 
-
-
 model Referred {
   id               String   @id @default(uuid())
 
@@ -152,6 +151,7 @@ model Referred {
   @@map("Referred")
 }
 
+
 model DemoSlot {
   id           String   @id @default(uuid())
   slotTime     String   @unique // e.g., "2025-12-10 10:00 AM"
@@ -164,3 +164,32 @@ model DemoSlot {
   @@map("DemoSlot")
 }
 
+
+model Result {
+  id               String   @id @default(uuid())
+
+  // Required reference to Student (same as mongoose required: true)
+  studentId        String
+  student          Student  @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Optional custom student identifier
+  student_ID_custom String?  
+
+  // Marks / numeric fields
+  A                Float
+  B                Float
+  C                Float
+  D                Float
+
+  total            Float
+  percentage       Float
+  scholarShip      Float
+
+  // boolean flag
+  check            Boolean  @default(false)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("Result")
+}

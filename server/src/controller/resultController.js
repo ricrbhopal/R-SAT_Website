@@ -1,140 +1,161 @@
-import Result from "../model/resultModel.js";
-import Student from "../model/studentModel.js";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+// Helper function to calculate scholarship
+const calculateScholarship = (percentage) => {
+  if (percentage >= 95) return 100;
+  if (percentage >= 85) return 50;
+  if (percentage >= 75) return 25;
+  if (percentage >= 60) return 10;
+  return 0;
+};
 
 // Create a new result
-export const createResult = async (req, res) => {
+export const createResult = async (req, res, next) => {
   try {
-    const { student_ID, A, B, C, D } = req.body;
-    const total = A + B + C + D;
-    const percentage = (total / 400) * 100;
-    let scholarShip = 0;
-    // Scholarship logic based on percentage
-    if (percentage >= 95) {
-      scholarShip = 100;
-    } else if (percentage >= 85) {
-      scholarShip = 50;
-    } else if (percentage >= 75) {
-      scholarShip = 25;
-    } else if (percentage >= 60) {
-      scholarShip = 10;
-    } else {
-      scholarShip = 0;
+    const { studentId, A, B, C, D } = req.body;
+
+    if (!studentId || A === undefined || B === undefined || C === undefined || D === undefined) {
+      return res.status(400).json({ message: "Missing required fields: studentId, A, B, C, D" });
     }
 
-    const result = new Result({
-      student_ID,
-      A,
-      B,
-      C,
-      D,
-      total,
-      percentage,
-      scholarShip,
+    const total = A + B + C + D;
+    const percentage = (total / 400) * 100;
+    const scholarShip = calculateScholarship(percentage);
+
+    const result = await prisma.result.create({
+      data: {
+        studentId,
+        A,
+        B,
+        C,
+        D,
+        total,
+        percentage,
+        scholarShip,
+      },
+      include: { student: { select: { fullName: true, mail_ID: true, student_ID: true } } },
     });
-    await result.save();
+
     res.status(201).json({ message: "Result created successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Create result error:", error);
+    next(error);
   }
 };
 
 // Get all results
-export const getAllResults = async (req, res) => {
+export const getAllResults = async (req, res, next) => {
   try {
-    const results = await Result.find().populate(
-      "student_ID",
-      "fullName email"
-    );
+    const results = await prisma.result.findMany({
+      include: { student: { select: { fullName: true, mail_ID: true, student_ID: true } } },
+    });
     res.status(200).json(results);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Get all results error:", error);
+    next(error);
   }
 };
 
 // Get result by student ID
-export const getResultByStudentId = async (req, res) => {
+export const getResultByStudentId = async (req, res, next) => {
   try {
     const { studentId } = req.params;
-    const result = await Result.findOne({ student_ID: studentId }).populate(
-      "student_ID",
-      "fullName email"
-    );
-    if (!result) {
-      return res
-        .status(404)
-        .json({ message: "Result not found for this student" });
+
+    if (!studentId) {
+      return res.status(400).json({ message: "studentId is required" });
     }
+
+    const result = await prisma.result.findFirst({
+      where: { studentId },
+      include: { student: { select: { fullName: true, mail_ID: true, student_ID: true } } },
+    });
+
+    if (!result) {
+      return res.status(404).json({ message: "Result not found for this student" });
+    }
+
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Get result by student error:", error);
+    next(error);
   }
 };
 
 // Update result by ID
-export const updateResult = async (req, res) => {
+export const updateResult = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { A, B, C, D } = req.body;
+
+    if (!id || A === undefined || B === undefined || C === undefined || D === undefined) {
+      return res.status(400).json({ message: "Missing required fields: id, A, B, C, D" });
+    }
+
     const total = A + B + C + D;
     const percentage = (total / 400) * 100;
-    let scholarShip = 0;
-    // Scholarship logic based on percentage
-    if (percentage >= 95) {
-      scholarShip = 100;
-    } else if (percentage >= 85) {
-      scholarShip = 50;
-    } else if (percentage >= 75) {
-      scholarShip = 25;
-    } else if (percentage >= 60) {
-      scholarShip = 10;
-    } else {
-      scholarShip = 0;
-    }
-    const updatedResult = await Result.findByIdAndUpdate(
-      id,
-      { A, B, C, D, total, percentage, scholarShip },
-      { new: true }
-    );
-    if (!updatedResult) {
+    const scholarShip = calculateScholarship(percentage);
+
+    const updatedResult = await prisma.result.update({
+      where: { id },
+      data: { A, B, C, D, total, percentage, scholarShip },
+      include: { student: { select: { fullName: true, mail_ID: true, student_ID: true } } },
+    });
+
+    res.status(200).json({ message: "Result updated successfully", updatedResult });
+  } catch (error) {
+    if (error.code === "P2025") {
       return res.status(404).json({ message: "Result not found" });
     }
-    res
-      .status(200)
-      .json({ message: "Result updated successfully", updatedResult });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Update result error:", error);
+    next(error);
   }
 };
 
 // Delete result by ID
-export const deleteResult = async (req, res) => {
+export const deleteResult = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const deletedResult = await Result.findByIdAndDelete(id);
-    if (!deletedResult) {
-      return res.status(404).json({ message: "Result not found" });
+
+    if (!id) {
+      return res.status(400).json({ message: "id is required" });
     }
+
+    await prisma.result.delete({ where: { id } });
     res.status(200).json({ message: "Result deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    if (error.code === "P2025") {
+      return res.status(404).json({ message: "Result not found" });
+    }
+    console.error("Delete result error:", error);
+    next(error);
   }
 };
 
 // GET ALL RESULTS WITH STUDENT DETAILS
-export const getAllResultsWithStudentDetails = async (req, res) => {
+export const getAllResultsWithStudentDetails = async (req, res, next) => {
   try {
-    const results = await Result.find().populate(
-      "student_ID",
-      "student_ID fullName email phoneNo collegeName year"
-    );
-    // Map each result to include readable student_ID
-    const mappedResults = results.map(r => {
-      const obj = r.toObject();
-      obj.student_ID = obj.student_ID?.student_ID || obj.student_ID; // Use custom ID if available
-      return obj;
+    const results = await prisma.result.findMany({
+      include: {
+        student: {
+          select: {
+            id: true,
+            student_ID: true,
+            fullName: true,
+            mail_ID: true,
+            phoneNo: true,
+            college: true,
+            branch: true,
+            year: true,
+          },
+        },
+      },
     });
-    res.status(200).json(mappedResults);
+
+    res.status(200).json(results);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Get all results with student details error:", error);
+    next(error);
   }
 };

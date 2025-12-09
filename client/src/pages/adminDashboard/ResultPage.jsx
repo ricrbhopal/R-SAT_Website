@@ -66,8 +66,26 @@ export default function ResultPage() {
     setConfirmState({ open: false, message: "", resolver: null });
   };
 
+  // ---------- HELPER: Get Student ID String ----------
+  const getCustomStudentId = (s) => {
+    // सबसे पहले student_ID string को priority दें
+    if (typeof s.student_ID === "string" && s.student_ID.trim().length > 0) {
+      return s.student_ID;
+    }
+    // अगर student_ID object है तो nested student_ID निकालें
+    if (typeof s.student_ID === "object" && s.student_ID.student_ID) {
+      return s.student_ID.student_ID;
+    }
+    // बाकी सब fallbacks
+    if (s.studentId && typeof s.studentId === "string") return s.studentId;
+    if (s.id && typeof s.id === "string") return s.id;
+    if (s._id && typeof s._id === "string") return s._id;
+    return "";
+  };
+
   useEffect(() => {
     fetchStudents();
+    fetchAllResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -105,16 +123,6 @@ export default function ResultPage() {
 
       const list = resp.data || [];
       setStudents(list);
-
-      const getCustomStudentId = (s) => {
-        if (typeof s.student_ID === "object" && s.student_ID.student_ID)
-          return s.student_ID.student_ID;
-        if (s.student_ID) return s.student_ID;
-        if (s.studentId) return s.studentId;
-        if (s.id) return s.id;
-        if (s._id) return s._id;
-        return "";
-      };
 
       const initialRows = list.map((s) => ({
         _id: s._id || null,
@@ -167,16 +175,13 @@ export default function ResultPage() {
 
   // ---------- HELPERS ----------
   const getObjectIdFromCustomId = (customId) => {
+    // Find student by their student_ID string
     const student = students.find((s) => {
-      if (typeof s.student_ID === "object" && s.student_ID.student_ID)
-        return s.student_ID.student_ID === customId;
-      if (s.student_ID) return String(s.student_ID) === String(customId);
-      if (s.studentId) return String(s.studentId) === String(customId);
-      if (s.id) return String(s.id) === String(customId);
-      if (s._id) return String(s._id) === String(customId);
-      return false;
+      const sId = getCustomStudentId(s);
+      return String(sId) === String(customId);
     });
-    return student?._id || customId;
+    // Return student's UUID (id field)
+    return student?.id || student?._id || customId;
   };
 
   // ---------- IMPORT FILE ----------
@@ -201,7 +206,16 @@ export default function ResultPage() {
       json.forEach((r) => {
         const customId = r["Student ID"] || r["student_ID"] || r["studentId"] || r["StudentID"];
         if (!customId) return;
-        const objectId = getObjectIdFromCustomId(customId);
+        
+        // Find the student by their ID to get full student object
+        const student = students.find((s) => {
+          const sId = getCustomStudentId(s);
+          return String(sId) === String(customId);
+        });
+
+        // Use student_ID string from the student object, not UUID
+        const student_ID = student ? getCustomStudentId(student) : customId;
+        
         const A = Number(r["A"] || 0);
         const B = Number(r["B"] || 0);
         const C = Number(r["C"] || 0);
@@ -210,7 +224,7 @@ export default function ResultPage() {
         if ([A, B, C, D].some((v) => isNaN(v) || v < 0 || v > 100)) {
           return;
         }
-        toCreate.push({ student_ID: objectId, A, B, C, D });
+        toCreate.push({ student_ID, A, B, C, D });
       });
 
       if (toCreate.length === 0) {
@@ -434,13 +448,14 @@ export default function ResultPage() {
     setLoading(true);
     try {
       const allResultsResp = await AdminAPI.getAllResultsWithStudentDetails();
-        const allResults = allResultsResp.data || [];
+      const allResults = allResultsResp.data || [];
       const mappedRows = allResults.map((result) => {
         const percent = result.percentage ?? ((result.total ?? result.A + result.B + result.C + result.D) / 400) * 100;
+        const student = result.student || {};
         return {
-          _id: result._id,
-          student_ID: typeof result.student_ID === "object" ? result.student_ID.student_ID || result.student_ID._id || JSON.stringify(result.student_ID) : result.student_ID,
-          fullName: result.fullName || (result.student_ID && result.student_ID.fullName) || "",
+          _id: result.id || result._id, // Result की UUID
+          student_ID: student.student_ID || result.student_ID || "",
+          fullName: student.fullName || result.fullName || "",
           A: result.A,
           B: result.B,
           C: result.C,
@@ -469,7 +484,7 @@ export default function ResultPage() {
       const allResultsResp = await AdminAPI.getAllResultsWithStudentDetails();
       const allResults = allResultsResp.data || [];
       const deletePromises = allResults.map((result) =>
-        AdminAPI.deleteResult(result._id)
+        AdminAPI.deleteResult(result.id || result._id)
           .then(() => ({ ok: true }))
           .catch((err) => ({ ok: false, err }))
       );
@@ -491,20 +506,28 @@ export default function ResultPage() {
     if (!ok) return;
     setLoading(true);
     try {
-      let id = typeof rowOrId === "object" ? rowOrId._id || rowOrId.student_ID : rowOrId;
-      const looksLikeObjectId = String(id).length === 24 && /^[0-9a-fA-F]+$/.test(String(id));
-      let mongoId = looksLikeObjectId ? id : null;
+      let resultId = null;
+      let studentId = null;
 
-      if (!mongoId) {
-        const res = await AdminAPI.getAllResultsWithStudentDetails();
-        const all = res.data || [];
-        const found = all.find((r) => String(r.student_ID) === String(id) || (r.student_ID && r.student_ID.student_ID === id));
-        mongoId = found?._id;
-        if (!mongoId) throw new Error("Result document id not found for this student");
+      // If row object passed
+      if (typeof rowOrId === "object") {
+        resultId = rowOrId._id; // UUID from response
+        studentId = rowOrId.student_ID; // Custom student ID
+      } else {
+        studentId = rowOrId;
       }
 
-      await AdminAPI.deleteResult(mongoId);
-      setRows((prev) => prev.filter((row) => row._id !== mongoId && String(getObjectIdFromCustomId(row.student_ID)) !== String(mongoId)));
+      // If we don't have resultId, fetch all and find by studentId
+      if (!resultId) {
+        const res = await AdminAPI.getAllResultsWithStudentDetails();
+        const all = res.data || [];
+        const found = all.find((r) => String(r.student.student_ID) === String(studentId) || String(r.student_ID) === String(studentId));
+        resultId = found?.id || found?._id;
+        if (!resultId) throw new Error("Result document id not found for this student");
+      }
+
+      await AdminAPI.deleteResult(resultId);
+      setRows((prev) => prev.filter((row) => row._id !== resultId));
       toast.success("Result deleted successfully.");
     } catch (err) {
       console.error("Delete error:", err);
@@ -588,16 +611,10 @@ export default function ResultPage() {
             </div>
             <div className="flex flex-wrap gap-2 sm:gap-3 flex-1 sm:flex-none">
               <button 
-                onClick={() => confirm("Refresh students from server?").then(ok => ok && fetchStudents())} 
+                onClick={() =>students.length > 0 && fetchAllResults()} 
                 className="px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg text-sm sm:text-base flex-1 sm:flex-none min-w-[100px] hover:bg-gray-700"
               >
                 Refresh
-              </button>
-              <button 
-                onClick={fetchAllResults} 
-                className="px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg text-sm sm:text-base flex-1 sm:flex-none min-w-[130px] hover:bg-purple-700"
-              >
-                Fetch Results
               </button>
               <button 
                 onClick={deleteAllResults} 

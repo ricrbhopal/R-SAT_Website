@@ -1,11 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
 import { sendConfirmationEmail, sendAdmitCardEmail } from "../utils/emailService.js";
 import { verifyPresentToken } from "../utils/genAuthToken.js";
 import { sendOTPPhone } from "../utils/phoneService.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+
+const prisma = new PrismaClient();
 
 const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret_in_prod";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
@@ -799,9 +800,36 @@ export const markAttendance = async (req, res) => {
 // Results
 // ------------------------------------------------------------------
 
-export const createResult = async (req, res) => {
+export const createResult = async (req, res, next) => {
   try {
     const { student_ID, A, B, C, D } = req.body;
+
+    // Validation
+    if (!student_ID || A === undefined || B === undefined || C === undefined || D === undefined) {
+      return res.status(400).json({ message: "Missing required fields: student_ID, A, B, C, D" });
+    }
+
+    // Log for debugging
+    console.log("createResult called with:", { student_ID, A, B, C, D });
+    console.log("prisma object available:", !!prisma);
+    console.log("prisma.result available:", !!prisma?.result);
+    console.log("prisma keys:", Object.keys(prisma || {}));
+
+    // Check if prisma.result exists
+    if (!prisma?.result) {
+      console.error("ERROR: prisma.result is undefined. Prisma client may not be properly initialized.");
+      return res.status(500).json({ message: "Database error: Result model not available" });
+    }
+
+    // Look up the student by student_ID to get their UUID
+    const student = await prisma.student.findUnique({
+      where: { student_ID },
+    });
+
+    if (!student) {
+      return res.status(404).json({ message: `Student with ID ${student_ID} not found` });
+    }
+
     const total = Number(A) + Number(B) + Number(C) + Number(D);
     const percentage = (total / 400) * 100;
     let scholarShip = 0;
@@ -810,35 +838,87 @@ export const createResult = async (req, res) => {
     else if (percentage >= 75) scholarShip = 25;
     else if (percentage >= 60) scholarShip = 10;
 
+    // Create result with studentId (UUID), not student_ID
     const result = await prisma.result.create({
-      data: { student_ID, A, B, C, D, total, percentage, scholarShip },
+      data: {
+        studentId: student.id, // Use the UUID, not the string student_ID
+        A,
+        B,
+        C,
+        D,
+        total,
+        percentage,
+        scholarShip,
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            student_ID: true,
+            fullName: true,
+            mail_ID: true,
+          },
+        },
+      },
     });
 
     return res.status(201).json({ message: "Result created successfully", result });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Create result error:", err);
+    next(err);
   }
 };
 
-export const getAllResults = async (req, res) => {
+export const getAllResults = async (req, res, next) => {
   try {
     const results = await prisma.result.findMany({
-      include: { student: { select: { fullName: true, email: true } } },
+      include: { 
+        student: { 
+          select: { 
+            id: true,
+            student_ID: true,
+            fullName: true, 
+            mail_ID: true,
+            phoneNo: true,
+            college: true,
+            branch: true,
+            year: true 
+          } 
+        } 
+      },
     });
     return res.status(200).json(results);
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    console.error("getAllResults error:", err);
+    next(err);
   }
 };
 
-export const getResultByStudentId = async (req, res) => {
+export const getResultByStudentId = async (req, res, next) => {
   try {
     const { studentId } = req.params;
-    const result = await prisma.result.findFirst({ where: { student_ID: studentId }, include: { student: { select: { fullName: true, email: true } } } });
+    const result = await prisma.result.findFirst({ 
+      where: { studentId },
+      include: { 
+        student: { 
+          select: { 
+            id: true,
+            student_ID: true,
+            fullName: true, 
+            mail_ID: true,
+            phoneNo: true,
+            college: true,
+            branch: true,
+            year: true 
+          } 
+        } 
+      } 
+    });
     if (!result) return res.status(404).json({ message: "Result not found for this student" });
     return res.status(200).json(result);
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    console.error("getResultByStudentId error:", err);
+    next(err);
   }
 };
 
@@ -878,20 +958,29 @@ export const deleteResult = async (req, res) => {
   }
 };
 
-export const getAllResultsWithStudentDetails = async (req, res) => {
+export const getAllResultsWithStudentDetails = async (req, res, next) => {
   try {
     const results = await prisma.result.findMany({
-      include: { student: { select: { student_ID: true, fullName: true, email: true, phoneNo: true, collegeName: true, year: true } } },
+      include: { 
+        student: { 
+          select: { 
+            id: true,
+            student_ID: true, 
+            fullName: true, 
+            mail_ID: true, 
+            phoneNo: true, 
+            college: true,
+            branch: true,
+            year: true 
+          } 
+        } 
+      },
     });
 
-    const mappedResults = results.map((result) => {
-      const customId = result.student?.student_ID || result.studentId || result.student || null;
-      return { ...result, student_ID: customId };
-    });
-
-    return res.status(200).json(mappedResults);
+    return res.status(200).json(results);
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    console.error("getAllResultsWithStudentDetails error:", err);
+    next(err);
   }
 };
 
