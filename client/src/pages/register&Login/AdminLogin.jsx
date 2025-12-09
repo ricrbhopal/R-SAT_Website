@@ -70,7 +70,7 @@ export default function AdminLoginFinal({ onSuccess, autoRedirect = true }) {
   };
 
   return (
-    <div className="min-h-[380px] max-w-md mx-auto mt-12 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
+    <div className="min-h-[380px] max-w-md mx-auto mt-30 mb-30 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
       <div className="px-8 py-6">
         <h2 className="text-2xl font-semibold text-gray-800 mb-1">Admin Sign in</h2>
         <p className="text-sm text-gray-500 mb-6">Use phone & password to access admin panel.</p>
