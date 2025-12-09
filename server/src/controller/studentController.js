@@ -175,6 +175,10 @@ export const Login = async (req, res, next) => {
   try {
     const { student_ID, dob } = req.body;
 
+    if (!student_ID || !dob) {
+      return res.status(400).json({ message: "student_ID and dob are required" });
+    }
+
     const student = await prisma.student.findFirst({ where: { student_ID } });
 
     if (!student)
@@ -188,8 +192,9 @@ export const Login = async (req, res, next) => {
 
     const token = generateAuthToken(student, null, res);
 
-    res.json({ message: "Login successful", student, token });
+    return res.json({ message: "Login successful", student, token });
   } catch (err) {
+    console.error("Login error:", err);
     next(err);
   }
 };

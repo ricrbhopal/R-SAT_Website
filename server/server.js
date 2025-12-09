@@ -11,7 +11,24 @@ import Student from "./src/routers/StudentRouter.js";
 import AdmitCards from "./src/routers/admitRouter.js";
 
 const app = express();
-app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
+
+// CORS configuration - allow both local dev and production
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://rsat.ricr.in"
+];
+
+app.use(cors({ 
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true 
+}));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -33,6 +50,17 @@ app.get("/test-sql", async (req, res) => {
 app.use("/admin", Admin);
 app.use("/student", Student);
 app.use("/admit-cards", AdmitCards);
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Global error:", err);
+  const status = err.status || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ 
+    message, 
+    error: process.env.NODE_ENV === "development" ? err : {} 
+  });
+});
 
 const PORT = process.env.PORT || 4500;
 
