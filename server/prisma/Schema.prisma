@@ -95,7 +95,7 @@ model Demo {
 }
 
 
- // ---------- SupportQuery model ----------
+
 model SupportQuery {
   id            String   @id @default(uuid())
   studentId     String?
