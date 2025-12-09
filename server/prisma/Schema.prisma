@@ -9,6 +9,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+
+
+
+
 model Admin {
   id         String   @id @default(uuid())
   student_id String?
@@ -25,6 +30,9 @@ model Admin {
   @@map("adminAuth") // Map to the correct table name
 }
 
+
+
+
 model Otp {
   id        String   @id @default(uuid())
   otpfor    String
@@ -32,6 +40,10 @@ model Otp {
   type      String
   createdAt DateTime @default(now())
 }
+
+
+
+
 
 model Student {
   id         String   @id @default(uuid())
@@ -54,6 +66,10 @@ model Student {
   results          Result[]    // add results relation
 
 }
+
+
+
+
 
 model AdmitCard {
   id             String    @id @default(uuid())
@@ -81,6 +97,8 @@ model AdmitCard {
 
 
 
+
+
 model Demo {
   id          String   @id @default(uuid())
   studentName String?
@@ -93,6 +111,8 @@ model Demo {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+
 
 
 
@@ -113,6 +133,8 @@ model SupportQuery {
 
   @@map("SupportQuery")
 }
+
+
 
 
 
@@ -152,6 +174,9 @@ model Referred {
 }
 
 
+
+
+
 model DemoSlot {
   id           String   @id @default(uuid())
   slotTime     String   @unique // e.g., "2025-12-10 10:00 AM"
@@ -163,6 +188,9 @@ model DemoSlot {
 
   @@map("DemoSlot")
 }
+
+
+
 
 
 model Result {
