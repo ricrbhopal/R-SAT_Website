@@ -8,14 +8,6 @@ import {
   Calendar,
   TrendingUp
 } from "lucide-react";
-import { Doughnut } from "react-chartjs-2";
-import {
-  Chart,
-  ArcElement,
-  Tooltip,
-  Legend
-} from "chart.js";
-Chart.register(ArcElement, Tooltip, Legend);
 
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -247,66 +239,6 @@ export default function CallerReffered() {
     }
   };
 
-  /* Doughnut Chart Configuration - corrected */
-  const chartData = {
-    labels: ['This Month', 'Other Months'],
-    datasets: [
-      {
-        data: [monthRegistrations, rest],
-        backgroundColor: [
-          'rgba(56, 189, 248, 0.8)',
-          'rgba(30, 41, 59, 0.4)'
-        ],
-        borderColor: [
-          'rgba(56, 189, 248, 1)',
-          'rgba(30, 41, 59, 0.6)'
-        ],
-        borderWidth: 1,
-        borderRadius: 8,
-        spacing: 5,
-        cutout: '70%'
-      }
-    ]
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          color: '#94a3b8',
-          padding: 20,
-          font: {
-            size: 12
-          }
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        titleColor: '#e2e8f0',
-        bodyColor: '#cbd5e1',
-        borderColor: '#334155',
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 8
-      }
-    }
-  };
-
-  const fadeIn = { 
-    hidden: { opacity: 0, y: 20 }, 
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
-        duration: 0.5,
-        ease: "easeOut"
-      } 
-    } 
-  };
-
   const userInitials = userInfo.fullName
     ? userInfo.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : "CC";
@@ -441,25 +373,25 @@ export default function CallerReffered() {
               </div>
             </div>
 
-            {/* Right Column - Doughnut Chart */}
+            {/* Right Column - Simple Stats Display */}
             <div className="bg-gray-900/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-1">Registration Distribution</h3>
-                <p className="text-sm text-gray-400">This month vs all time</p>
+                <h3 className="text-lg font-semibold text-white mb-1">Registration Stats</h3>
+                <p className="text-sm text-gray-400">Monthly breakdown</p>
               </div>
-              <div className="h-64 relative">
-                <Doughnut data={chartData} options={chartOptions} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white mb-1">
-                      {monthRegistrations}
-                    </div>
-                    <div className="text-xs text-gray-400">This Month</div>
-                  </div>
+              <div className="space-y-4">
+                <div className="bg-gray-950/50 rounded-lg p-4">
+                  <div className="text-sm text-gray-400 mb-1">This Month</div>
+                  <div className="text-3xl font-bold text-cyan-400">{monthRegistrations}</div>
                 </div>
-              </div>
-              <div className="mt-4 text-center text-sm text-gray-400">
-                Total: {basisTotal} registrations
+                <div className="bg-gray-950/50 rounded-lg p-4">
+                  <div className="text-sm text-gray-400 mb-1">Other Months</div>
+                  <div className="text-3xl font-bold text-gray-400">{totalRegistered - monthRegistrations}</div>
+                </div>
+                <div className="pt-4 border-t border-gray-800">
+                  <div className="text-sm text-gray-400 mb-1">Total Registrations</div>
+                  <div className="text-2xl font-bold text-white">{basisTotal}</div>
+                </div>
               </div>
             </div>
           </div>
