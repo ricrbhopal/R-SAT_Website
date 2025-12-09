@@ -82,10 +82,6 @@ export const SupportAPI = {
     api.put(`/support/add-response/${queryId}`, { responder, message }),
 };
 
-// Referral API
-export const ReferralAPI = {
-
-};
 
 
 export const AdminAPI = {
@@ -125,7 +121,8 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
 
 
   // Support Query Router
-  GetAllSupportQueries: () => api.get("/admin/support/all-queries"),
+  GetAllSupportQueries: (filter) => 
+    filter !== "all" ? api.get("/admin/support/all-queries", { params: { status: filter } }) : api.get("/admin/support/all-queries"),
   GetStudentSupportQueries: () => api.get("/admin/support/student-queries"),
   UpdateSupportQueryStatus: (queryId, status) =>
     api.put(`/admin/support/update-status/${queryId}`, { status }),
@@ -160,7 +157,8 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
 
 };
 
-
+export const ReferralAPI = {
+}
 
 export const AdmitCardAPI = {
 

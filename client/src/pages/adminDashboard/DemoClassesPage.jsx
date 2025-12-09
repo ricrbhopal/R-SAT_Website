@@ -280,7 +280,7 @@ const DemoClassesPage = () => {
             demoClass={selectedClass}
             onSave={(updatedClass) => {
               setDemoClasses((prev) =>
-                prev.map((cls) => (cls._id === updatedClass._id ? updatedClass : cls))
+                prev.map((cls) => (cls.id === updatedClass.id ? updatedClass : cls))
               );
               closeEditModal();
             }}
@@ -291,9 +291,9 @@ const DemoClassesPage = () => {
         {/* Delete Modal */}
         {isDeleteModalOpen && selectedClass && (
           <DeleteDemoClassModal
-            demoClassId={selectedClass._id}
+            demoClassId={selectedClass.id || selectedClass._id}
             onDelete={(deletedId) => {
-              setDemoClasses((prev) => prev.filter((cls) => cls._id !== deletedId));
+              setDemoClasses((prev) => prev.filter((cls) => (cls.id || cls._id) !== deletedId));
               closeDeleteModal();
             }}
             onClose={closeDeleteModal}

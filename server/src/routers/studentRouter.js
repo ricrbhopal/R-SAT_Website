@@ -26,13 +26,10 @@ import { uploadSingleImage } from "../utils/multer.js";
 
 const router = express.Router();
 
-// Public routes
-// POST /api/students/send-otp
+
 router.post('/send-otp', SendOTP);
 
-// POST /api/students/register
-// Route dispatch: if `userId` query param is present, treat this as a referral registration
-// and forward to `registerWithReferral`. Otherwise, handle as a normal `Register`.
+
 router.post('/register', (req, res, next) => {
   try {
     if (req.query && (req.query.userId || req.query.ref || req.query.code)) {

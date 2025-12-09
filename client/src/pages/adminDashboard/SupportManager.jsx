@@ -19,22 +19,27 @@ const SupportManager = () => {
   const fetchQueries = async () => {
     try {
       setLoading(true);
-      const response = await AdminAPI.GetAllSupportQueries({
-        params: filter !== "all" ? { status: filter } : {},
-      });
-      setQueries(
-        response.data.map((query) => ({
-          id: query._id,
-          studentId: query.studentId || {},
-          subject: query.subject,
-          description: query.description,
-          status: query.status,
-          imageUrl: query.imageUrl,
-          responses: query.responses || [],
-          createdAt: new Date(query.createdAt).toLocaleString(),
-          updatedAt: new Date(query.updatedAt).toLocaleString(),
-        }))
-      );
+      const response = await AdminAPI.GetAllSupportQueries(filter);
+      const mappedQueries = response.data.map((query) => ({
+        id: query._id || query.id,
+        studentId: query.student || query.studentId || {},
+        subject: query.subject,
+        description: query.description,
+        status: query.status,
+        imageUrl: query.imageUrl,
+        responses: (() => {
+          try {
+            return typeof query.responses === 'string' ? JSON.parse(query.responses) : (query.responses || []);
+          } catch (e) {
+            console.warn("Failed to parse responses JSON:", e);
+            return [];
+          }
+        })(),
+        createdAt: new Date(query.createdAt).toLocaleString(),
+        updatedAt: new Date(query.updatedAt).toLocaleString(),
+      }));
+      console.log("[SupportManager] Fetched queries:", mappedQueries);
+      setQueries(mappedQueries);
     } catch (error) {
       console.error("Error fetching queries:", error);
       toast.error("Failed to fetch support queries.");
@@ -44,6 +49,11 @@ const SupportManager = () => {
   };
 
   const updateQueryStatus = async (queryId, status) => {
+    if (!queryId) {
+      toast.error("Error: Query ID not found");
+      console.error("queryId is undefined or null");
+      return;
+    }
     try {
       const response = await AdminAPI.UpdateSupportQueryStatus(queryId, status);
       toast.success(response.data.message);
@@ -78,6 +88,11 @@ const SupportManager = () => {
 
   const [deleteModalQuery, setDeleteModalQuery] = useState(null);
   const deleteQuery = async (queryId) => {
+    if (!queryId) {
+      toast.error("Error: Query ID not found");
+      console.error("queryId is undefined or null");
+      return;
+    }
     try {
       const response = await AdminAPI.DeleteSupportQuery(queryId);
       toast.success(response.data.message);
@@ -267,15 +282,15 @@ const SupportManager = () => {
                         <div className="flex items-center">
                           <div className="shrink-0 h-10 w-10 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                             <span className="text-white font-semibold text-sm">
-                              {query.studentId.fullName?.charAt(0)?.toUpperCase() || 'S'}
+                              {query.studentId?.fullName?.charAt(0)?.toUpperCase() || 'S'}
                             </span>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {query.studentId.fullName || 'Unknown Student'}
+                              {query.studentId?.fullName || 'Unknown Student'}
                             </div>
                             <div className="text-sm text-gray-500 line-clamp-1">
-                              {query.subject}
+                              {query.studentId?.mail_ID || query.subject}
                             </div>
                           </div>
                         </div>

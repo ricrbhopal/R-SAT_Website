@@ -7,7 +7,8 @@ dotenv.config();
 
 import connectDB from "./src/config/db.js"; // this is your MSSQL connector
 import Admin from "./src/routers/adminRouter.js"; // keep your routers
-import Student from "./src/routers/studentRouter.js";
+import Student from "./src/routers/StudentRouter.js";
+import AdmitCards from "./src/routers/admitRouter.js";
 
 const app = express();
 app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
@@ -31,6 +32,7 @@ app.get("/test-sql", async (req, res) => {
 // Routes
 app.use("/admin", Admin);
 app.use("/student", Student);
+app.use("/admit-cards", AdmitCards);
 
 const PORT = process.env.PORT || 4500;
 

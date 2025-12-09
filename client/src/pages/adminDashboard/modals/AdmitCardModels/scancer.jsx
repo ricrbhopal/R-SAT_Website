@@ -179,8 +179,14 @@ export default function UniversalScanner({
         }
       } catch (err) {
         console.error("[UniversalScanner] getCameras error:", err);
-        setStatus("error");
-        setErrorMsg("Unable to enumerate cameras. Check permissions or HTTPS.");
+        if (err?.name === "NotFoundError") {
+          setStatus("no-camera");
+          setDevices([]);
+          setErrorMsg("No camera found. If you have one, check permissions or reconnect.");
+        } else {
+          setStatus("error");
+          setErrorMsg("Unable to enumerate cameras. Check permissions or HTTPS.");
+        }
       }
     })();
 

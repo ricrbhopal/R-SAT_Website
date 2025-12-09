@@ -92,7 +92,8 @@ export default function AdmitCardManagePage() {
       // this mirrors your original handling (res.data.data)
       if (res && res.data && Array.isArray(res.data.data)) {
         const formatted = res.data.data.map((card) => ({
-          _id: card._id,
+          _id: card.id || card._id,
+          id: card.id || card._id,
           studentId: card.studentId,
           ApplicantName: card.ApplicantName,
           contact: card.contact,
@@ -397,7 +398,7 @@ export default function AdmitCardManagePage() {
 
       {/* Modals */}
       <EditModal isOpen={isEditModalOpen} onClose={handleModalClose} admitCard={selectedAdmitCard} onUpdate={refreshAdmitCards} />
-      <DeleteModal isOpen={isDeleteModalOpen} onClose={handleModalClose} admitCardId={selectedAdmitCard?._id} onDelete={refreshAdmitCards} />
+      <DeleteModal isOpen={isDeleteModalOpen} onClose={handleModalClose} admitCardId={selectedAdmitCard?.id || selectedAdmitCard?._id} onDelete={refreshAdmitCards} />
       <BulkEditModal isOpen={isBulkEditModalOpen} onClose={handleBulkEditClose} onUpdate={refreshAdmitCards} />
 
       {/* Details modal */}

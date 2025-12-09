@@ -43,14 +43,18 @@ export default function DemoSlotBooking() {
         }
 
         if (slotsRes.status === "fulfilled") {
-          // Expecting array of strings or objects depending on backend.
-          // Normalize to array of { value, label }.
+          // Expecting array of objects with { id, slotTime, capacity, booked }
           const raw = slotsRes.value?.data || [];
-          const normalized = raw.map((s) =>
-            typeof s === "string"
-              ? { value: s, label: s }
-              : { value: s.value ?? s.slot ?? s.id ?? JSON.stringify(s), label: s.label ?? s.slot ?? s.value ?? JSON.stringify(s) }
-          );
+          const normalized = raw.map((s) => {
+            // Handle both string and object formats
+            if (typeof s === "string") {
+              return { value: s, label: s };
+            }
+            // For demo slot objects: use slotTime as display
+            const value = s.id || s.value || s.slotTime || JSON.stringify(s);
+            const label = s.slotTime || s.slot || s.value || s.label || JSON.stringify(s);
+            return { value, label };
+          });
           setSlots(normalized);
         }
       } catch (err) {

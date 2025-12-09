@@ -201,6 +201,9 @@ export const getRefferedUsers = async (req, res, next) => {
       take: limit,
     });
 
+    // Log the response for debugging
+    console.log("Fetched referred users:", referredUsers);
+
     // Optionally return total count for pagination
     const total = await prisma.referred.count();
 
@@ -230,9 +233,9 @@ export const putRefferedUserDetails = async (req, res, next) => {
       where: { id: referredId },
       data: mappedData,
       include: {
-        referrerUser: { select: { student_ID: true, fullName: true, mail_ID: true, phoneNo: true } },
-        referrerCaller: { select: { username: true, role: true, phone: true } },
-        referredStudent: { select: { student_ID: true, fullName: true, mail_ID: true } },
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        caller: { select: { username: true, role: true, phone: true } },
+        referredStudent: { select: { id: true, fullName: true, mail_ID: true } },
       },
     });
 
@@ -292,7 +295,7 @@ export const getRefferedUserById = async (req, res, next) => {
 
 export const getAllDemoClasses = async (req, res, next) => {
   try {
-    const demoClasses = await prisma.demoClass.findMany();
+    const demoClasses = await prisma.demo.findMany();
     return res.status(200).json(demoClasses);
   } catch (err) {
     next(err);
@@ -302,7 +305,7 @@ export const getAllDemoClasses = async (req, res, next) => {
 export const getDemoClassById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const demoClass = await prisma.demoClass.findUnique({ where: { id } });
+    const demoClass = await prisma.demo.findUnique({ where: { id } });
     if (!demoClass) return res.status(404).json({ message: "Demo class not found" });
     return res.status(200).json(demoClass);
   } catch (err) {
@@ -315,7 +318,7 @@ export const deleteDemoClass = async (req, res) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ message: "ID is required" });
 
-    await prisma.demoClass.delete({ where: { id } });
+    await prisma.demo.delete({ where: { id } });
     return res.status(200).json({ message: "Demo class deleted successfully" });
   } catch (err) {
     if (err.code === "P2025") {
@@ -331,7 +334,7 @@ export const putDemoClassDetails = async (req, res, next) => {
     const demoClassId = req.params.id;
     const updateData = req.body;
 
-    const updatedDemoClass = await prisma.demoClass.update({
+    const updatedDemoClass = await prisma.demo.update({
       where: { id: demoClassId },
       data: updateData,
     });
@@ -442,22 +445,34 @@ export const AddSupportQueryResponse = async (req, res, next) => {
       return res.status(400).json({ message: "Responder name required (authenticate or send responder in body)" });
     }
 
-    // push responses array: Prisma requires JSON field or separate table. Assuming 'responses' is a JSON array field.
-    // We'll read current, push, and update.
+    // Get current query and parse responses JSON string
     const current = await prisma.supportQuery.findUnique({ where: { id: queryId }, select: { responses: true } });
     if (!current) return res.status(404).json({ message: "Support query not found" });
 
-    const newResponses = Array.isArray(current.responses) ? [...current.responses] : [];
+    // Parse responses from JSON string
+    let newResponses = [];
+    if (current.responses) {
+      try {
+        newResponses = JSON.parse(current.responses);
+      } catch (e) {
+        console.warn("Failed to parse responses JSON:", e);
+        newResponses = [];
+      }
+    }
+    
+    // Add new response
     newResponses.push({ responder: responderName, message, date: new Date().toISOString() });
 
+    // Update with stringified responses
     const updated = await prisma.supportQuery.update({
       where: { id: queryId },
-      data: { responses: newResponses, status: "in_progress" },
+      data: { responses: JSON.stringify(newResponses), status: "in_progress" },
       include: { student: { select: { fullName: true, mail_ID: true, phoneNo: true } } },
     });
 
     return res.status(200).json({ message: "Response added to support query", query: updated });
   } catch (err) {
+    console.error("[AddSupportQueryResponse] Error:", err);
     next(err);
   }
 };
@@ -486,8 +501,8 @@ export const bulkCreateAdmitCards = async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
-    // Fetch all students (assuming prisma.user has student records)
-    const students = await prisma.user.findMany();
+    // Fetch all students
+    const students = await prisma.student.findMany();
     if (!students || students.length === 0) {
       return res.status(400).json({ message: "No students found to create admit cards." });
     }
@@ -522,7 +537,7 @@ export const bulkCreateAdmitCards = async (req, res) => {
     // Send emails
     const results = await Promise.all(
       createdAdmitCards.map(async (admitCard) => {
-        const student = studentMap.get(String(admitCard.studentId)) || (await prisma.user.findUnique({ where: { id: admitCard.studentId } }));
+        const student = studentMap.get(String(admitCard.studentId)) || (await prisma.student.findUnique({ where: { id: admitCard.studentId } }));
 
         const emailCandidates = [student?.mail_ID, student?.mailId, student?.email, student?.mail, student?.contactEmail].filter(Boolean);
         const resolvedEmail = Array.isArray(emailCandidates[0]) ? emailCandidates[0][0] : emailCandidates[0];
@@ -597,7 +612,7 @@ export const getAllAdmitCards = async (req, res, next) => {
         orderBy: [{ examDate: "asc" }, { createdAt: "desc" }],
         skip,
         take: Number(limit),
-        include: { student: { select: { fullName: true, email: true } } },
+        include: { student: { select: { fullName: true, mail_ID: true } } },
       }),
     ]);
 
@@ -610,7 +625,7 @@ export const getAllAdmitCards = async (req, res, next) => {
 export const getAdmitCardById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const admitCard = await prisma.admitCard.findUnique({ where: { id }, include: { student: { select: { fullName: true, email: true } } } });
+    const admitCard = await prisma.admitCard.findUnique({ where: { id }, include: { student: { select: { fullName: true, mail_ID: true } } } });
     if (!admitCard) return res.status(404).json({ message: "Admit card not found" });
     res.status(200).json(admitCard);
   } catch (err) {
@@ -662,15 +677,15 @@ export const updateAdmitCardStatus = async (req, res, next) => {
       updates.issuedBy = null;
     }
 
-    const admitCard = await prisma.admitCard.update({ where: { id }, data: updates, include: { student: { select: { fullName: true, email: true } } } });
+    const admitCard = await prisma.admitCard.update({ where: { id }, data: updates, include: { student: { select: { fullName: true, mail_ID: true } } } });
 
     if (!admitCard) return res.status(404).json({ message: "Admit card not found" });
 
-    if (status === "issued" && admitCard.student && admitCard.student.email) {
+    if (status === "issued" && admitCard.student && admitCard.student.mail_ID) {
       try {
         const admits = [{ _id: admitCard.id, admitToken: admitCard.admitToken, examDate: admitCard.examDate, venue: admitCard.venue, examTime: admitCard.examTime, ReportingTime: admitCard.ReportingTime }];
 
-        await sendAdmitCardEmail({ name: admitCard.student.fullName, email: admitCard.student.email }, admits, { subject: "Your Admit Card is Issued" });
+        await sendAdmitCardEmail({ name: admitCard.student.fullName, email: admitCard.student.mail_ID }, admits, { subject: "Your Admit Card is Issued" });
 
         await prisma.admitCard.update({ where: { id }, data: { emailSent: true, emailSentAt: new Date(), emailError: null } });
       } catch (emailErr) {
@@ -729,7 +744,7 @@ export const getPublicAdmitCard = async (req, res, next) => {
       id: admit.id,
       RSAT: admit.RSAT,
       ApplicantName: admit.ApplicantName || admit.student?.fullName,
-      contact: admit.contact || admit.student?.phoneNo || admit.student?.email,
+      contact: admit.contact || admit.student?.phoneNo || admit.student?.mail_ID,
       college: admit.college || admit.student?.college,
       branch: admit.branch || admit.student?.branch,
       year: admit.year || admit.student?.year,

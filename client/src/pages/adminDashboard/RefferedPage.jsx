@@ -12,7 +12,7 @@ const PageSizeOptions = [10, 25, 50, 100];
 function normalizeRow(row) {
   const r = { ...(row || {}) };
 
-  // prefer an existing object referrer, otherwise synthesize from legacy fields
+  // Prefer an existing object referrer, otherwise synthesize from legacy fields
   let ref = r.referrerId ?? r.referrer ?? null;
 
   if (!ref || typeof ref === "string") {
@@ -39,19 +39,35 @@ function normalizeRow(row) {
     };
   }
 
+  // If backend provided `student` relation (your referrer), copy into ref fields
+  if (r.student && typeof r.student === "object") {
+    ref._id = ref._id ?? r.student.id ?? r.student._id ?? ref._id;
+    ref.fullName = ref.fullName ?? r.student.fullName ?? r.student.name ?? ref.fullName;
+    ref.student_ID = ref.student_ID ?? r.student.student_ID ?? ref.student_ID;
+    ref.mail_ID = ref.mail_ID ?? r.student.mail_ID ?? r.student.email ?? ref.mail_ID;
+    ref.phoneNo = ref.phoneNo ?? r.student.phoneNo ?? ref.phoneNo;
+  }
+
   r.referrerId = ref;
 
   // normalize common fields / legacy names
-  r.referredName = r.referredName ?? r.fullName ?? r.name ?? "";
-  r.referredEmail = r.referredEmail ?? r.mail_ID ?? r.email ?? "";
-  r.referredPhone = r.referredPhone ?? r.phoneNo ?? r.phone ?? "";
-  r.collegeName = r.collegeName ?? r.college ?? "";
-  r.year = r.year ?? r.academicYear ?? "";
-  r.refCode = r.refCode ?? r.referralCode ?? "";
-  r.referredDate = r.referredDate ?? r.createdAt ?? null;
+  r.referredName = r.referredName ?? r.fullName ?? r.name ?? r.referredStudent?.fullName ?? "";
+  r.referredEmail = r.referredEmail ?? r.mail_ID ?? r.email ?? r.referredStudent?.mail_ID ?? "";
+  r.referredPhone = r.referredPhone ?? r.phoneNo ?? r.phone ?? r.referredStudent?.phoneNo ?? "";
+  r.collegeName = r.collegeName ?? r.college ?? r.referredStudent?.college ?? "";
+  r.year = r.year ?? r.academicYear ?? r.referredStudent?.year ?? "";
+  r.refCode = r.refCode ?? r.referralCode ?? r.referral ?? "";
+  r.referredDate = r.referredDate ?? r.createdAt ?? r.referredStudent?.createdAt ?? null;
+
+  // keep original relations handy for edit / modal
+  r._studentObj = r.student ?? null; // the referrer student object
+  r._referredStudentObj = r.referredStudent ?? null; // the referred student's student record
 
   // ensure stable id for lists / keys
-  r._id = r._id ?? r.id ?? r._id ?? r.referrerId?._id ?? null;
+  r._id = r._id ?? r.id ?? r.refCode ?? r.referredStudentId ?? r._referredStudentObj?.id ?? null;
+
+  // friendly fallback name
+  r._referrerName = r.referrerId?.fullName ?? r._studentObj?.fullName ?? r.referrerStudentID ?? "—";
 
   return r;
 }
@@ -95,66 +111,30 @@ export default function ReferredPage() {
       setError("");
       const params = { page, limit: pageSize, q: query, status: statusFilter };
 
-      // AdminAPI.getRefferedUsers should accept the params object (implementation in api wrapper)
+      // Fetch referred users from the backend
       const response = await AdminAPI.getRefferedUsers(params);
 
-      // Parse many possible response shapes:
-      // - array (response.data = [...])
-      // - object { data: [...], total }
-      // - object { referredUsers: [...], total }
-      // - response.data could itself be the array
-      let arr = [];
-      let totalCount = 0;
-
-      if (!response) {
-        throw new Error("No response from server");
+      if (!response || !response.data) {
+        throw new Error("No data received from server");
       }
 
-      // axios responses usually have .data
-      const payload = response.data ?? response;
-
-      if (Array.isArray(payload)) {
-        arr = payload;
-        totalCount = payload.length;
-      } else if (payload && Array.isArray(payload.data)) {
-        arr = payload.data;
-        totalCount = payload.total ?? payload.count ?? payload.data.length;
-      } else if (payload && Array.isArray(payload.referredUsers)) {
-        arr = payload.referredUsers;
-        totalCount = payload.total ?? payload.count ?? payload.referredUsers.length;
-      } else if (payload && Array.isArray(payload.items)) {
-        // another common naming
-        arr = payload.items;
-        totalCount = payload.total ?? payload.count ?? payload.items.length;
-      } else {
-        // fallback: try to coerce anything in payload to array
-        if (payload && typeof payload === "object") {
-          // maybe the API returned { referredUsers: { rows: [...] } } - try deeper
-          const maybeArray =
-            payload.referredUsers?.data ??
-            payload.data?.rows ??
-            payload.rows ??
-            null;
-          if (Array.isArray(maybeArray)) {
-            arr = maybeArray;
-            totalCount = payload.total ?? maybeArray.length;
-          } else {
-            // last resort: if the server returned a single object, wrap it
-            if (Object.keys(payload).length === 0) {
-              arr = [];
-              totalCount = 0;
-            } else {
-              arr = Array.isArray(payload) ? payload : [payload];
-              totalCount = arr.length;
-            }
-          }
-        }
-      }
+      const { data, total } = response.data;
 
       // Normalize rows and ensure stable _id
-      const normalized = arr.map((r) => {
+      const normalized = data.map((r) => {
         const nr = normalizeRow(r);
-        // if still missing _id, try to synthesize from refCode or index
+
+        // Map referrer details from backend response
+        nr.referrerName = r.student?.fullName || "-";
+        nr.referrerEmail = r.student?.mail_ID || "-";
+        nr.referrerPhone = r.student?.phoneNo || "-";
+        nr.referrerStudentID = r.student?.student_ID || "-";
+
+        // Map referred student details
+        nr.referredStudentName = r.referredStudent?.fullName || "-";
+        nr.referredStudentEmail = r.referredStudent?.mail_ID || "-";
+        nr.referredStudentID = r.referredStudent?.student_ID || "-";
+
         nr._id = nr._id ?? nr.refCode ?? nr.referrerId?._id ?? nr.id ?? null;
         return nr;
       });
@@ -162,7 +142,7 @@ export default function ReferredPage() {
       if (!mountedRef.current) return;
 
       setReferredUsers(normalized);
-      setTotal(Number(totalCount ?? normalized.length));
+      setTotal(Number(total ?? normalized.length));
     } catch (err) {
       console.error("Failed to fetch referred users", err);
       setError(
@@ -212,7 +192,7 @@ export default function ReferredPage() {
     if (!referredUsers.length) return alert("No data to export");
     const sheetData = referredUsers.map((r) => ({
       "Referrer Student ID": r.referrerId?.student_ID ?? r.referrerStudentID ?? "-",
-      "Referrer Name": r.referrerId?.fullName ?? r.fullName ?? "-",
+      "Referrer Name": r.referrerId?.fullName ?? r._referrerName ?? "-",
       "Referrer Email": r.referrerId?.mail_ID ?? "-",
       "Referrer Phone": r.referrerId?.phoneNo ?? "-",
       "Referred Name": r.referredName ?? "-",
@@ -263,6 +243,7 @@ export default function ReferredPage() {
         ref.student_ID,
         ref.mail_ID,
         ref.phoneNo,
+        r._referrerName,
         r.referredName,
         r.referredEmail,
         r.referredPhone,
@@ -376,6 +357,7 @@ export default function ReferredPage() {
                 filteredUsers.map((r, idx) => {
                   const referrer = r.referrerId ?? {};
                   const idxNumber = (page - 1) * pageSize + idx + 1;
+                  const refName = referrer.fullName ?? r._referrerName ?? "-";
                   return (
                     <tr key={r._id ?? idx} className="hover:bg-blue-50/30 transition-colors duration-200 group">
                       <td className="px-8 py-6 text-center">
@@ -385,7 +367,8 @@ export default function ReferredPage() {
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-center gap-4">
                           <div className="text-center">
-                            <p className="font-semibold text-gray-900 text-lg">{referrer.fullName ?? r.fullName ?? "-"}</p>
+                            <p className="font-semibold text-gray-900 text-lg">{refName}</p>
+                            <p className="text-sm text-gray-500">{referrer.student_ID ?? r.referrerStudentID ?? ""}</p>
                           </div>
                         </div>
                       </td>
@@ -394,6 +377,7 @@ export default function ReferredPage() {
                         <div className="flex items-center justify-center gap-4">
                           <div className="text-center">
                             <p className="font-semibold text-gray-900 text-lg">{r.referredName ?? "-"}</p>
+                            <p className="text-sm text-gray-500">{r.referredEmail ?? r.referredPhone ?? ""}</p>
                           </div>
                         </div>
                       </td>
@@ -455,17 +439,17 @@ export default function ReferredPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Referrer Information</h3>
-                  <DetailItem label="Full Name" value={selectedUser.referrerId?.fullName ?? selectedUser.fullName ?? "-"} />
-                  <DetailItem label="Student ID" value={selectedUser.referrerId?.student_ID ?? selectedUser.referrerStudentID ?? "-"} />
-                  <DetailItem label="Email" value={selectedUser.referrerId?.mail_ID ?? "-"} />
-                  <DetailItem label="Phone" value={selectedUser.referrerId?.phoneNo ?? "-"} />
+                  <DetailItem label="Full Name" value={selectedUser.referrerId?.fullName ?? selectedUser._referrerName ?? selectedUser._studentObj?.fullName ?? "-"} />
+                  <DetailItem label="Student ID" value={selectedUser.referrerId?.student_ID ?? selectedUser.referrerStudentID ?? selectedUser._studentObj?.student_ID ?? "-"} />
+                  <DetailItem label="Email" value={selectedUser.referrerId?.mail_ID ?? selectedUser._studentObj?.mail_ID ?? "-"} />
+                  <DetailItem label="Phone" value={selectedUser.referrerId?.phoneNo ?? selectedUser._studentObj?.phoneNo ?? "-"} />
                 </div>
 
                 <div className="space-y-6">
                   <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4">Referred Information</h3>
-                  <DetailItem label="Full Name" value={selectedUser.referredName ?? "-"} />
-                  <DetailItem label="Email" value={selectedUser.referredEmail ?? "-"} />
-                  <DetailItem label="Phone" value={selectedUser.referredPhone ?? "-"} />
+                  <DetailItem label="Full Name" value={selectedUser.referredName ?? selectedUser._referredStudentObj?.fullName ?? "-"} />
+                  <DetailItem label="Email" value={selectedUser.referredEmail ?? selectedUser._referredStudentObj?.mail_ID ?? "-"} />
+                  <DetailItem label="Phone" value={selectedUser.referredPhone ?? selectedUser._referredStudentObj?.phoneNo ?? "-"} />
                   <DetailItem label="College" value={selectedUser.collegeName ?? "-"} />
                   <DetailItem label="Academic Year" value={selectedUser.year ?? "-"} />
                 </div>
@@ -487,7 +471,14 @@ export default function ReferredPage() {
         </div>
       )}
 
-      {showEditModal && selectedUser && <EditModalPage studentId={selectedUser._id} onClose={handleCloseEditModal} />}
+      {showEditModal && selectedUser && (
+        // pass referredStudentId (to edit referred student's profile) — fallback to referred record id
+        <EditModalPage
+          studentId={selectedUser.referredStudentId ?? selectedUser.studentId ?? selectedUser._id}
+          initialData={selectedUser}
+          onClose={handleCloseEditModal}
+        />
+      )}
 
       {showDeleteModal && selectedUser && <DeleteModalPage initialData={selectedUser} studentId={selectedUser._id} onClose={handleCloseDeleteModal} />}
     </div>

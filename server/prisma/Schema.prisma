@@ -55,13 +55,25 @@ referrals        Referred[]  // studentId से आने वाले referral
 }
 
 model AdmitCard {
-  id         String    @id @default(uuid())
-  studentId  String    @unique
-  RSAT       String
-  status     String    @default("Inactive")
-  issuedDate DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  studentId      String    @unique
+  ApplicantName  String?
+  RSAT           String
+  status         String    @default("Inactive")
+  issuedDate     DateTime?
+  venue          String?
+  examDate       DateTime?
+  examTime       String?
+  ReportingTime  String?
+  college        String?
+  branch         String?
+  year           String?
+  contact        String?
+  emailSent      Boolean?  @default(false)
+  emailSentAt    DateTime?
+  emailError     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   student Student @relation(fields: [studentId], references: [id])
 }
@@ -139,3 +151,16 @@ model Referred {
 
   @@map("Referred")
 }
+
+model DemoSlot {
+  id           String   @id @default(uuid())
+  slotTime     String   @unique // e.g., "2025-12-10 10:00 AM"
+  capacity     Int      @default(10) // maximum students for this slot
+  booked       Int      @default(0) // current bookings
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("DemoSlot")
+}
+

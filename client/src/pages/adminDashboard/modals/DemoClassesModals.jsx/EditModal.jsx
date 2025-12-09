@@ -19,7 +19,7 @@ const EditDemoClassModal = ({ demoClass, onSave, onClose }) => {
   useEffect(() => {
     const fetchDemoClassDetails = async () => {
       try {
-        const response = await AdminAPI.getDemoClassDetails(demoClass._id);
+        const response = await AdminAPI.getDemoClassById(demoClass.id || demoClass._id);
         const fetchedData = response.data;
 
         setFormData((prevFormData) => ({
@@ -38,7 +38,7 @@ const EditDemoClassModal = ({ demoClass, onSave, onClose }) => {
       }
     };
 
-    if (demoClass?._id) {
+    if (demoClass?.id || demoClass?._id) {
       fetchDemoClassDetails();
     }
   }, [demoClass]);
@@ -90,7 +90,7 @@ const EditDemoClassModal = ({ demoClass, onSave, onClose }) => {
 
     setLoading(true);
     try {
-      const response = await AdminAPI.putDemoClassDetails(demoClass._id, formData);
+      const response = await AdminAPI.putDemoClassDetails(demoClass.id || demoClass._id, formData);
       toast.success("Demo class updated successfully!");
       onSave(response.data);
     } catch (error) {

@@ -6,7 +6,7 @@ export default function EditModal({ isOpen, onClose, admitCard, onUpdate }) {
     venue: "",
     examDate: "",
     examTime: "",
-    reportingTime: "",
+    ReportingTime: "",
   });
 
   const [isBulkEdit, setIsBulkEdit] = useState(false); // State to toggle bulk edit mode
@@ -17,7 +17,7 @@ export default function EditModal({ isOpen, onClose, admitCard, onUpdate }) {
         venue: admitCard.venue || "",
         examDate: admitCard.examDate ? new Date(admitCard.examDate).toISOString().split("T")[0] : "",
         examTime: admitCard.examTime || "",
-        reportingTime: admitCard.ReportingTime || "", // Fixed key to match case
+        ReportingTime: admitCard.ReportingTime || "",
       });
     }
   }, [admitCard]);
@@ -51,16 +51,17 @@ export default function EditModal({ isOpen, onClose, admitCard, onUpdate }) {
         setLoading(false);
       }
     } else {
-      if (!admitCard?._id) {
+      if (!admitCard?.id && !admitCard?._id) {
         setError("Invalid admit card ID.");
         setLoading(false);
         return;
       }
 
       try {
-        const response = await AdminAPI.updateAdmitCard(admitCard._id, formData);
+        const cardId = admitCard.id || admitCard._id;
+        const response = await AdminAPI.updateAdmitCard(cardId, formData);
         if (response.status === 200) {
-          onUpdate(admitCard._id, formData); // Pass updated data to parent
+          onUpdate(cardId, formData); // Pass updated data to parent
           onClose(); // Close the modal
         } else {
           setError("Failed to update admit card. Please try again.");
@@ -124,8 +125,8 @@ export default function EditModal({ isOpen, onClose, admitCard, onUpdate }) {
             <label className="block text-sm font-medium text-gray-700 mb-2">Reporting Time</label>
             <input
               type="time"
-              name="reportingTime"
-              value={formData.reportingTime}
+              name="ReportingTime"
+              value={formData.ReportingTime}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required

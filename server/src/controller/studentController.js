@@ -345,7 +345,11 @@ export const GetMyDemoBooking = async (req, res, next) => {
 
 export const GetDemoSlots = async (req, res, next) => {
   try {
-    const demoSlots = await prisma.demo.findMany();
+    const demoSlots = await prisma.demoSlot.findMany({
+      where: { isActive: true },
+      select: { id: true, slotTime: true, capacity: true, booked: true },
+      orderBy: { slotTime: 'asc' }
+    });
     res.status(200).json(demoSlots);
   } catch (error) {
     next(error);

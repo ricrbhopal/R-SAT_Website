@@ -2,14 +2,26 @@
 import React, { useEffect, useState } from "react";
 import { AdminAPI } from "../../../../config/api"; // adjust path if necessary
 
+/**
+ * EditModal
+ * - If initialData is provided (referral doc), tries to read referredStudentId / referredStudent to fetch student.
+ * - If studentId prop is provided and initialData doesn't include referredStudentId, tries to fetch student by that id.
+ * - Populates form using Student model fields where available.
+ * - On Save, calls AdminAPI.putRefferedUserDetails(id, payload) to update the referred record.
+ */
+
 export default function EditModal({ studentId, initialData = null, onClose }) {
-  const [student, setStudent] = useState(null);
+  const [studentDoc, setStudentDoc] = useState(null); // raw student object (if found)
+  const [referralDoc, setReferralDoc] = useState(null); // if initialData is the referral record
   const [formData, setFormData] = useState({
+    studentID: "", // student.student_ID
     name: "",
     email: "",
     phone: "",
     college: "",
+    branch: "",
     academicYear: "",
+    dob: "",
     referralCode: "",
     referredOn: "",
   });
@@ -19,97 +31,171 @@ export default function EditModal({ studentId, initialData = null, onClose }) {
   useEffect(() => {
     let cancelled = false;
 
-    const applyInitialData = (data) => {
-      // `data` can be a referral doc or a student doc; normalize accordingly
-      const ref = data?.referrerId ?? data?.referrer ?? {};
-      const referredName =
-        data?.referredName ?? data?.fullName ?? data?.name ?? data?.studentName ?? "";
-      const referredEmail = data?.referredEmail ?? data?.mail_ID ?? data?.email ?? "";
-      const referredPhone = data?.referredPhone ?? data?.phoneNo ?? data?.phone ?? "";
-      const collegeName = data?.collegeName ?? data?.college ?? "";
-      const year = data?.year ?? data?.academicYear ?? "";
-      const refCode = data?.refCode ?? data?.referralCode ?? data?.referral ?? "";
-      const referredOn = new Date(data?.referredDate ?? data?.createdAt ?? Date.now()).toLocaleString();
+    const applyStudent = (student, referral = null) => {
+      // student: expected shape from Student model
+      const studentID = student?.student_ID ?? "";
+      const fullName = student?.fullName ?? "";
+      const email = student?.mail_ID ?? "";
+      const phone = student?.phoneNo ?? "";
+      const college = student?.college ?? "";
+      const branch = student?.branch ?? "";
+      const year = student?.year ?? "";
+      const dob = student?.dob ? new Date(student.dob).toLocaleDateString() : "";
+      const referredOn = referral?.referredDate ? new Date(referral.referredDate).toLocaleString() : (referral?.createdAt ? new Date(referral.createdAt).toLocaleString() : "");
 
-      setStudent(data);
+      setStudentDoc(student);
+      setReferralDoc(referral);
       setFormData({
+        studentID,
+        name: fullName,
+        email,
+        phone,
+        college,
+        branch,
+        academicYear: year,
+        dob,
+        referralCode: referral?.refCode ?? referral?.referrerStudentID ?? "",
+        referredOn,
+      });
+    };
+
+    const applyReferralOnly = (ref) => {
+      // no student fetch possible, fill from referral doc
+      const referredName = ref?.referredName ?? "";
+      const referredEmail = ref?.referredEmail ?? "";
+      const referredPhone = ref?.referredPhone ?? "";
+      const collegeName = ref?.collegeName ?? "";
+      const year = ref?.year ?? "";
+      const refCode = ref?.refCode ?? ref?.referrerStudentID ?? "AUTO-GENERATED-CODE"; // Fallback to auto-generated code if missing
+      const referredOn = ref?.referredDate ? new Date(ref.referredDate).toLocaleString() : (ref?.createdAt ? new Date(ref.createdAt).toLocaleString() : "");
+      setReferralDoc(ref);
+      setFormData({
+        studentID: ref?.referrerStudentID ?? "",
         name: referredName,
         email: referredEmail,
         phone: referredPhone,
         college: collegeName,
+        branch: ref?.branch ?? "",
         academicYear: year,
+        dob: ref?.dob ? new Date(ref.dob).toLocaleDateString() : "",
         referralCode: refCode,
         referredOn,
       });
     };
 
-    const fetchStudentIfNeeded = async () => {
-      if (initialData) {
-        applyInitialData(initialData);
-        setLoading(false);
-        return;
+    const fetchStudentById = async (idToFetch, referral = null) => {
+      // Try AdminAPI.getStudentById or other fallbacks
+      const tries = ["getStudentById", "getStudentDetails", "getStudentDetailsById", "getStudent"];
+      let fetched = null;
+      for (const fn of tries) {
+        if (typeof AdminAPI[fn] === "function") {
+          try {
+            const res = await AdminAPI[fn](idToFetch);
+            fetched = res?.data ?? res;
+            if (fetched) break;
+          } catch (err) {
+            // continue trying other functions
+            console.warn(`[EditModal] ${fn} failed:`, err?.response?.data ?? err?.message ?? err);
+          }
+        }
       }
 
-      if (!studentId) {
-        setLoading(false);
-        return;
+      // Generic fallback GET if AdminAPI has a generic get method
+      if (!fetched && typeof AdminAPI.get === "function") {
+        try {
+          const res = await AdminAPI.get(`/admin/students/${idToFetch}`);
+          fetched = res?.data ?? res;
+        } catch (err) {
+          console.warn("[EditModal] generic GET /admin/students/:id failed:", err?.response?.data ?? err?.message ?? err);
+        }
       }
 
+      if (!cancelled) {
+        if (fetched) {
+          applyStudent(fetched, referral);
+        } else {
+          // no student found — fall back to referral-only data
+          if (referral) applyReferralOnly(referral);
+          else {
+            // nothing — initialize empty
+            setFormData((f) => ({ ...f, referralCode: "", referredOn: "" }));
+          }
+        }
+      }
+    };
+
+    const init = async () => {
       try {
         setLoading(true);
 
-        // Try multiple AdminAPI helpers (be tolerant of naming differences)
-        const tries = [
-          "getStudentById",
-          "getStudentDetails",
-          "getStudentDetailsById",
-          "getReferredById",
-          "getRefferedUserById",
-        ];
+        // If initialData provided and it looks like a referral record, prefer it
+        if (initialData) {
+          // detect if initialData is referral doc by checking presence of referredName / refCode etc.
+          const looksLikeReferral = Boolean(initialData?.refCode || initialData?.referredName || initialData?.referredStudentId || initialData?.referrerStudentID);
+          if (looksLikeReferral) {
+            // Try to fetch referred student if referredStudentId exists
+            const referredStudentId = initialData?.referredStudentId ?? initialData?.referredStudent?._id ?? initialData?.referredStudent?.id ?? null;
+            if (referredStudentId) {
+              await fetchStudentById(referredStudentId, initialData);
+            } else {
+              // maybe student is not registered yet — just apply referral fields
+              applyReferralOnly(initialData);
+            }
+            return;
+          }
+          // if initialData looks like a Student doc already
+          const looksLikeStudent = Boolean(initialData?.student_ID || initialData?.fullName || initialData?.mail_ID);
+          if (looksLikeStudent) {
+            applyStudent(initialData, null);
+            return;
+          }
+        }
 
-        let fetched = null;
-        for (const fn of tries) {
-          if (typeof AdminAPI[fn] === "function") {
-            try {
-              const res = await AdminAPI[fn](studentId);
-              fetched = res?.data ?? res;
-              break;
-            } catch (err) {
-              // log and continue trying other functions
-              console.warn(`[EditModal] ${fn} failed:`, err?.message || err);
+        // If no initialData or initialData was not a referral, try to use studentId prop
+        if (studentId) {
+          // studentId may be a referral id — attempt to fetch referral first to get referredStudentId
+          let referralFetch = null;
+          // Try AdminAPI.getRefferedUserById or similar
+          const referralTries = ["getRefferedUserById", "getReferredById", "getReferralById", "getReferred"];
+          for (const fn of referralTries) {
+            if (typeof AdminAPI[fn] === "function") {
+              try {
+                const rres = await AdminAPI[fn](studentId);
+                referralFetch = rres?.data ?? rres;
+                break;
+              } catch (err) {
+                // ignore
+              }
             }
           }
+
+          if (referralFetch) {
+            const referredStudentId = referralFetch?.referredStudentId ?? referralFetch?.referredStudent?._id ?? referralFetch?.referredStudent?.id ?? null;
+            if (referredStudentId) {
+              // fetch student by the referredStudentId
+              await fetchStudentById(referredStudentId, referralFetch);
+              return;
+            } else {
+              // there was a referral doc but no referredStudentId (maybe unregistered) — fill referral
+              applyReferralOnly(referralFetch);
+              return;
+            }
+          }
+
+          // If referral fetch failed, try to fetch a student directly by studentId
+          await fetchStudentById(studentId, null);
+          return;
         }
 
-        // If nothing found yet, try a generic GET (best-effort) - adjust baseURL if necessary
-        if (!fetched) {
-          try {
-            const res = await AdminAPI.get?.(`/admin/students/${studentId}`);
-            fetched = res?.data ?? res;
-          } catch (err) {
-            // ignore - we'll handle not found below
-            console.warn("[EditModal] generic fetch failed:", err?.message || err);
-          }
-        }
-
-        if (!cancelled) {
-          if (fetched) {
-            applyInitialData(fetched);
-          } else {
-            // As a fallback, populate minimal values using the id (so modal still opens)
-            setStudent({ _id: studentId });
-            setFormData((f) => ({ ...f, referralCode: f.referralCode || "", referredOn: f.referredOn || "" }));
-            console.warn("[EditModal] No data found for id, opened modal with minimal data.");
-          }
-        }
-      } catch (error) {
-        console.error("[EditModal] Failed to fetch student details:", error);
+        // Nothing available — leave default empty form
+      } catch (err) {
+        console.error("[EditModal] init error:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
-    fetchStudentIfNeeded();
+    init();
 
     return () => {
       cancelled = true;
@@ -122,31 +208,42 @@ export default function EditModal({ studentId, initialData = null, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!student && !studentId) {
-      alert("No student to update.");
+    // This modal updates the referred record (referral) using AdminAPI.putRefferedUserDetails
+    // Determine id to update: prefer referralDoc.id, else studentId prop
+    const idToUpdate = referralDoc?.id ?? referralDoc?._id ?? studentId;
+
+    if (!idToUpdate) {
+      alert("No referral id available to update.");
       return;
     }
 
     try {
       setIsSaving(true);
+
       const payload = {
         fullName: formData.name,
         mail_ID: formData.email,
         phoneNo: formData.phone,
         collegeName: formData.college,
         year: formData.academicYear,
-        refCode: formData.referralCode,
-        // Map other fields here if needed
+        // Note: refCode is typically unique and might be disabled in UI; omit writing refCode unless you want to allow editing
+        // refCode: formData.referralCode,
       };
 
-      const idToUpdate = student?._id ?? studentId;
-      await AdminAPI.putRefferedUserDetails(idToUpdate, payload);
+      // call API
+      if (typeof AdminAPI.putRefferedUserDetails === "function") {
+        await AdminAPI.putRefferedUserDetails(idToUpdate, payload);
+      } else {
+        // fallback generic PUT
+        await AdminAPI.put?.(`/admin/referred/${idToUpdate}`, payload);
+      }
 
       alert("Referred user updated successfully.");
       onClose();
     } catch (error) {
-      console.error("[EditModal] Failed to save referred user details:", error);
-      alert("Failed to save. Please try again.");
+      console.error("[EditModal] Failed to save referred user details:", error?.response?.data ?? error?.message ?? error);
+      const msg = error?.response?.data?.message ?? "Failed to save. Please try again.";
+      alert(msg);
     } finally {
       setIsSaving(false);
     }
@@ -181,97 +278,58 @@ export default function EditModal({ studentId, initialData = null, onClose }) {
         <div className="p-6">
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
             <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Student ID</label>
+              <input name="studentID" type="text" value={formData.studentID} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" />
+            </div>
+
+            <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
-              <input
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Full name"
-              />
+              <input name="name" type="text" value={formData.name} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Full name" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-              <input
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Email"
-              />
+              <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Email" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
-              <input
-                name="phone"
-                type="text"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Phone"
-              />
+              <input name="phone" type="text" value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Phone" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">College</label>
-              <input
-                name="college"
-                type="text"
-                value={formData.college}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="College"
-              />
+              <input name="college" type="text" value={formData.college} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="College" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Branch</label>
+              <input name="branch" type="text" value={formData.branch} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Branch" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Year</label>
-              <input
-                name="academicYear"
-                type="text"
-                value={formData.academicYear}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Academic Year"
-              />
+              <input name="academicYear" type="text" value={formData.academicYear} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Academic Year" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">DOB</label>
+              <input name="dob" type="text" value={formData.dob} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" placeholder="Date of birth" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Referral Code</label>
-              <input
-                name="referralCode"
-                type="text"
-                value={formData.referralCode}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Referral Code"
-                disabled
-              />
+              <input name="referralCode" type="text" value={formData.referralCode} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Referred On</label>
-              <input
-                name="referredOn"
-                type="text"
-                value={formData.referredOn}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100"
-                placeholder="Referred On"
-                disabled
-              />
+              <input name="referredOn" type="text" value={formData.referredOn} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" />
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
               <button type="button" onClick={onClose} className="px-5 py-2 rounded-xl border border-gray-300 text-gray-700">Cancel</button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className={`px-5 py-2 rounded-xl text-white font-medium ${isSaving ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"}`}
-              >
+              <button type="submit" disabled={isSaving} className={`px-5 py-2 rounded-xl text-white font-medium ${isSaving ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"}`}>
                 {isSaving ? "Saving..." : "Save"}
               </button>
             </div>
