@@ -1,6 +1,5 @@
 // client/src/src/pages/callerDashboard/CallerDashboard.jsx
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import {
   Copy,
   Share2,
@@ -323,12 +322,7 @@ export default function CallerReffered() {
       
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8"
-        >
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Caller Dashboard
@@ -339,26 +333,12 @@ export default function CallerReffered() {
           </div>
 
     
-        </motion.div>
+        </div>
 
-        <motion.div 
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: {
-                staggerChildren: 0.1,
-                delayChildren: 0.1
-              }
-            }
-          }}
-          className="space-y-6"
-        >
+        <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <motion.div variants={fadeIn} className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-5 border border-gray-800">
+            <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-5 border border-gray-800">
               <div className="flex items-center justify-between mb-3">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5">
                   <Users className="w-5 h-5 text-cyan-400" />
@@ -375,9 +355,9 @@ export default function CallerReffered() {
                 <TrendingUp className="w-3 h-3" />
                 <span>Active this month: {monthRegistrations}</span>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div variants={fadeIn} className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-5 border border-gray-800">
+            <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-5 border border-gray-800">
               <div className="flex items-center justify-between mb-3">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5">
                   <Calendar className="w-5 h-5 text-purple-400" />
@@ -394,13 +374,13 @@ export default function CallerReffered() {
                 <TrendingUp className="w-3 h-3" />
                 <span>Peak: {Math.max(...monthlyData.map(m => m.registrations))}</span>
               </div>
-            </motion.div>
+            </div>
           </div>
 
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Referral Link */}
-            <motion.div variants={fadeIn} className="lg:col-span-2 bg-gray-900/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
+            <div className="lg:col-span-2 bg-gray-900/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-white mb-2">Your Referral Link</h2>
@@ -459,10 +439,10 @@ export default function CallerReffered() {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* Right Column - Doughnut Chart */}
-            <motion.div variants={fadeIn} className="bg-gray-900/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
+            <div className="bg-gray-900/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white mb-1">Registration Distribution</h3>
                 <p className="text-sm text-gray-400">This month vs all time</p>
@@ -481,19 +461,14 @@ export default function CallerReffered() {
               <div className="mt-4 text-center text-sm text-gray-400">
                 Total: {basisTotal} registrations
               </div>
-            </motion.div>
+            </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 pt-6 border-t border-gray-800/50 text-center text-sm text-gray-500"
-        >
+        <div className="mt-8 pt-6 border-t border-gray-800/50 text-center text-sm text-gray-500">
           <p>Dashboard updates in real-time</p>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
