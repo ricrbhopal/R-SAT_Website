@@ -3,12 +3,15 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import http from "http";
+import { Server as SocketIOServer } from "socket.io";
 dotenv.config();
 
 import connectDB from "./src/config/db.js"; // this is your MSSQL connector
 import Admin from "./src/routers/adminRouter.js"; // keep your routers
 import Student from "./src/routers/StudentRouter.js";
 import AdmitCards from "./src/routers/admitRouter.js";
+import { registerSupportSockets } from "./src/realtime/supportSocket.js";
 
 const app = express();
 
@@ -18,6 +21,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://rsat.ricr.in",
 ];
+
+const PORT = process.env.PORT || 4500;
 
 app.use(cors({ 
   origin: (origin, callback) => {
@@ -74,17 +79,39 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 4500;
-
 (async () => {
   try {
     console.log("🔧 Connecting to database...");
     await connectDB();
     console.log("✅ Database connected successfully");
-    
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
 
+    const httpServer = http.createServer(app);
+    const io = new SocketIOServer(httpServer, {
+      cors: {
+        origin: allowedOrigins,
+        credentials: true,
+      },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      pingInterval: 25000,
+      pingTimeout: 60000,
+    });
+
+    // Log socket connections and disconnections
+    io.on("connection", (socket) => {
+      console.log(`[socket] connected ${socket.id}`);
+      socket.on("disconnect", (reason) => {
+        console.log(`[socket] disconnected ${socket.id} - reason: ${reason}`);
+      });
+    });
+
+    registerSupportSockets(io);
+
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (err) {
 

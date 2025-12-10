@@ -33,6 +33,7 @@
     "pdfkit": "^0.17.2",
     "qrcode": "^1.5.4",
     "sequelize": "^6.37.7",
+    "socket.io": "^4.8.1",
     "streamifier": "^0.1.1",
     "tedious": "^19.1.3"
   },

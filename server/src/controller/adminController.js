@@ -48,8 +48,7 @@ export const putUserDetails = async (req, res, next) => {
   try {
     const userId = req.params.id;
 
-    // Debugging log
-    console.log("Updating user with ID:", userId);
+
 
     const updateData = { ...req.body };
 
@@ -202,8 +201,7 @@ export const getRefferedUsers = async (req, res, next) => {
       take: limit,
     });
 
-    // Log the response for debugging
-    console.log("Fetched referred users:", referredUsers);
+
 
     // Optionally return total count for pagination
     const total = await prisma.referred.count();
@@ -824,11 +822,7 @@ export const createResult = async (req, res, next) => {
       return res.status(400).json({ message: "Missing required fields: student_ID, A, B, C, D" });
     }
 
-    // Log for debugging
-    console.log("createResult called with:", { student_ID, A, B, C, D });
-    console.log("prisma object available:", !!prisma);
-    console.log("prisma.result available:", !!prisma?.result);
-    console.log("prisma keys:", Object.keys(prisma || {}));
+
 
     // Check if prisma.result exists
     if (!prisma?.result) {
@@ -1006,7 +1000,6 @@ export const getAllResultsWithStudentDetails = async (req, res, next) => {
 export const registerAdmin = async (req, res, next) => {
   try {
     const { username, phone, password, role } = req.body;
-    console.log("Request Body:", req.body); // Debugging
 
     if (!username || !phone || !password) {
       return res.status(400).json({ message: "username, phone, and password are required" });
@@ -1084,7 +1077,6 @@ export const verifyAdminOtp = async (req, res, next) => {
 export const loginAdmin = async (req, res, next) => {
   try {
     const { phone, password } = req.body;
-    console.log("[loginAdmin] Request body:", { phone, password });
 
     if (!phone || !password) {
       console.error("[loginAdmin] Missing phone or password");
@@ -1097,7 +1089,6 @@ export const loginAdmin = async (req, res, next) => {
     }
 
     const user = await prisma.admin.findUnique({ where: { phone: phone.toString() } });
-    console.log("[loginAdmin] User found:", user);
 
     if (!user) {
       console.error("[loginAdmin] Invalid credentials: user not found");
@@ -1105,7 +1096,6 @@ export const loginAdmin = async (req, res, next) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("[loginAdmin] Password match:", isMatch);
 
     if (!isMatch) {
       console.error("[loginAdmin] Invalid credentials: password mismatch");
@@ -1114,7 +1104,6 @@ export const loginAdmin = async (req, res, next) => {
 
     const payload = { id: user.id, role: user.role, phone: user.phone };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-    console.log("[loginAdmin] Token generated:", token);
 
     res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
 

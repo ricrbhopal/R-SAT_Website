@@ -67,7 +67,6 @@ export default function RefferedRegisterationPage() {
 
       try {
         if (!AdminAPI || !AdminAPI.getAdminProfileById) {
-          console.log("[fetchProfileIfNeeded] AdminAPI.getAdminProfileById not defined");
           return;
         }
         const res = await AdminAPI.getAdminProfileById(id);
@@ -108,7 +107,6 @@ export default function RefferedRegisterationPage() {
 
     async function fetchReferrer() {
       console.group("[fetchReferrer] start");
-      console.log("Trying to fetch referrer info for:", { refParam, studentIdParam });
 
       try {
         setLoadingReferrer(true);
@@ -124,10 +122,8 @@ export default function RefferedRegisterationPage() {
 
         // 1) Preferred: referrals/info route (handles both student & caller/admin)
         try {
-          console.log("[fetchReferrer] calling ReferralAPI.getReferralInfo with:", codeToTry);
           if (ReferralAPI && ReferralAPI.getReferralInfo) {
             const res = await ReferralAPI.getReferralInfo(codeToTry);
-            console.log("[fetchReferrer] getReferralInfo response:", res?.status, res?.data);
             const data = res?.data || {};
             if (data?.referrer) {
               let rr = {};
@@ -149,7 +145,6 @@ export default function RefferedRegisterationPage() {
                   type: "student",
                 };
               }
-              console.log("[fetchReferrer] parsed referrer from referrals/info:", rr);
               if (!cancelled && mountedRef.current) setReferrer(rr);
               return;
             } else {

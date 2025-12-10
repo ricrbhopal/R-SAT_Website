@@ -1,7 +1,8 @@
 // src/pages/QueriesPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AuthAPI } from "../../config/api"; // ensure AddSupportQueryResponse exists or fallback will be used
 import { toast } from "react-toastify";
+import { io } from "socket.io-client";
 import {
   MessageSquare,
   Clock,
@@ -14,6 +15,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "http://localhost:6501";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const IMAGE_MIME = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 
@@ -28,16 +30,87 @@ const QueriesPage = () => {
   const [imagePreview, setImagePreview] = useState(null);
 
   const [selectedChatQuery, setSelectedChatQuery] = useState(null);
+  const socketRef = useRef(null);
+  const chatQueryRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     fetchQueries();
-    // Auto-refresh every 10 seconds to get admin responses in real-time
-    const interval = setInterval(fetchQueries, 10000);
+    // Remove auto-refresh interval - use websocket instead
     return () => {
-      clearInterval(interval);
       if (imagePreview?.url) URL.revokeObjectURL(imagePreview.url);
     };
     // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    chatQueryRef.current = selectedChatQuery;
+    // Lock/unlock body scroll based on modal state
+    if (selectedChatQuery) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [selectedChatQuery]);
+
+  useEffect(() => {
+    // Auto-scroll to latest message when chat updates
+    if (selectedChatQuery && selectedChatQuery.responses?.length && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedChatQuery?.responses?.length, selectedChatQuery]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+    });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("[socket] student connected", socket.id);
+      toast.success("Connected to support server", { autoClose: 2000 });
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("[socket] student disconnected", reason);
+      if (reason === "io server disconnect") {
+        socket.connect();
+      }
+      toast.warning("Disconnected from server", { autoClose: 2000 });
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("[socket] connection error", error);
+    });
+
+    socket.on("support_message", ({ queryId, responses, query, clientMessageId }) => {
+      // Update queries list
+      if (query) {
+        setQueries((prev) => prev.map((q) => (q.id === query.id ? { ...q, ...query, responses: query.responses || q.responses } : q)));
+      }
+
+      // Update chat modal if open for this query
+      if (chatQueryRef.current?.id === queryId) {
+        const updatedResponses = responses || query?.responses || [];
+        setSelectedChatQuery((prev) => (prev ? { ...prev, ...(query || {}), responses: updatedResponses, messageInput: prev.messageInput } : prev));
+      }
+    });
+
+    socket.on("support_error", ({ message }) => {
+      if (message) toast.error(message);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const fetchQueries = async () => {
@@ -152,53 +225,64 @@ const QueriesPage = () => {
       return;
     }
 
-    try {
-      // Optimistically add message to the UI before sending
-      const optimisticMessage = {
-        id: `temp-${Date.now()}`,
+    const clientMessageId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: clientMessageId,
+      queryId,
+      senderType: "STUDENT",
+      senderId: selectedChatQuery?.studentId,
+      responder: "You",
+      message: text,
+      createdAt: new Date().toISOString()
+    };
+
+    // Update UI immediately
+    setSelectedChatQuery(prev => ({
+      ...prev,
+      responses: [...(prev.responses || []), optimisticMessage],
+      messageInput: ""
+    }));
+
+    // Try websocket first
+    if (socketRef.current) {
+      socketRef.current.emit("support_message", {
         queryId,
-        senderType: "STUDENT",
-        senderId: selectedChatQuery?.studentId,
-        responder: "You",
         message: text,
-        createdAt: new Date().toISOString()
-      };
+        senderType: "STUDENT",
+        responder: selectedChatQuery?.student?.fullName || "You",
+        clientMessageId,
+      });
+    } else {
+      // Fallback to HTTP if websocket unavailable
+      try {
+        const apiCall = AuthAPI.AddSupportQueryResponse
+          ? AuthAPI.AddSupportQueryResponse
+          : (id, msg) => AuthAPI.post(`/student/add-response/${id}`, { message: msg });
 
-      // Update UI immediately
-      setSelectedChatQuery(prev => ({
-        ...prev,
-        responses: [...(prev.responses || []), optimisticMessage],
-        messageInput: ""
-      }));
+        const response = await apiCall(queryId, text);
 
-      // Send to server
-      const apiCall = AuthAPI.AddSupportQueryResponse
-        ? AuthAPI.AddSupportQueryResponse
-        : (id, msg) => AuthAPI.post(`/student/add-response/${id}`, { message: msg });
-
-      const response = await apiCall(queryId, text);
-
-      // Update with actual response from server
-      if (response?.data?.query) {
+        // Update with actual response from server
+        if (response?.data?.query) {
+          const updatedQuery = response.data.query;
+          setSelectedChatQuery(prev => ({
+            ...prev,
+            ...updatedQuery,
+            responses: updatedQuery.responses || []
+          }));
+          // Update queries list
+          setQueries((prev) => prev.map((q) => (q.id === queryId ? { ...q, ...updatedQuery } : q)));
+        }
+        
+        toast.success("Message sent");
+      } catch (err) {
+        console.error("sendChatMessage error:", err);
+        // Remove optimistic message on error
         setSelectedChatQuery(prev => ({
           ...prev,
-          ...response.data.query,
-          responses: response.data.query.responses || []
+          responses: (prev.responses || []).filter(r => !r.id.startsWith('temp-'))
         }));
-      } else {
-        // Fallback: fetch latest queries
-        await fetchQueries();
+        toast.error(err?.response?.data?.message || "Failed to send message");
       }
-      
-      toast.success("Message sent");
-    } catch (err) {
-      console.error("sendChatMessage error:", err);
-      // Remove optimistic message on error
-      setSelectedChatQuery(prev => ({
-        ...prev,
-        responses: (prev.responses || []).filter(r => !r.id.startsWith('temp-'))
-      }));
-      toast.error(err?.response?.data?.message || "Failed to send message");
     }
   };
 
@@ -420,7 +504,12 @@ const QueriesPage = () => {
                         {responses && responses.length > 0 && (
                           <div className="mt-3 pt-3 border-t">
                             <button
-                              onClick={() => setSelectedChatQuery({ ...q, messageInput: "" })}
+                              onClick={() => {
+                                setSelectedChatQuery({ ...q, messageInput: "" });
+                                if (socketRef.current) {
+                                  socketRef.current.emit("join_support", { queryId: q.id });
+                                }
+                              }}
                               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
                             >
                               <MessageSquare className="w-4 h-4" />
@@ -490,6 +579,7 @@ const QueriesPage = () => {
                     </div>
                   );
                 })}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}

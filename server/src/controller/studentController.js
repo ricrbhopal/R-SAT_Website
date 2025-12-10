@@ -915,10 +915,7 @@ export const getReferralInfo = async (req, res, next) => {
 
 export const registerWithReferral = async (req, res, next) => {
   try {
-    // DEBUG: show raw incoming data for quick diagnosis
-    console.log("[registerWithReferral] req.query.userId:", req.query?.userId);
-    console.log("[registerWithReferral] req.body raw:", req.body);
-    console.log("[registerWithReferral] req.headers content-type:", req.headers["content-type"]);
+
 
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ message: "Referral userId missing" });

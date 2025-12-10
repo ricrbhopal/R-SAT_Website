@@ -21,7 +21,6 @@ export const protect = async (req, res, next) => {
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
-      console.log("Decoded token:", decoded);
     } catch (err) {
       console.error("JWT verify failed:", err.message);
       return res.status(401).json({ message: "Token invalid or expired" });
@@ -46,7 +45,6 @@ export const protect = async (req, res, next) => {
     let user = null;
     try {
       user = await prisma.student.findUnique({ where: { id: String(userId) } });
-      console.log("User found:", user);
     } catch (e) {
       console.error("Error finding user in database:", e.message);
     }

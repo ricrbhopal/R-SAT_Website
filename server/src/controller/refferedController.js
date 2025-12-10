@@ -29,7 +29,6 @@ async function populateReferredDoc(doc) {
 export const sendReferralOTP = async (req, res, next) => {
   try {
     const { phoneNo, ref } = req.body;
-    console.log("[sendReferralOTP] phoneNo:", phoneNo, "ref:", ref);
     if (!phoneNo) return res.status(400).json({ message: "phoneNo is required" });
 
     if (ref) {
@@ -37,7 +36,6 @@ export const sendReferralOTP = async (req, res, next) => {
         const found = await Referred.findOne({
           $or: [{ referrerUserId: ref }, { referrerCallerId: ref }, { refCode: ref }],
         }).lean();
-        console.log("[sendReferralOTP] found referred record for ref?:", Boolean(found));
         if (!found) console.warn("[sendReferralOTP] no Referred record found for ref:", ref);
       } catch (e) {
         console.warn("[sendReferralOTP] lookup failed:", e?.message || e);
@@ -62,7 +60,6 @@ export const sendReferralOTP = async (req, res, next) => {
       createdAt: new Date(),
     });
 
-    console.log("[sendReferralOTP] OTP created for:", phoneNo);
     return res.status(200).json({ message: "OTP sent successfully" });
   } catch (err) {
     console.error("[sendReferralOTP] ERROR:", err);
@@ -78,7 +75,6 @@ export const sendReferralOTP = async (req, res, next) => {
 export const createReferral = async (req, res, next) => {
   try {
     const referrer = req.user;
-    console.log("[createReferral] req.user:", referrer && { id: referrer._id, role: referrer.role });
     if (!referrer) return res.status(401).json({ message: "Unauthorized: login required to create referral" });
 
     const role = String(referrer.role || "").toLowerCase();
@@ -87,7 +83,6 @@ export const createReferral = async (req, res, next) => {
     const referrerUserId = isAdminOrCaller ? null : String(referrer._id);
     const referrerCallerId = isAdminOrCaller ? String(referrer._id) : null;
 
-    console.log("[createReferral] isAdminOrCaller:", isAdminOrCaller, "referrerUserId:", referrerUserId, "referrerCallerId:", referrerCallerId);
 
     // Check existing by either referrerUserId or referrerCallerId
     let existing = null;
@@ -95,7 +90,6 @@ export const createReferral = async (req, res, next) => {
     else if (referrerCallerId) existing = await Referred.findOne({ referrerCallerId }).lean();
 
     if (existing) {
-      console.log("[createReferral] existing referral found:", existing._id);
       const frontendBase = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) || "https://rsat.ricr.in";
       let referralLink = "";
       if (referrerCallerId) {
@@ -123,12 +117,10 @@ export const createReferral = async (req, res, next) => {
       refCode: (referrerUserId || referrerCallerId) ? String(referrerUserId || referrerCallerId) : undefined,
     };
     Object.keys(payload).forEach((k) => (payload[k] === undefined ? delete payload[k] : null));
-    console.log("[createReferral] payload prepared:", payload);
 
     let newRef;
     try {
       newRef = await Referred.create(payload);
-      console.log("[createReferral] created new Referred doc with id:", newRef._id);
     } catch (createErr) {
       console.error("[createReferral] create error:", createErr);
       if (createErr.name === "ValidationError") return res.status(400).json({ message: "Invalid referral data", details: createErr.errors });
@@ -167,7 +159,6 @@ export const getReferralInfo = async (req, res, next) => {
     const { code } = req.params;
     if (!code) return res.status(400).json({ message: "Referral code is required" });
 
-    console.log("[getReferralInfo] code:", code);
 
     // 1) by refCode
     let refer = await Referred.findOne({ refCode: code })
@@ -175,7 +166,6 @@ export const getReferralInfo = async (req, res, next) => {
       .populate("referrerCallerId", "username role phone createdAt")
       .lean();
     if (refer) {
-      console.log("[getReferralInfo] found by refCode:", refer._id);
       const resp = {
         referrer: {
           id: refer.referrerCallerId ?? refer.referrerId?._id ?? null,
@@ -198,7 +188,6 @@ export const getReferralInfo = async (req, res, next) => {
       .populate("referrerId", "student_ID fullName mail_ID phoneNo")
       .lean();
     if (refer) {
-      console.log("[getReferralInfo] found by referrerUserId:", refer._id);
       return res.status(200).json({
         referrer: {
           id: refer.referrerId?._id ?? null,
@@ -220,7 +209,6 @@ export const getReferralInfo = async (req, res, next) => {
       .populate("referrerCallerId", "username role phone createdAt")
       .lean();
     if (refer) {
-      console.log("[getReferralInfo] found by referrerCallerId:", refer._id);
       return res.status(200).json({
         referrer: {
           id: refer.referrerCallerId?._id ?? null,
@@ -244,7 +232,6 @@ export const getReferralInfo = async (req, res, next) => {
         .populate("referrerId", "student_ID fullName mail_ID phoneNo")
         .lean();
       if (refer) {
-        console.log("[getReferralInfo] found by referrerId (legacy):", refer._id);
         return res.status(200).json({
           referrer: {
             id: refer.referrerId?._id ?? null,

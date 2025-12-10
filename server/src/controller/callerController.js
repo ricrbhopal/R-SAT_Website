@@ -178,7 +178,6 @@ export const listCallers = async (req, res, next) => {
 
     const callersCount = await Caller.countDocuments();
     const referredCount = await Referred.countDocuments();
-    console.log(`[listCallers] counts -> Caller:${callersCount} Referred:${referredCount}`);
 
     const referrerUserId = req.query.referrerUserId || req.query.userId || req.query.ref;
     const forceFallback = req.query.forceFallback === "true";
@@ -191,7 +190,7 @@ export const listCallers = async (req, res, next) => {
         filter.student_ID = req.query.studentId;
       }
 
-      console.log("Filter applied:", filter);
+
 
       // Fetch callers with common populate fields
       const callers = await Caller.find(filter)
@@ -212,7 +211,6 @@ export const listCallers = async (req, res, next) => {
         .populate("result", "_id student_ID studentId A B C D total percentage scholarShip check createdAt updatedAt")
         .lean();
 
-      console.log("Callers fetched (after populate):", JSON.stringify(callers, null, 2));
 
       // FIXUP: for any caller that still has result === null, try an explicit lookup using student or referred ids/emails/phones
       for (let i = 0; i < callers.length; i++) {

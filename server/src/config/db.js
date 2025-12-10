@@ -23,7 +23,7 @@ export default async function connectDB() {
   try {
     if (!poolPromise) {
       poolPromise = sql.connect(config).then(pool => {
-        console.log("✅ MSSQL Connected", {
+        console.log("MSSQL Connected", {
           server: config.server,
           instance: instanceName || null,
           port: config.port || null,

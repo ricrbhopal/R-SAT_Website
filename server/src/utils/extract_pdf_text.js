@@ -9,7 +9,6 @@ const dataBuffer = fs.readFileSync(pdfPath);
 
 pdf(dataBuffer).then(function(data) {
   fs.writeFileSync(outPath, data.text, 'utf8');
-  console.log('Extracted text written to', outPath);
 }).catch(err => {
   console.error('PDF extraction failed:', err);
   process.exit(1);
