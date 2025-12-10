@@ -139,11 +139,11 @@ const AuthRegister = () => {
         // store token in sessionStorage for this session
         sessionStorage.setItem("token", token);
         setAuthToken(token);
-        navigate("/candidate/dashboard");
+        navigate("/student/dashboard");
       } else if (res?.status === 200) {
         // server may set httpOnly cookie instead of returning token in body
         // navigate on success so client can fetch profile using cookie-based auth
-        navigate("/candidate/dashboard");
+        navigate("/student/dashboard");
       }
       setMessage(res?.data?.message || "Login successful");
  

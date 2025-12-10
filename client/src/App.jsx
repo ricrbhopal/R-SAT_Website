@@ -5,11 +5,11 @@ import Navbar from "./components/navbar.jsx";
 import Home from "../../client/src/pages/HomePage.jsx";
 import Footer from "./components/footer.jsx";
 import AuthRegister from "./pages/register&Login/authRegister.jsx";
-import CandidateDashboard from "./pages/candidateDashboard/CandidateDashboard.jsx";
-import BookDemo from "./pages/candidateDashboard/BookDemoPage.jsx";
-import Profile from "../src/pages/candidateDashboard/ProfilePage.jsx";
-import ReferredPage from "./pages/candidateDashboard/RefferedPage.jsx";
-import ReferredRegistrationPage from "./pages/candidateDashboard/RefferedRegisterationPage.jsx";
+import StudentDashboard from "./pages/studentDashboard/CandidateDashboard.jsx";
+import BookDemo from "./pages/studentDashboard/BookDemoPage.jsx";
+import Profile from "./pages/studentDashboard/ProfilePage.jsx";
+import ReferredPage from "./pages/studentDashboard/RefferedPage.jsx";
+import ReferredRegistrationPage from "./pages/studentDashboard/RefferedRegisterationPage.jsx";
 import Admindashboard from "./pages/adminDashboard/AdminDashboard.jsx";
 import ManagerDashboard from "./pages/managerDashboard/ManagerDashboard.jsx";
 import Login from "./pages/register&Login/AdminLogin.jsx";
@@ -49,7 +49,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/RegistrationForm" element={<AuthRegister />} />
-          <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/demo" element={<BookDemo />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/candidateDashboard/referred" element={<ReferredPage />} />
