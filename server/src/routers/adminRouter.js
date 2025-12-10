@@ -73,7 +73,7 @@ router.delete("/demo-class/:id", deleteDemoClass);
 router.get("/support/all-queries", GetAllSupportQueries);
 router.get("/support/student-queries", GetStudentSupportQueries);
 router.put("/support/update-status/:queryId", UpdateSupportQueryStatus);
-router.put("/support/add-response/:queryId", AddSupportQueryResponse);
+router.post("/support/add-response/:queryId", AddSupportQueryResponse);
 router.delete("/support/delete-query/:queryId", DeleteSupportQuery);
 
 // Admit Card Router

@@ -10,7 +10,7 @@ import {
 } from "react-icons/fi";
 import Profile from "./ProfilePage.jsx";
 import Demo from "./BookDemoPage.jsx";
-import Support from "./QueriesPage.jsx";
+import Support from "./HelpCenterPage.jsx";
 import Reffered from "./RefferedPage.jsx";
 import AdmitCard from "./AdmitCardPage.jsx";
 import { useNavigate } from "react-router-dom";

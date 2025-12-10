@@ -483,17 +483,14 @@ export const SubmitSupportQuery = async (req, res, next) => {
         description,
         imageUrl,
         imagePublicId,
-        responses: stringifyResponses([]),
       },
       include: {
         student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } },
       },
     });
 
-    // Convert responses string -> array for client
-    const result = { ...created, responses: parseResponses(created) };
-
-    return res.status(201).json({ message: "Support query submitted successfully", query: result });
+    return res.status(201).json({ message: "Support query submitted successfully", query: created });
   } catch (error) {
     console.error("SubmitSupportQuery error:", error);
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
@@ -511,15 +508,16 @@ export const GetStudentSupportQueries = async (req, res, next) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    // fetch queries
-    const rows = await prisma.supportQuery.findMany({
+    // fetch queries with responses
+    const queries = await prisma.supportQuery.findMany({
       where: { studentId: String(uid) },
       orderBy: { createdAt: "desc" },
-      include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
+      include: { 
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
+      },
     });
 
-    const queries = rows.map((r) => ({ ...r, responses: parseResponses(r) }));
-    // return array directly (frontend expects array)
     return res.status(200).json(queries);
   } catch (error) {
     console.error("GetStudentSupportQueries error:", error);
@@ -537,13 +535,15 @@ export const GetAllSupportQueries = async (req, res, next) => {
       filter.status = req.query.status;
     }
 
-    const rows = await prisma.supportQuery.findMany({
+    const queries = await prisma.supportQuery.findMany({
       where: filter,
       orderBy: { createdAt: "desc" },
-      include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
+      include: { 
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
+      },
     });
 
-    const queries = rows.map((r) => ({ ...r, responses: parseResponses(r) }));
     return res.status(200).json(queries);
   } catch (error) {
     console.error("GetAllSupportQueries error:", error);
@@ -562,10 +562,13 @@ export const UpdateSupportQueryStatus = async (req, res, next) => {
     const updated = await prisma.supportQuery.update({
       where: { id: queryId },
       data: { status },
-      include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
+      include: { 
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
+      },
     });
 
-    return res.status(200).json({ message: "Support query status updated", query: { ...updated, responses: parseResponses(updated) } });
+    return res.status(200).json({ message: "Support query status updated", query: updated });
   } catch (error) {
     console.error("UpdateSupportQueryStatus error:", error);
     if (error.code === "P2025") return res.status(404).json({ message: "Support query not found" });
@@ -573,28 +576,54 @@ export const UpdateSupportQueryStatus = async (req, res, next) => {
   }
 };
 
-// Add response (admin/support agent)
+// Add response (student/support agent)
 export const AddSupportQueryResponse = async (req, res, next) => {
   try {
     const { queryId } = req.params;
-    const { message, responder } = req.body;
-    if (!message || !message.trim()) return res.status(400).json({ message: "Response message is required" });
+    const messageInput = req.body?.message;
+    const studentId = req.user?.id;
 
-    const responderName = (req.user && (req.user.name || req.user.fullName)) || responder;
-    if (!responderName) return res.status(400).json({ message: "Responder name required" });
+    // Convert message to string and trim
+    const messageStr = String(messageInput || "").trim();
+    
+    if (!messageStr) {
+      return res.status(400).json({ message: "Response message is required" });
+    }
 
-    const existing = await prisma.supportQuery.findUnique({ where: { id: queryId }, select: { responses: true } });
-    if (!existing) return res.status(404).json({ message: "Support query not found" });
+    // Check if query exists
+    const existing = await prisma.supportQuery.findUnique({ 
+      where: { id: queryId }
+    });
+    if (!existing) {
+      return res.status(404).json({ message: "Support query not found" });
+    }
 
-    const current = parseResponses(existing);
-    const newResp = { responder: responderName, message, date: new Date().toISOString() };
-    const updated = await prisma.supportQuery.update({
-      where: { id: queryId },
-      data: { responses: stringifyResponses([...current, newResp]), status: "in_progress" },
-      include: { student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } } },
+    // Create response record
+    const newResponse = await prisma.supportResponse.create({
+      data: {
+        queryId: queryId,
+        senderType: "STUDENT",
+        senderId: studentId,
+        responder: "Student",
+        message: messageStr
+      }
     });
 
-    return res.status(200).json({ message: "Response added to support query", query: { ...updated, responses: parseResponses(updated) } });
+    // Fetch updated query with all responses
+    const updated = await prisma.supportQuery.update({
+      where: { id: queryId },
+      data: { status: "in_progress" },
+      include: { 
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
+      },
+    });
+
+    return res.status(200).json({ 
+      message: "Response added to support query", 
+      response: newResponse,
+      query: updated 
+    });
   } catch (error) {
     console.error("AddSupportQueryResponse error:", error);
     return res.status(500).json({ message: "Internal Server Error", error: error.message });

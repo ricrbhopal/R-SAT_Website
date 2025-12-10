@@ -374,7 +374,6 @@ export const putDemoClassDetails = async (req, res, next) => {
 
 export const GetAllSupportQueries = async (req, res, next) => {
   try {
-    const filter = {};
     const where = {};
     if (req.query.status) {
       const allowed = ["open", "in_progress", "resolved"];
@@ -387,7 +386,8 @@ export const GetAllSupportQueries = async (req, res, next) => {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        student: { select: { fullName: true, mail_ID: true, phoneNo: true } },
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
       },
     });
 
@@ -405,7 +405,10 @@ export const GetStudentSupportQueries = async (req, res, next) => {
     const queries = await prisma.supportQuery.findMany({
       where: { studentId },
       orderBy: { createdAt: "desc" },
-      include: { student: { select: { fullName: true, mail_ID: true, phoneNo: true } } },
+      include: {
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
+      },
     });
     return res.status(200).json(queries);
   } catch (err) {
@@ -424,7 +427,10 @@ export const UpdateSupportQueryStatus = async (req, res, next) => {
     const updated = await prisma.supportQuery.update({
       where: { id: queryId },
       data: { status },
-      include: { student: { select: { fullName: true, mail_ID: true, phoneNo: true } } },
+      include: {
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
+      },
     });
 
     return res.status(200).json({ message: "Support query status updated", query: updated });
@@ -437,43 +443,52 @@ export const UpdateSupportQueryStatus = async (req, res, next) => {
 export const AddSupportQueryResponse = async (req, res, next) => {
   try {
     const { queryId } = req.params;
-    const { message, responder } = req.body;
+    const { message } = req.body;
+    const adminId = req.user?.id; // Get admin ID from auth middleware
 
-    if (!message) return res.status(400).json({ message: "Response message is required" });
-
-    const responderName = (req.user && (req.user.name || req.user.fullName)) || responder;
-    if (!responderName) {
-      return res.status(400).json({ message: "Responder name required (authenticate or send responder in body)" });
+    if (!message || String(message).trim() === "") {
+      return res.status(400).json({ message: "Message cannot be empty" });
     }
 
-    // Get current query and parse responses JSON string
-    const current = await prisma.supportQuery.findUnique({ where: { id: queryId }, select: { responses: true } });
-    if (!current) return res.status(404).json({ message: "Support query not found" });
-
-    // Parse responses from JSON string
-    let newResponses = [];
-    if (current.responses) {
-      try {
-        newResponses = JSON.parse(current.responses);
-      } catch (e) {
-        console.warn("Failed to parse responses JSON:", e);
-        newResponses = [];
-      }
-    }
-    
-    // Add new response
-    newResponses.push({ responder: responderName, message, date: new Date().toISOString() });
-
-    // Update with stringified responses
-    const updated = await prisma.supportQuery.update({
-      where: { id: queryId },
-      data: { responses: JSON.stringify(newResponses), status: "in_progress" },
-      include: { student: { select: { fullName: true, mail_ID: true, phoneNo: true } } },
+    // Check if query exists
+    const existing = await prisma.supportQuery.findUnique({
+      where: { id: queryId }
     });
 
-    return res.status(200).json({ message: "Response added to support query", query: updated });
+    if (!existing) {
+      return res.status(404).json({ message: "Support query not found" });
+    }
+
+    // Create response record in database
+    const newResponse = await prisma.supportResponse.create({
+      data: {
+        queryId: queryId,
+        senderType: "ADMIN",
+        senderId: adminId,
+        responder: "Support Team",
+        message: String(message).trim()
+      }
+    });
+
+    // Update query status to in_progress
+    const updated = await prisma.supportQuery.update({
+      where: { id: queryId },
+      data: { 
+        status: "in_progress"
+      },
+      include: {
+        student: { select: { id: true, fullName: true, mail_ID: true, phoneNo: true } },
+        responses: { orderBy: { createdAt: "asc" } }
+      }
+    });
+
+    return res.status(201).json({ 
+      message: "Response sent successfully", 
+      response: newResponse,
+      query: updated 
+    });
   } catch (err) {
-    console.error("[AddSupportQueryResponse] Error:", err);
+    console.error("Error in AddSupportQueryResponse:", err);
     next(err);
   }
 };

@@ -5,7 +5,7 @@ import Navbar from "./components/navbar.jsx";
 import Home from "../../client/src/pages/HomePage.jsx";
 import Footer from "./components/footer.jsx";
 import AuthRegister from "./pages/register&Login/authRegister.jsx";
-import StudentDashboard from "./pages/studentDashboard/CandidateDashboard.jsx";
+import StudentDashboard from "./pages/studentDashboard/StudentDashboard.jsx";
 import BookDemo from "./pages/studentDashboard/BookDemoPage.jsx";
 import Profile from "./pages/studentDashboard/ProfilePage.jsx";
 import ReferredPage from "./pages/studentDashboard/RefferedPage.jsx";

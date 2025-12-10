@@ -115,23 +115,39 @@ model Demo {
 
 
 
-
 model SupportQuery {
-  id            String   @id @default(uuid())
-  studentId     String?
+  id            String          @id @default(uuid())
+  studentId     String?         
   subject       String?
   description   String?
-  status        String    @default("open") // open | in_progress | resolved
-  responses     String?   // store JSON string: e.g. JSON.stringify([...])
+  status        String   @default("open")  // "open" | "in_progress" | "resolved"
   imageUrl      String?
   imagePublicId String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  // Relation with Student model
-  student       Student?  @relation(fields: [studentId], references: [id])
+  // relations
+  student       Student?        @relation(fields: [studentId], references: [id])
+  responses     SupportResponse[]
 
   @@map("SupportQuery")
+}
+
+model SupportResponse {
+  id           String      @id @default(uuid())
+  queryId      String
+  senderType   String  // "STUDENT" | "ADMIN" | "SYSTEM"
+  senderId     String?     // optional FK to student/admin if you want
+  responder    String?     // display name
+  message      String
+  attachmentUrl String?
+  createdAt    DateTime    @default(now())
+
+  // relation
+  query        SupportQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+
+  @@index([queryId, createdAt])
+  @@map("SupportResponse")
 }
 
 

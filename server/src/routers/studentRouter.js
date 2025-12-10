@@ -74,7 +74,7 @@ router.get("/all-queries", protect, GetAllSupportQueries);
 router.put("/update-status/:queryId", protect, UpdateSupportQueryStatus);
 
 // Add a response to a query (admin/support agent)
-router.post("/:queryId/respond", protect, AddSupportQueryResponse);
+router.post("/add-response/:queryId", protect, AddSupportQueryResponse);
 // Delete support query (admin)
 router.delete("/delete-query/:queryId", protect, async (req, res, next) => {
   // Use controller if you want, but for now inline for clarity

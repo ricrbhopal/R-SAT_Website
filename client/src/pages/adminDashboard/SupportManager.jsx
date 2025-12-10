@@ -29,7 +29,7 @@ const SupportManager = () => {
         imageUrl: query.imageUrl,
         responses: (() => {
           try {
-            return typeof query.responses === 'string' ? JSON.parse(query.responses) : (query.responses || []);
+            return typeof query.responses === 'string' ? JSON.parse(query.responses) : (Array.isArray(query.responses) ? query.responses : []);
           } catch (e) {
             return [];
           }
@@ -69,7 +69,6 @@ const SupportManager = () => {
     try {
       const response = await AdminAPI.AddSupportQueryResponse(
         selectedQuery.id,
-        "Admin",
         responseMessage
       );
       toast.success(response.data.message);
@@ -107,7 +106,7 @@ const SupportManager = () => {
     }
 
     try {
-      const response = await AdminAPI.AddSupportQueryResponse(responseQuery.id, "Admin", responseMessage);
+      const response = await AdminAPI.AddSupportQueryResponse(responseQuery.id, responseMessage);
       toast.success(response.data.message);
       setResponseQuery(null);
       setResponseMessage("");
@@ -431,6 +430,43 @@ const SupportManager = () => {
                     alt="Query Attachment"
                     className="mt-2 max-w-full h-auto rounded-lg border border-gray-200"
                   />
+                </div>
+              )}
+              {viewQuery.responses && viewQuery.responses.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 items-center">
+                    <span className="mr-2">💬</span>
+                    Responses ({viewQuery.responses.length})
+                  </label>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3 max-h-64 overflow-y-auto">
+                    {viewQuery.responses.map((response, idx) => (
+                      <div
+                        key={response.id || idx}
+                        className={`p-3 rounded-lg border ${
+                          response.senderType === "ADMIN"
+                            ? "bg-green-50 border-green-200"
+                            : response.senderType === "STUDENT"
+                            ? "bg-blue-50 border-blue-200"
+                            : "bg-gray-100 border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-700">
+                              {response.responder || (response.senderType === "ADMIN" ? "Support Team" : "Student")}
+                            </p>
+                            <p className="text-[11px] text-gray-500">
+                              {response.senderType === "ADMIN" ? "✓ Admin" : response.senderType === "STUDENT" ? "Student" : "System"}
+                            </p>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {new Date(response.createdAt || response.date).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{response.message}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

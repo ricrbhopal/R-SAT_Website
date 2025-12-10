@@ -1,6 +1,4 @@
 import axios from "axios";
-import { listCallers } from "../../../server/src/controller/callerController";
-
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:6501";
 
 const api = axios.create({
@@ -54,8 +52,8 @@ export const AuthAPI = {
   GetAllSupportQueries: () => api.get("/student/all-queries"),
   UpdateSupportQueryStatus: (queryId, status) =>
     api.put(`/student/update-status/${queryId}`, { status }),
-  AddSupportQueryResponse: (queryId, responder, message) =>
-    api.put(`/student/add-response/${queryId}`, { responder, message }),
+  AddSupportQueryResponse: (queryId, message) =>
+    api.post(`/student/add-response/${queryId}`, { message }),
   createReferral: (data = {}, config = {}) => api.post("/student/create", data, config),
   getReferralInfo: (code) => api.get(`/student/info/${encodeURIComponent(code)}`),
   sendReferralOTP: (data) => api.post("/student/send-otp", data),
@@ -126,11 +124,10 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
   GetStudentSupportQueries: () => api.get("/admin/support/student-queries"),
   UpdateSupportQueryStatus: (queryId, status) =>
     api.put(`/admin/support/update-status/${queryId}`, { status }),
-  AddSupportQueryResponse: (queryId, responder, message) =>
-    api.put(`/admin/support/add-response/${queryId}`, { responder, message }),
+  AddSupportQueryResponse: (queryId, message) =>
+    api.post(`/admin/support/add-response/${queryId}`, { message }),
   DeleteSupportQuery: (queryId) =>
     api.delete(`/admin/support/delete-query/${queryId}`),
-
 
   // Attendance Router
   generatePresentToken: (id) => api.post(`/admin/${id}/present-token`),
