@@ -34,7 +34,7 @@ const CallerDashboard = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+        <div className="flex min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 ">
             <SideBar onSelect={handleSidebarClick} selected={selected} />
             <div className="flex-1 overflow-auto">
                 {/* Main content area with subtle decorative elements */}
