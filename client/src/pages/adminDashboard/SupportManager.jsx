@@ -18,6 +18,7 @@ const SupportManager = () => {
   const socketRef = useRef(null);
   const chatQueryRef = useRef(null);
   const chatEndRef = useRef(null);
+  const chatScrollRef = useRef(null);
 
   useEffect(() => {
     fetchQueries();
@@ -37,14 +38,12 @@ const SupportManager = () => {
   }, [chatQuery, viewQuery]);
 
   useEffect(() => {
-    // Auto-scroll chat to bottom when messages change - but only scroll the modal, not the page
-    if (chatQuery && chatEndRef.current) {
-      setTimeout(() => {
-        chatEndRef.current?.parentElement?.scrollTo({
-          top: chatEndRef.current.parentElement.scrollHeight,
-          behavior: "smooth"
-        });
-      }, 0);
+    // Auto-scroll chat to bottom when messages change (scroll only the chat container)
+    if (chatQuery && chatScrollRef.current) {
+      const el = chatScrollRef.current;
+      requestAnimationFrame(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      });
     }
   }, [chatQuery?.responses?.length]);
 
@@ -622,7 +621,7 @@ const SupportManager = () => {
             </div>
 
             {/* Chat Messages Container */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+            <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
               {chatQuery?.responses && chatQuery.responses.length > 0 ? (
                 <div className="space-y-4">
                   {/* Initial query bubble */}
