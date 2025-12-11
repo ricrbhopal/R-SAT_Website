@@ -4,16 +4,17 @@ import { AuthAPI } from "../../config/api"; // ensure AddSupportQueryResponse ex
 import { toast } from "react-toastify";
 import { io } from "socket.io-client";
 import {
-  MessageSquare,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  RefreshCw,
-  Send,
-  FileText,
-  X,
-  Image as ImageIcon,
-} from "lucide-react";
+  FiMessageSquare,
+  FiClock,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiRefreshCw,
+  FiSend,
+  FiFileText,
+  FiX,
+  FiImage,
+  FiLock,
+} from "react-icons/fi";
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "http://localhost:6501";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -289,14 +290,14 @@ const QueriesPage = () => {
   const getStatusIcon = (status) => {
     switch ((status || "").toLowerCase()) {
       case "resolved":
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <FiCheckCircle className="w-4 h-4 text-green-600" />;
       case "in progress":
       case "in_progress":
-        return <RefreshCw className="w-4 h-4 text-blue-600" />;
+        return <FiRefreshCw className="w-4 h-4 text-blue-600" />;
       case "open":
-        return <Clock className="w-4 h-4 text-yellow-600" />;
+        return <FiClock className="w-4 h-4 text-yellow-600" />;
       default:
-        return <AlertCircle className="w-4 h-4 text-gray-500" />;
+        return <FiAlertCircle className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -321,7 +322,7 @@ const QueriesPage = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-100 rounded-xl">
-                <MessageSquare className="w-8 h-8 text-blue-600" />
+                <FiMessageSquare className="w-8 h-8 text-blue-600" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Support Center</h1>
@@ -334,7 +335,7 @@ const QueriesPage = () => {
                 onClick={fetchQueries}
                 className="flex items-center gap-2 px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+                <FiRefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
               </button>
             </div>
           </div>
@@ -347,7 +348,7 @@ const QueriesPage = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">Create New Query</h2>
                   <button onClick={() => setShowNewQueryForm(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
+                    <FiX className="w-5 h-5" />
                   </button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -375,7 +376,7 @@ const QueriesPage = () => {
                       Cancel
                     </button>
                     <button type="submit" disabled={submitting} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg">
-                      <Send className="w-4 h-4 inline mr-2" /> {submitting ? "Submitting..." : "Submit Query"}
+                      <FiSend className="w-4 h-4 inline mr-2" /> {submitting ? "Submitting..." : "Submit Query"}
                     </button>
                   </div>
                 </form>
@@ -415,7 +416,7 @@ const QueriesPage = () => {
                   <div className="border-2 border-dashed rounded-lg p-6 text-center">
                     <input id="image-upload" type="file" accept="image/*" onChange={handleImageInput} className="hidden" />
                     <label htmlFor="image-upload" className="cursor-pointer">
-                      <ImageIcon className="w-8 h-8 text-gray-400" />
+                      <FiImage className="w-8 h-8 text-gray-400" />
                       <div className="text-sm text-gray-600">Click to upload an image (PNG, JPG, GIF up to 10MB)</div>
                     </label>
                   </div>
@@ -429,7 +430,7 @@ const QueriesPage = () => {
                           <p className="text-sm text-gray-500">{(imagePreview.size / (1024 * 1024)).toFixed(2)} MB</p>
                         </div>
                         <button type="button" onClick={removeSelectedImage} className="p-2 text-gray-400 hover:text-red-500">
-                          <X className="w-4 h-4" />
+                          <FiX className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -441,7 +442,7 @@ const QueriesPage = () => {
                     Reset Form
                   </button>
                   <button type="submit" disabled={submitting} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg">
-                    <Send className="w-4 h-4 inline mr-2" /> {submitting ? "Submitting..." : "Submit with Attachment"}
+                    <FiSend className="w-4 h-4 inline mr-2" /> {submitting ? "Submitting..." : "Submit with Attachment"}
                   </button>
                 </div>
               </form>
@@ -461,7 +462,7 @@ const QueriesPage = () => {
                 </div>
               ) : queries.length === 0 ? (
                 <div className="text-center py-12">
-                  <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <FiMessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-medium">No queries yet</h3>
                   <p className="text-gray-500 mt-2">Submit your first query to get started</p>
                 </div>
@@ -493,11 +494,11 @@ const QueriesPage = () => {
 
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
+                            <FiClock className="w-3 h-3" />
                             {q.createdAt ? new Date(q.createdAt).toLocaleDateString() : ""}
                           </div>
                           <button onClick={() => navigator.clipboard?.writeText(qid)} className="hover:text-gray-700">
-                            <FileText className="w-3 h-3" />
+                            <FiFileText className="w-3 h-3" />
                           </button>
                         </div>
 
@@ -512,7 +513,7 @@ const QueriesPage = () => {
                               }}
                               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
                             >
-                              <MessageSquare className="w-4 h-4" />
+                              <FiMessageSquare className="w-4 h-4" />
                               {responses.length} Message{responses.length !== 1 ? "s" : ""} - Open Chat
                             </button>
                           </div>
@@ -528,85 +529,150 @@ const QueriesPage = () => {
       </div>
 
       {/* WhatsApp-Style Chat Modal */}
-      {selectedChatQuery && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col overflow-hidden">
-            {/* Chat Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold">{selectedChatQuery.subject}</h3>
-                <p className="text-xs text-blue-100">Support Chat</p>
-              </div>
-              <button
-                onClick={() => setSelectedChatQuery(null)}
-                className="p-2 hover:bg-blue-500 rounded-full transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
-              {/* Initial Query */}
-              <div className="flex justify-end">
-                <div className="bg-blue-600 text-white rounded-3xl rounded-tr-sm px-4 py-3 max-w-xs">
-                  <p className="text-sm break-words">{selectedChatQuery.description}</p>
-                  <p className="text-xs mt-2 text-blue-100">{new Date(selectedChatQuery.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-              </div>
-
-              {/* All Responses - Both Student and Admin */}
-              {selectedChatQuery.responses && selectedChatQuery.responses.length > 0 && selectedChatQuery.responses
-                .map((response, idx) => {
-                  const isStudent = response.senderType === "STUDENT";
-                  return (
-                    <div key={response.id || idx} className={`flex ${isStudent ? "justify-end" : "justify-start"}`}>
-                      <div className={`rounded-3xl px-4 py-3 max-w-xs ${
-                        isStudent 
-                          ? "bg-blue-600 text-white rounded-tr-sm" 
-                          : "bg-gray-200 text-gray-900 rounded-tl-sm"
-                      }`}>
-                        {!isStudent && (
-                          <p className="text-xs font-semibold text-gray-700 mb-1">
-                            {response.responder || "Support Team"}
-                          </p>
-                        )}
-                        <p className="text-sm break-words">{response.message}</p>
-                        <p className={`text-xs mt-2 ${isStudent ? "text-blue-100" : "text-gray-500"}`}>
-                          {new Date(response.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4 flex items-end gap-3">
-              <input
-                type="text"
-                value={selectedChatQuery.messageInput || ""}
-                onChange={(e) => setSelectedChatQuery(prev => ({ ...prev, messageInput: e.target.value }))}
-                placeholder="Type a message..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-full text-sm focus:outline-none focus:border-blue-500"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendChatMessage();
-                  }
-                }}
-              />
-              <button
-                onClick={sendChatMessage}
-                className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition flex-shrink-0"
-              >
-                <Send className="w-5 h-5" />
-              </button>
+  {selectedChatQuery && (
+  <div className="fixed inset-0 bg-gradient-to-br from-gray-900/80 to-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="bg-gradient-to-br from-white via-gray-50 to-gray-100 rounded-3xl shadow-2xl w-full max-w-2xl h-[85vh] flex flex-col overflow-hidden border border-gray-300/30">
+      {/* Chat Header - Modern Glass Effect */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-6 py-5 flex items-center justify-between border-b border-white/10 shadow-lg">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-xl shadow-lg">
+            <FiMessageSquare className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold tracking-tight truncate">{selectedChatQuery.subject}</h3>
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Support • Active now</span>
             </div>
           </div>
         </div>
-      )}
+        <button
+          onClick={() => setSelectedChatQuery(null)}
+          className="p-2 hover:bg-white/10 rounded-xl transition-all duration-200 hover:rotate-90 hover:scale-110 group"
+        >
+          <FiX className="w-6 h-6 group-hover:text-red-400 transition-colors" />
+        </button>
+      </div>
+
+      {/* Messages Area - Elegant Scroll */}
+      <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-50 via-white to-gray-50 space-y-6">
+        {/* Date Separator */}
+        <div className="text-center my-4">
+          <span className="bg-gray-200 text-gray-700 text-xs font-medium px-4 py-1.5 rounded-full">
+            {new Date(selectedChatQuery.createdAt).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+
+        {/* Initial Query */}
+        <div className="flex justify-end animate-slideInRight">
+          <div className="relative max-w-md">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-br-none px-5 py-4 shadow-xl transform transition-transform hover:scale-[1.02]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-blue-200">You</span>
+                <span className="text-xs text-blue-300">
+                  {new Date(selectedChatQuery.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed break-words">{selectedChatQuery.description}</p>
+            </div>
+            <div className="absolute right-0 top-0 w-4 h-4 overflow-hidden">
+              <div className="absolute w-8 h-8 bg-blue-600 -right-4 -top-4 rotate-45"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* All Responses */}
+        {selectedChatQuery.responses && selectedChatQuery.responses.length > 0 && selectedChatQuery.responses
+          .map((response, idx) => {
+            const isStudent = response.senderType === "STUDENT";
+            return (
+              <div key={response.id || idx} className={`flex ${isStudent ? "justify-end" : "justify-start"} animate-slideIn`}>
+                <div className={`relative max-w-md transform transition-all duration-300 hover:translate-y-[-2px] ${
+                  isStudent ? 'hover:shadow-blue-200/30' : 'hover:shadow-gray-200/30'
+                }`}>
+                  {!isStudent && (
+                    <div className="flex items-center gap-2 mb-2 ml-1">
+                      <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                        {response.responder ? response.responder.charAt(0).toUpperCase() : "S"}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-700">
+                        {response.responder || "Support Team"}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className={`rounded-2xl px-5 py-4 shadow-lg ${
+                    isStudent 
+                      ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-none" 
+                      : "bg-gradient-to-br from-white to-gray-50 text-gray-900 border border-gray-200/50 rounded-bl-none"
+                  }`}>
+                    <p className="text-sm leading-relaxed break-words">{response.message}</p>
+                    <div className={`flex items-center justify-between mt-3 ${
+                      isStudent ? 'text-blue-200' : 'text-gray-500'
+                    }`}>
+                      <div className="text-xs">
+                        {isStudent ? 'You' : response.responder?.split(' ')[0] || 'Support'}
+                      </div>
+                      <div className="text-xs">
+                        {new Date(response.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Chat bubble tail */}
+                  <div className={`absolute w-4 h-4 overflow-hidden ${
+                    isStudent 
+                      ? 'right-0 top-0' 
+                      : 'left-0 top-[calc(2rem+8px)]'
+                  }`}>
+                    <div className={`absolute w-8 h-8 ${
+                      isStudent 
+                        ? 'bg-gradient-to-br from-blue-500 to-blue-600 -right-4 -top-4 rotate-45' 
+                        : 'bg-gradient-to-br from-white to-gray-50 border-l border-t border-gray-200/50 -left-4 -top-4 rotate-45'
+                    }`}></div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Message Input - Floating Glass Effect */}
+      <div className="bg-gradient-to-t from-white via-white to-gray-50 border-t border-gray-200/50 p-6">
+        <div className="relative">
+          <input
+            type="text"
+            value={selectedChatQuery.messageInput || ""}
+            onChange={(e) => setSelectedChatQuery(prev => ({ ...prev, messageInput: e.target.value }))}
+            placeholder="Type your message here..."
+            className="w-full px-6 py-4 pl-14 bg-white/80 backdrop-blur-sm border-2 border-gray-300/50 rounded-2xl text-gray-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-300 placeholder-gray-500 shadow-lg"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+              }
+            }}
+          />
+  
+          <button
+            onClick={sendChatMessage}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full hover:from-blue-700 hover:to-blue-800 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 shadow-md group"
+          >
+            <FiSend className="w-5 h-5 transform group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+        <div className="flex justify-between items-center mt-3 text-xs text-gray-500 px-2">
+          <span>Press Enter to send • Shift + Enter for new line</span>
+          <span className="flex items-center gap-1">
+            <FiLock className="w-4 h-4" />
+            End-to-end encrypted
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

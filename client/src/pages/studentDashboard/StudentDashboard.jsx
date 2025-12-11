@@ -85,7 +85,9 @@ export default function CandidateDashboard() {
     try {
       const token = sessionStorage.getItem("token");
       const refreshed = sessionStorage.getItem("dashboardRefreshed");
-      if (token && refreshed !== "true") {
+      // Only refresh if this is truly the first visit (no refreshed flag set AND no selected tab in localStorage)
+      const hasSelectedTab = localStorage.getItem(STORAGE_KEY);
+      if (token && refreshed !== "true" && !hasSelectedTab) {
         // mark refreshed so we don't reload again in this session
         sessionStorage.setItem("dashboardRefreshed", "true");
         // full reload so all components mount fresh
