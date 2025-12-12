@@ -151,12 +151,13 @@ export default function DashboardOverview() {
     const withDemo = userData.filter(u => u.demos?.length > 0).length;
     const referrals = userData.reduce((sum, u) => sum + (u.referrals?.length || 0), 0);
     
-    // Calculate active users (last 7 days)
+    // Calculate active users (last 7 days) - using createdAt as fallback since lastActive doesn't exist
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const activeUsers = userData.filter(u => 
-      u.lastActive && new Date(u.lastActive) > weekAgo
-    ).length;
+    const activeUsers = userData.filter(u => {
+      const activityDate = u.lastActive || u.createdAt;
+      return activityDate && new Date(activityDate) > weekAgo;
+    }).length;
 
     // Calculate daily growth
     const today = new Date().toISOString().split('T')[0];
@@ -201,13 +202,14 @@ export default function DashboardOverview() {
       };
     });
 
-    // Distribution data for pie chart
+    // Distribution data for pie chart - showing actual student counts at each stage
+    const registeredOnly = total - withAdmit - withDemo - withResults;
     const distribution = [
       { 
-        name: "Registered", 
-        value: total, 
+        name: "Registered Only", 
+        value: Math.max(0, registeredOnly), 
         color: theme.colors.primary[500],
-        description: "Total students registered"
+        description: "Students only registered, no other activity"
       },
       { 
         name: "Admit Issued", 
@@ -227,7 +229,7 @@ export default function DashboardOverview() {
         color: theme.colors.success[500],
         description: "Students with results"
       },
-    ];
+    ].filter(item => item.value > 0);
 
     // Recent users (latest 6)
     const recent = [...userData]
