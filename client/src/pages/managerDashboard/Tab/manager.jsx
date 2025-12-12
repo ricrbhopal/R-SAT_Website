@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ManagerAPI } from "../../../config/api";
 import { toast } from "react-toastify";
+import { FiChevronDown, FiChevronUp, FiMessageCircle, FiUser, FiHeadphones } from "react-icons/fi";
 
 /* ---------------------- Helpers ---------------------- */
 const compareValues = (a, b, order = "asc") => {
@@ -284,7 +285,7 @@ function Th({ children, sortable, active, order, center, ...rest }) {
         <span className="text-sm font-semibold text-slate-100">{children}</span>
         {sortable && (
           <span className="text-xs font-medium transition-colors">
-            {active ? (order === "asc" ? "▲" : "▼") : "↕️"}
+            {active ? (order === "asc" ? "▲" : "▼") : "↕"}
           </span>
         )}
       </div>
@@ -559,17 +560,22 @@ function DetailModal({ row, onClose }) {
                     >
                       <button
                         onClick={() => setOpenQueryId(isOpen ? null : queryKey)}
-                        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-900/90 transition-colors"
+                        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-900/90 transition-colors group"
                       >
-                        <div>
-                          <div className="text-base font-semibold text-slate-100">{q.subject}</div>
-                          <div className="text-xs text-slate-500 mt-1">{formatDate(q.createdAt)}</div>
+                        <div className="flex items-center gap-3">
+                          <FiMessageCircle className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+                          <div>
+                            <div className="text-base font-semibold text-slate-100">{q.subject}</div>
+                            <div className="text-xs text-slate-500 mt-1">{formatDate(q.createdAt)}</div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-linear-to-r from-indigo-900/60 to-purple-900/60 text-indigo-300 border border-indigo-700/50">
                             {q.status?.toUpperCase?.() || "STATUS"}
                           </span>
-                          <span className="text-slate-400 text-xs">{isOpen ? "Hide chat" : "View chat"}</span>
+                          <span className="text-slate-400 text-xs flex items-center gap-1">
+                            {isOpen ? <FiChevronUp className="w-4 h-4" /> : <FiChevronDown className="w-4 h-4" />}
+                          </span>
                         </div>
                       </button>
 
@@ -603,7 +609,7 @@ function DetailModal({ row, onClose }) {
                                               : "bg-slate-800/70 border-slate-700/60 text-slate-200"
                                           }`}
                                         >
-                                          {isSupport ? "Support" : "Student"}
+                                          {isSupport ? <><FiHeadphones className="w-3 h-3" /> Support</> : <><FiUser className="w-3 h-3" /> Student</>}
                                         </span>
                                         <span className="text-slate-400 normal-case">{formatDate(r.createdAt)}</span>
                                       </div>
