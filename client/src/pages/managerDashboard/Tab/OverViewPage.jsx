@@ -814,7 +814,8 @@ export default function DashboardOverview() {
                       backgroundColor: '#1f2937',
                       border: '1px solid #374151',
                       borderRadius: '8px',
-                      color: '#f9fafb'
+                      color: '#f9fafb',
+                  
                     }}
                   />
                   <Legend />
@@ -1145,10 +1146,10 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
       x={x} 
       y={y} 
       fill="white" 
-      textAnchor={x > cx ? 'start' : 'end'} 
+      textAnchor="middle"
       dominantBaseline="central"
-      fontSize={12}
-      fontWeight="500"
+      fontSize={14}
+      fontWeight="600"
     >
       {`${(percent * 100).toFixed(0)}%`}
     </text>
