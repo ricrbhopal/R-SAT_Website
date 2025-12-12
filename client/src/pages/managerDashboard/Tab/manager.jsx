@@ -332,6 +332,7 @@ function StatusPill({ ok }) {
 
 function DetailModal({ row, onClose }) {
   const [activeSection, setActiveSection] = useState("StudentRecord");
+  const [openQueryId, setOpenQueryId] = useState(null);
 
   const sections = [
     { key: "StudentRecord", label: "Student Record" },
@@ -370,7 +371,7 @@ function DetailModal({ row, onClose }) {
               onClick={() => setActiveSection(s.key)}
               className={`rounded-2xl px-6 py-3 text-sm font-semibold transition-all duration-200 shadow-sm ${
                 activeSection === s.key
-                  ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-900/25 border border-indigo-500/50 scale-[1.02]"
+                  ? "bg-linear-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-900/25 border border-indigo-500/50 scale-[1.02]"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 hover:shadow-md hover:border-slate-700/50 border border-transparent"
               }`}
             >
@@ -523,7 +524,7 @@ function DetailModal({ row, onClose }) {
                         <div className="text-xs text-slate-400 uppercase tracking-wide">Subject D</div>
                         <div className="text-2xl font-bold text-slate-100">{res.D}</div>
                       </div>
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-900/60 to-emerald-800/60 border border-emerald-700/50 col-span-2 md:col-span-1">
+                      <div className="p-4 rounded-xl bg-linear-to-br from-emerald-900/60 to-emerald-800/60 border border-emerald-700/50 col-span-2 md:col-span-1">
                         <div className="text-sm text-emerald-300 uppercase tracking-wide font-semibold">Total</div>
                         <div className="text-3xl font-black text-emerald-200">{res.total}</div>
                         <div className="text-sm text-emerald-300">({res.percentage}%)</div>
@@ -548,40 +549,78 @@ function DetailModal({ row, onClose }) {
             <div>
               <h4 className="mb-6 text-lg font-semibold text-slate-100">Support Queries</h4>
               {row.supportQueries?.length > 0 ? (
-                row.supportQueries.map((q) => (
-                  <div key={q.id} className="mb-6 rounded-2xl border border-slate-800/70 bg-slate-900/80 p-6 shadow-lg">
-                    <div className="flex items-start justify-between mb-4 pb-4 border-b border-slate-800/50">
-                      <div>
-                        <div className="text-xl font-bold text-slate-100 mb-1">{q.subject}</div>
-                        <div className="text-slate-400 leading-relaxed">{q.description}</div>
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {formatDate(q.createdAt)}
-                      </div>
-                    </div>
+                row.supportQueries.map((q, idx) => {
+                  const queryKey = q.id || q._id || idx;
+                  const isOpen = openQueryId === queryKey;
+                  return (
+                    <div
+                      key={queryKey}
+                      className="mb-4 rounded-2xl border border-slate-800/70 bg-slate-900/80 shadow-lg overflow-hidden"
+                    >
+                      <button
+                        onClick={() => setOpenQueryId(isOpen ? null : queryKey)}
+                        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-900/90 transition-colors"
+                      >
+                        <div>
+                          <div className="text-base font-semibold text-slate-100">{q.subject}</div>
+                          <div className="text-xs text-slate-500 mt-1">{formatDate(q.createdAt)}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-linear-to-r from-indigo-900/60 to-purple-900/60 text-indigo-300 border border-indigo-700/50">
+                            {q.status?.toUpperCase?.() || "STATUS"}
+                          </span>
+                          <span className="text-slate-400 text-xs">{isOpen ? "Hide chat" : "View chat"}</span>
+                        </div>
+                      </button>
 
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-900/60 to-purple-900/60 text-indigo-300 border border-indigo-700/50">
-                        {q.status.toUpperCase()}
-                      </span>
-                    </div>
-
-                    {q.responses?.length > 0 && (
-                      <div className="space-y-3">
-                        <div className="text-xs text-slate-400 uppercase font-semibold tracking-wide mb-2">Responses</div>
-                        {q.responses.map((r) => (
-                          <div key={r.id} className="rounded-xl bg-slate-800/60 p-4 border-l-4 border-indigo-500/50">
-                            <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
-                              <span className="font-semibold text-slate-400">{r.senderType}</span>
-                              <span>• {formatDate(r.createdAt)}</span>
+                      {isOpen && (
+                        <div className="px-5 pb-5 pt-2 border-t border-slate-800/60 space-y-3">
+                          {q.description && (
+                            <div className="text-sm text-slate-200 leading-relaxed bg-slate-900/60 border border-slate-800/60 rounded-xl p-3">
+                              {q.description}
                             </div>
-                            <div className="text-sm text-slate-200">{r.message}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
+                          )}
+
+                          {q.responses?.length > 0 ? (
+                            <div className="space-y-4">
+                              {q.responses.map((r) => {
+                                const sender = (r.senderType || "").toLowerCase();
+                                const isSupport = sender.includes("support") || sender.includes("admin") || sender.includes("manager");
+                                return (
+                                  <div key={r.id} className={`flex ${isSupport ? "justify-end" : "justify-start"}`}>
+                                    <div
+                                      className={`max-w-[520px] rounded-2xl border px-4 py-3 shadow-lg backdrop-blur-sm transition-all duration-200 ${
+                                        isSupport
+                                          ? "bg-indigo-900/60 border-indigo-700/60 text-indigo-50 shadow-indigo-900/40"
+                                          : "bg-slate-900/70 border-slate-800/70 text-slate-100 shadow-slate-900/30"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold mb-1">
+                                        <span
+                                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 border text-[11px] font-semibold ${
+                                            isSupport
+                                              ? "bg-indigo-800/70 border-indigo-600/60 text-indigo-100"
+                                              : "bg-slate-800/70 border-slate-700/60 text-slate-200"
+                                          }`}
+                                        >
+                                          {isSupport ? "Support" : "Student"}
+                                        </span>
+                                        <span className="text-slate-400 normal-case">{formatDate(r.createdAt)}</span>
+                                      </div>
+                                      <div className="text-sm leading-relaxed text-slate-100 whitespace-pre-wrap">{r.message}</div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-500">No responses yet.</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center py-12 text-slate-400">
                   <div className="text-4xl mb-4">💬</div>
@@ -602,7 +641,7 @@ function Info({ label, value }) {
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 group-hover:text-slate-400 mb-2">
         {label}
       </div>
-      <div className="text-lg font-bold text-slate-100 break-words">{value ?? "-"}</div>
+      <div className="text-lg font-bold text-slate-100 wrap-break-word">{value ?? "-"}</div>
     </div>
   );
 }
