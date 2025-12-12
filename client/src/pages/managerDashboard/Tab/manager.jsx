@@ -29,7 +29,7 @@ export default function StudentsTable({ initialData = [] }) {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-  const [sortField, setSortField] = useState("timestamp");
+  const [sortField, setSortField] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [selectedRow, setSelectedRow] = useState(null);
 
@@ -165,10 +165,10 @@ export default function StudentsTable({ initialData = [] }) {
             <thead className="bg-slate-900/80">
               <tr>
                 <Th>Name</Th>
-                <Th sortable onClick={() => handleSort("phone")} active={sortField === "phone"} order={sortOrder}>
+                <Th sortable onClick={() => handleSort("phoneNo")} active={sortField === "phoneNo"} order={sortOrder}>
                   Phone
                 </Th>
-                <Th sortable onClick={() => handleSort("email")} active={sortField === "email"} order={sortOrder}>
+                <Th sortable onClick={() => handleSort("mail_ID")} active={sortField === "mail_ID"} order={sortOrder}>
                   Email
                 </Th>
                 <Th>College</Th>
