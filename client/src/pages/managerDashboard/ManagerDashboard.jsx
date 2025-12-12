@@ -1,63 +1,45 @@
 import React, { useState } from "react";
-import OverView from "./Tab/OverViewPage";
-import OneClick from "./Tab/OneClickPage";
-import TrushBin from "./Tab/TrushBinPage";
-import Student from "./Tab/StudentPage";
-
-const menuItems = [
-  { key: "home", label: "Dashboard Home" },
-  { key: "reports", label: "Reports" },
-  { key: "team", label: "Team Management" },
-  { key: "settings", label: "Settings" },
-];
-
-function SideBar({ active, setActive }) {
-  return (
-    <div className="w-64 h-min-screen h- bg-gray-800 text-white flex flex-col mt-18">
-      <div className="p-4 text-2xl font-bold border-b border-gray-700">
-        Manager Dashboard
-      </div>
-      <nav className="flex-1 p-4">
-        <ul className="space-y-4">
-          {menuItems.map(item => (
-            <li key={item.key}>
-              <button
-                className={`block w-full text-left px-4 py-2 rounded transition cursor-pointer ${
-                  active === item.key ? "bg-gray-700" : "hover:bg-gray-700"
-                }`}
-                onClick={() => setActive(item.key)}
-              >
-                {item.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
-  );
-}
+import OverView from "./Tab/overViewPage.jsx";
+import Manager from "./Tab/manager.jsx";
+import TrushBin from "./Tab/trushBinPage.jsx";
+import Support from "./Tab/supportQuery.jsx";
+import SideBar, { menuItems } from "./SideBar";
 
 function Content({ active }) {
   switch (active) {
-    case "home":
+    case "overView":
       return <OverView />;
-    case "reports":
-      return <OneClick />;
-    case "team":
-      return <Student />;
-    case "settings":
+    case "manage":
+      return <Manager />;
+    case "supportManager":
+      return <Support />;
+    case "trashBin":
       return <TrushBin />;
     default:
-      return <div>Select an option from the sidebar.</div>;
+      return (
+        <div className="flex items-center justify-center h-full text-gray-400">
+          Select an option from the sidebar.
+        </div>
+      );
   }
 }
 
 export default function ManagerDashboard() {
   const [active, setActive] = useState("home");
+  
   return (
-    <div className="flex h-screen">
-      <SideBar active={active} setActive={setActive} className="cursor-pointer" />
-      <div className="flex-1 p-8 bg-gray-50 mt-15">
+    <div className="flex h-screen mt-18 bg-gray-900 text-gray-100">
+      {/* Sidebar - Dark theme */}
+      <div className="w-64 bg-gray-800 border-r border-gray-700 shadow-lg">
+        <SideBar 
+          active={active} 
+          setActive={setActive} 
+          className="cursor-pointer text-gray-200 hover:text-white" 
+        />
+      </div>
+      
+      {/* Main Content Area - Dark theme */}
+      <div className="flex-1 p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-auto">
         <Content active={active} />
       </div>
     </div>
