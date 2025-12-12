@@ -6,8 +6,7 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// ensure cookies (token cookie) are sent with requests when server sets them
-api.defaults.withCredentials = true;
+
 
 export const setAuthToken = (token) => {
   if (token) {
@@ -38,6 +37,13 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+
+// ensure cookies (token cookie) are sent with requests when server sets them
+api.defaults.withCredentials = true;
+
+
+
+
 export const AuthAPI = { 
   sendOTP: (data) => api.post("/student/send-otp", data),
   register: (data) => api.post("/student/register", data),
@@ -63,23 +69,6 @@ export const AuthAPI = {
 
 
 };
-
-export const DemoAPI = {
-  sendDemoOTP: (data) => api.post("/slot/send-otp", data),
-  bookDemoSlot: (data) => api.post("/slot/registerSlot", data),
-  getAllDemoSlots: () => api.get("/slot/getAllSlots"),
-};
-
-export const SupportAPI = {
-  SubmitSupportQuery: (payload) => api.post("/support/submit-query", payload),
-  GetStudentSupportQueries: () => api.get("/support/student-queries"),
-  GetAllSupportQueries: () => api.get("/support/all-queries"),
-  UpdateSupportQueryStatus: (queryId, status) =>
-    api.put(`/support/update-status/${queryId}`, { status }),
-  AddSupportQueryResponse: (queryId, responder, message) =>
-    api.put(`/support/add-response/${queryId}`, { responder, message }),
-};
-
 
 
 export const AdminAPI = {
@@ -154,8 +143,12 @@ bulkCreateAdmitCards: (data) => api.post("/admin/bulk", data),
 
 };
 
+
+
 export const ReferralAPI = {
 }
+
+
 
 export const AdmitCardAPI = {
 
@@ -170,5 +163,16 @@ export const AdmitCardAPI = {
 export const CallerAPI = {
 listCallers: () => api.get("/callers/"),
 };
+
+
+export const ManagerAPI={
+  GetStudentSupportQueries:()=>api.get("/manager/support/student-queries"),
+  GetAllSupportQueries:()=>api.get("/manager/support/all-queries"),
+  UpdateSupportQueryStatus:(queryId,status)=>api.put(`/manager/support/update-status/${queryId}`,{status}),
+  AddSupportQueryResponse:(queryId,message)=>api.post(`/manager/support/add-response/${queryId}`,{message}),
+  DeleteSupportQuery:(queryId)=>api.delete(`/manager/support/delete-query/${queryId}`),
+}
+
+
 
 export default api;

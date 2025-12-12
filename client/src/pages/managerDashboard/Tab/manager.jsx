@@ -284,10 +284,10 @@ export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
             </p>
           </div>
           <div className="flex gap-2 items-center">
-            <div className="text-xs text-slate-300 bg-slate-900 px-3 py-2 rounded-md border border-slate-700/70 shadow-sm">
+            <div className="text-xs text-slate-400 bg-slate-900 px-3 py-2 rounded-md border border-slate-700/70 shadow-sm">
               Total Students: <span className="font-medium text-slate-50 ml-1">{data.length}</span>
             </div>
-            <div className="text-xs text-slate-300 bg-slate-900 px-3 py-2 rounded-md border border-slate-700/70 shadow-sm hidden sm:block">
+            <div className="text-xs text-slate-400 bg-slate-900 px-3 py-2 rounded-md border border-slate-700/70 shadow-sm hidden sm:block">
               Admit Cards: <span className="font-medium text-slate-50 ml-1">{data.filter((d) => d.admitCard.downloaded).length}</span>
             </div>
           </div>
@@ -420,7 +420,7 @@ export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
             ‹ Prev
           </Pager>
 
-          <div className="rounded-lg border border-slate-800/70 bg-slate-900/90 px-4 py-2 text-sm text-slate-300 shadow-sm">
+          <div className="rounded-lg border border-slate-800/70 bg-slate-900/90 px-4 py-2 text-sm text-slate-400 shadow-sm">
             Page <strong className="text-slate-100 mx-1">{page}</strong> of {totalPages}
           </div>
 
@@ -578,7 +578,7 @@ function DetailModal({ row, onClose }) {
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <div className="text-xl font-bold text-slate-100">{ac.ApplicantName}</div>
-                        <div className="text-sm font-mono text-emerald-400 bg-emerald-900/40 px-3 py-1 rounded-full inline-block mt-1">
+                        <div className="text-sm font-mono text-emerald-300 bg-emerald-900/40 px-3 py-1 rounded-full inline-block mt-1">
                           {ac.RSAT}
                         </div>
                       </div>
@@ -649,7 +649,7 @@ function DetailModal({ row, onClose }) {
                   <div key={ref.id} className="mb-6 rounded-2xl border border-slate-800/70 bg-slate-900/80 p-6 shadow-lg">
                     <div className="flex items-start justify-between mb-3">
                       <div className="font-bold text-slate-100">{ref.referredName}</div>
-                      <span className="text-xs font-mono text-indigo-400 bg-indigo-900/40 px-2.5 py-1 rounded-full">
+                        <span className="text-xs font-mono text-indigo-300 bg-indigo-900/40 px-2.5 py-1 rounded-full">
                         {ref.refCode}
                       </span>
                     </div>
@@ -725,7 +725,7 @@ function DetailModal({ row, onClose }) {
                     <div className="flex items-start justify-between mb-4 pb-4 border-b border-slate-800/50">
                       <div>
                         <div className="text-xl font-bold text-slate-100 mb-1">{q.subject}</div>
-                        <div className="text-slate-300 leading-relaxed">{q.description}</div>
+                        <div className="text-slate-400 leading-relaxed">{q.description}</div>
                       </div>
                       <div className="text-xs text-slate-500">
                         {formatDate(q.createdAt)}
@@ -740,11 +740,11 @@ function DetailModal({ row, onClose }) {
 
                     {q.responses?.length > 0 && (
                       <div className="space-y-3">
-                        <div className="text-xs text-slate-500 uppercase font-semibold tracking-wide mb-2">Responses</div>
+                        <div className="text-xs text-slate-400 uppercase font-semibold tracking-wide mb-2">Responses</div>
                         {q.responses.map((r) => (
                           <div key={r.id} className="rounded-xl bg-slate-800/60 p-4 border-l-4 border-indigo-500/50">
                             <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
-                              <span className="font-semibold text-slate-300">{r.senderType}</span>
+                              <span className="font-semibold text-slate-400">{r.senderType}</span>
                               <span>• {formatDate(r.createdAt)}</span>
                             </div>
                             <div className="text-sm text-slate-200">{r.message}</div>
