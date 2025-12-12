@@ -492,13 +492,13 @@ const SupportManager = () => {
         <div className="bg-white/10 backdrop-blur-2xl rounded-2xl shadow-xl w-full max-w-3xl h-full flex flex-col border border-white/20 mx-auto overflow-hidden">
           <div className="sticky top-0 bg-white/18 backdrop-blur-sm px-6 py-4 border-b border-white/10 z-20">
             <div className="flex justify-between items-center ">
-              <h3 className="text-2xl font-extrabold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-500 bg-clip-text text-transparent flex items-center">
-                <FiEye className="w-6 h-6 mr-3 text-white/90" />
+              <h3 className="text-2xl font-extrabold text-emerald-300 bg-clip-text  flex items-center">
+                <FiEye className="w-6 h-6 mr-3 text-emerald-300" />
                 Query Details
               </h3>
               <button
                 onClick={() => setViewQuery(null)}
-                className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 text-white"
+                className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 text-white cursor-pointer"
               >
                 <FiX className="w-5 h-5" />
               </button>
@@ -513,8 +513,8 @@ const SupportManager = () => {
             </div>
             <DetailItem label="Subject" value={viewQuery?.subject} icon={<FiMessageSquare className="w-5 h-5" />} />
             <div>
-              <label className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 flex items-center">
-                <span className="mr-3 p-2 bg-white/10 rounded-xl"><FiMessageSquare className="w-5 h-5" /></span>
+              <label className="text-xl font-bold text-white mb-3 flex items-center">
+                <span className="mr-3 p-2 bg-white/10 rounded-xl"><FiMessageSquare className="w-5 h-5 text-white" /></span>
                 Description
               </label>
               <div className="bg-white/5 border border-white/20 rounded-xl p-4">
@@ -523,8 +523,8 @@ const SupportManager = () => {
             </div>
             {viewQuery?.imageUrl && (
               <div>
-                <label className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 flex items-center">
-                  <span className="mr-3 p-2 bg-white/10 rounded-xl"><FiImage className="w-5 h-5" /></span>
+                <label className="text-xl font-bold text-white mb-3 flex items-center">
+                  <span className="mr-3 p-2 bg-white/10 rounded-xl"><FiImage className="w-5 h-5 text-white" /></span>
                   Attachment
                 </label>
                 <img 
@@ -549,7 +549,7 @@ const SupportManager = () => {
             </div>
             <button 
               onClick={() => setChatQuery(null)} 
-              className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 ml-3"
+              className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 ml-3 cursor-pointer"
             >
               <FiX className="w-5 h-5 text-white" />
             </button>
@@ -616,7 +616,7 @@ const SupportManager = () => {
             <button
               onClick={sendMessage}
               disabled={!newMessage.trim()}
-              className={`p-3 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+              className={`p-3 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 cursor-pointer ${
                 newMessage.trim() 
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border border-emerald-500/30' 
                   : 'bg-white/10 text-white/50 border border-white/20 cursor-not-allowed'

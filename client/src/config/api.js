@@ -171,6 +171,25 @@ export const ManagerAPI={
   UpdateSupportQueryStatus:(queryId,status)=>api.put(`/manager/support/update-status/${queryId}`,{status}),
   AddSupportQueryResponse:(queryId,message)=>api.post(`/manager/support/add-response/${queryId}`,{message}),
   DeleteSupportQuery:(queryId)=>api.delete(`/manager/support/delete-query/${queryId}`),
+
+
+  getRefferedUsers: () => api.get("/manager/reffered-users"),
+  getRefferedUserById: (userId) => api.get(`/manager/reffered-users/${userId}`),
+
+  getAllResults: () => api.get("/manager/results"),
+  getResultByStudentId: (studentId) => api.get(`/manager/results/student/${studentId}`),
+
+  getAllAdmitCards: () => api.get("/manager/admit-cards"),
+  getAdmitCardById: (id) => api.get(`/manager/admit-cards/${id}`),
+
+  getAllDemoClasses: () => api.get("/manager/demo-classes"),
+  getDemoClassById: (demoClassId) => api.get(`/manager/demo-classes/${demoClassId}`),
+
+  getAllUsers: () => api.get("/manager/users"),
+  getUserById: (id) => api.get(`/manager/users/${id}`),
+
+
+  
 }
 
 

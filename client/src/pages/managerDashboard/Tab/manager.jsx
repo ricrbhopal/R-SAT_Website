@@ -1,198 +1,7 @@
 // src/components/StudentsTable.jsx
 import React, { useEffect, useMemo, useState } from "react";
-
-/* ---------------------- Dummy Data (unchanged) ---------------------- */
-const DUMMY_STUDENTS = [
-  {
-    id: "STU001",
-    student_ID: "RICR-0001",
-    name: "Aman Sharma",
-    phone: "9876543210",
-    email: "aman.sharma@example.com",
-    college: "LNCT Bhopal",
-    branch: "CSE",
-    year: "3rd",
-    dob: "2003-05-12",
-    referredBy: "Rahul Verma",
-    timestamp: "2025-02-10T09:15:32",
-    admitCard: { downloaded: true, timestamp: "2025-02-11T10:20:15" },
-    admitCards: [
-      {
-        id: "AC001",
-        studentId: "STU001",
-        ApplicantName: "Aman Sharma",
-        RSAT: "RSAT-001",
-        status: "Active",
-        issuedDate: "2025-02-11T09:00:00",
-        venue: "LNCT Auditorium",
-        examDate: "2025-03-01T00:00:00",
-        examTime: "10:00 AM",
-        ReportingTime: "9:30 AM",
-        college: "LNCT Bhopal",
-        branch: "CSE",
-        year: "3rd",
-        contact: "9876543210",
-        emailSent: true,
-        emailSentAt: "2025-02-11T11:00:00",
-      },
-    ],
-    resultChecked: { checked: true, timestamp: "2025-02-12T14:45:00" },
-    results: [
-      {
-        id: "R001",
-        studentId: "STU001",
-        student_ID_custom: "RICR-0001",
-        A: 18.5,
-        B: 17.0,
-        C: 19.0,
-        D: 16.0,
-        total: 70.5,
-        percentage: 70.5,
-        scholarShip: 0,
-        check: true,
-        createdAt: "2025-02-12T14:45:00",
-      },
-    ],
-    demoBooked: { booked: false, timestamp: null },
-    demos: [
-      {
-        id: "D001",
-        studentName: "Aman Sharma",
-        email: "aman.sharma@example.com",
-        phone: "9876543210",
-        collegeName: "LNCT Bhopal",
-        year: "3rd",
-        demoSlot: "2025-02-20 10:00 AM",
-        type: "offline",
-      },
-    ],
-    queryCount: 2,
-    supportQueries: [
-      {
-        id: "Q1",
-        subject: "Admit card download issue",
-        description: "Admit card link not working for me.",
-        status: "open",
-        createdAt: "2025-02-10T10:00:00",
-        responses: [],
-      },
-      {
-        id: "Q2",
-        subject: "Demo timing",
-        description: "Can I get demo on weekend?",
-        status: "in_progress",
-        createdAt: "2025-02-11T12:00:00",
-        responses: [],
-      },
-    ],
-    referredRecords: [
-      {
-        id: "REF001",
-        referrerStudentID: "RICR-REF-01",
-        referredStudentId: "STU011",
-        referredName: "Vikas Kumar",
-        referredEmail: "vikas.kumar@example.com",
-        referredPhone: "9009988776",
-        collegeName: "Some College",
-        year: "2nd",
-        refCode: "REF-A-001",
-        referredDate: "2025-02-15T11:00:00",
-      },
-    ],
-  },
-  {
-    id: "STU002",
-    student_ID: "RICR-0002",
-    name: "Priya Mehta",
-    phone: "9394959697",
-    email: "priya.mehta@example.com",
-    college: "Oriental College Bhopal",
-    branch: "IT",
-    year: "2nd",
-    dob: "2004-03-22",
-    referredBy: "Sneha Patel",
-    timestamp: "2025-02-09T13:05:20",
-    admitCard: { downloaded: false, timestamp: null },
-    admitCards: [],
-    resultChecked: { checked: false, timestamp: null },
-    results: [],
-    demoBooked: { booked: false, timestamp: null },
-    demos: [],
-    queryCount: 0,
-    supportQueries: [],
-    referredRecords: [],
-  },
-  {
-    id: "STU003",
-    student_ID: "RICR-0003",
-    name: "Rohan Gupta",
-    phone: "9012345678",
-    email: "rohan.gupta@example.com",
-    college: "SATI Vidisha",
-    branch: "ECE",
-    year: "4th",
-    dob: "2002-11-05",
-    referredBy: "Rahul Verma",
-    timestamp: "2025-02-08T16:22:10",
-    admitCard: { downloaded: true, timestamp: "2025-02-09T08:30:00" },
-    admitCards: [
-      {
-        id: "AC002",
-        studentId: "STU003",
-        ApplicantName: "Rohan Gupta",
-        RSAT: "RSAT-003",
-        status: "Active",
-        issuedDate: "2025-02-09T08:00:00",
-        venue: "SATI Exam Hall",
-        examDate: "2025-03-03T00:00:00",
-        examTime: "02:00 PM",
-        ReportingTime: "1:30 PM",
-        college: "SATI Vidisha",
-        branch: "ECE",
-        year: "4th",
-        contact: "9012345678",
-        emailSent: true,
-        emailSentAt: "2025-02-09T09:00:00",
-      },
-    ],
-    resultChecked: { checked: false, timestamp: null },
-    results: [],
-    demoBooked: { booked: true, timestamp: "2025-02-11T12:30:00" },
-    demos: [
-      {
-        id: "D002",
-        studentName: "Rohan Gupta",
-        email: "rohan.gupta@example.com",
-        phone: "9012345678",
-        collegeName: "SATI Vidisha",
-        year: "4th",
-        demoSlot: "2025-02-11 12:30 PM",
-        type: "online",
-      },
-    ],
-    queryCount: 1,
-    supportQueries: [
-      {
-        id: "Q3",
-        subject: "Result not visible",
-        description: "When I open result page it shows error.",
-        status: "resolved",
-        createdAt: "2025-02-09T09:00:00",
-        responses: [
-          {
-            id: "RSP1",
-            queryId: "Q3",
-            senderType: "ADMIN",
-            responder: "Support Team",
-            message: "Fixed — please try again.",
-            createdAt: "2025-02-09T11:00:00",
-          },
-        ],
-      },
-    ],
-    referredRecords: [],
-  },
-];
+import { ManagerAPI } from "../../../config/api";
+import { toast } from "react-toastify";
 
 /* ---------------------- Helpers ---------------------- */
 const compareValues = (a, b, order = "asc") => {
@@ -212,8 +21,9 @@ function formatDate(ts) {
 }
 
 /* ---------------------- Main Component ---------------------- */
-export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
-  const [data] = useState(initialData);
+export default function StudentsTable({ initialData = [] }) {
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -228,18 +38,39 @@ export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
     return () => clearTimeout(t);
   }, [query]);
 
+  // fetch real data from backend
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    ManagerAPI.getAllUsers()
+      .then((res) => {
+        if (!mounted) return;
+        const users = res?.data || [];
+        setData(users);
+      })
+      .catch((err) => {
+        console.error("ManagerAPI.getAllUsers error:", err);
+        toast.error("Failed to load students from server");
+      })
+      .finally(() => mounted && setLoading(false));
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // processed
   const processed = useMemo(() => {
     const q = debouncedQuery.toLowerCase();
     let filtered = data.filter((r) => {
       if (!q) return true;
       return (
-        (r.name || "").toString().toLowerCase().includes(q) ||
-        (r.email || "").toString().toLowerCase().includes(q) ||
-        (r.phone || "").toString().toLowerCase().includes(q) ||
+        (r.fullName || "").toString().toLowerCase().includes(q) ||
+        (r.mail_ID || "").toString().toLowerCase().includes(q) ||
+        (r.phoneNo || "").toString().toLowerCase().includes(q) ||
         (r.college || "").toString().toLowerCase().includes(q) ||
         (r.branch || "").toString().toLowerCase().includes(q) ||
-        (r.referredBy || "").toString().toLowerCase().includes(q)
+        (r.student_ID || "").toString().toLowerCase().includes(q)
       );
     });
 
@@ -283,12 +114,12 @@ export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
               Monitor registrations, admit-cards, demo slots, referrals and queries.
             </p>
           </div>
-          <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center">
             <div className="text-xs text-slate-400 bg-slate-900 px-3 py-2 rounded-md border border-slate-700/70 shadow-sm">
               Total Students: <span className="font-medium text-slate-50 ml-1">{data.length}</span>
             </div>
             <div className="text-xs text-slate-400 bg-slate-900 px-3 py-2 rounded-md border border-slate-700/70 shadow-sm hidden sm:block">
-              Admit Cards: <span className="font-medium text-slate-50 ml-1">{data.filter((d) => d.admitCard.downloaded).length}</span>
+              Admit Cards: <span className="font-medium text-slate-50 ml-1">{data.filter((d) => d.admitCards?.length > 0).length}</span>
             </div>
           </div>
         </div>
@@ -344,8 +175,7 @@ export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
                 <Th sortable onClick={() => handleSort("year")} active={sortField === "year"} order={sortOrder}>
                   Year
                 </Th>
-                <Th>Referred By</Th>
-                <Th sortable onClick={() => handleSort("timestamp")} active={sortField === "timestamp"} order={sortOrder}>
+                <Th sortable onClick={() => handleSort("createdAt")} active={sortField === "createdAt"} order={sortOrder}>
                   Submitted
                 </Th>
                 <Th center>Admit</Th>
@@ -358,34 +188,33 @@ export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
             <tbody className="bg-slate-950/90 divide-y divide-slate-800/50">
               {pageData.map((row) => (
                 <tr
-                  key={row.id}
+                  key={row.id || row._id}
                   onClick={() => setSelectedRow(row)}
                   className="cursor-pointer transition-all duration-150 hover:bg-slate-900/80 hover:shadow-md hover:border-slate-700/50 border border-transparent hover:border"
                 >
-                  <Td>{row.name}</Td>
-                  <Td>{row.phone}</Td>
-                  <Td className="truncate max-w-[200px]">{row.email}</Td>
-                  <Td className="max-w-[180px] truncate">{row.college}</Td>
-                  <Td>{row.branch}</Td>
-                  <Td>{row.year}</Td>
-                  <Td>{row.referredBy}</Td>
-                  <Td className="whitespace-nowrap text-xs">{formatDate(row.timestamp)}</Td>
+                  <Td>{row.fullName ?? "-"}</Td>
+                  <Td>{row.phoneNo ?? "-"}</Td>
+                  <Td className="truncate max-w-[200px]">{row.mail_ID ?? "-"}</Td>
+                  <Td className="max-w-[180px] truncate">{row.college ?? "-"}</Td>
+                  <Td>{row.branch ?? "-"}</Td>
+                  <Td>{row.year ?? "-"}</Td>
+                  <Td className="whitespace-nowrap text-xs">{formatDate(row.createdAt)}</Td>
 
                   <Td center>
-                    <StatusPill ok={row.admitCard.downloaded} />
+                    <StatusPill ok={row.admitCards?.length > 0} />
                   </Td>
 
                   <Td center>
-                    <StatusPill ok={row.resultChecked.checked} />
+                    <StatusPill ok={row.results?.length > 0} />
                   </Td>
 
                   <Td center>
-                    <StatusPill ok={row.demoBooked.booked} />
+                    <StatusPill ok={row.demos?.length > 0} />
                   </Td>
 
                   <Td center>
                     <span className="inline-flex items-center rounded-full bg-indigo-900/60 px-2.5 py-1 text-xs font-medium text-indigo-300 border border-indigo-700/50 shadow-sm">
-                      {row.queryCount} {row.queryCount > 0 ? "Open" : ""}
+                      {row.supportQueries?.length ?? 0}
                     </span>
                   </Td>
                 </tr>
@@ -393,7 +222,7 @@ export default function StudentsTable({ initialData = DUMMY_STUDENTS }) {
 
               {pageData.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-sm text-slate-400">
+                  <td colSpan={11} className="px-6 py-12 text-center text-sm text-slate-400">
                     No records found matching your search.
                   </td>
                 </tr>
@@ -519,7 +348,7 @@ function DetailModal({ row, onClose }) {
         {/* Header */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-800/70 px-8 py-6 bg-slate-950/95 backdrop-blur-sm">
           <div>
-            <h3 className="text-2xl font-bold text-slate-50 tracking-tight">{row.name}</h3>
+            <h3 className="text-2xl font-bold text-slate-50 tracking-tight">{row.fullName}</h3>
             <p className="mt-1 text-sm text-slate-400">
               {row.student_ID} • {row.college} • {row.branch} • {row.year} year
             </p>
@@ -556,15 +385,14 @@ function DetailModal({ row, onClose }) {
           {activeSection === "StudentRecord" && (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Info label="Student ID" value={row.student_ID} />
-              <Info label="Full Name" value={row.name} />
-              <Info label="Phone" value={row.phone} />
-              <Info label="Email" value={row.email} />
+              <Info label="Full Name" value={row.fullName} />
+              <Info label="Phone" value={row.phoneNo} />
+              <Info label="Email" value={row.mail_ID} />
               <Info label="College" value={row.college} />
               <Info label="Branch" value={row.branch} />
               <Info label="Year" value={row.year} />
               <Info label="DOB" value={row.dob} />
-              <Info label="Referred By" value={row.referredBy} />
-              <Info label="Submitted At" value={formatDate(row.timestamp)} />
+              <Info label="Submitted At" value={formatDate(row.createdAt)} />
             </div>
           )}
 
@@ -644,8 +472,8 @@ function DetailModal({ row, onClose }) {
           {activeSection === "ReferredRecord" && (
             <div>
               <h4 className="mb-6 text-lg font-semibold text-slate-100">Referred Students</h4>
-              {row.referredRecords?.length > 0 ? (
-                row.referredRecords.map((ref) => (
+              {row.referrals?.length > 0 ? (
+                row.referrals.map((ref) => (
                   <div key={ref.id} className="mb-6 rounded-2xl border border-slate-800/70 bg-slate-900/80 p-6 shadow-lg">
                     <div className="flex items-start justify-between mb-3">
                       <div className="font-bold text-slate-100">{ref.referredName}</div>
