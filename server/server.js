@@ -5,14 +5,13 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
-dotenv.config();
-
-import connectDB from "./src/config/db.js"; // this is your MSSQL connector
-import Admin from "./src/routers/adminRouter.js"; // keep your routers
+import connectDB from "./src/config/db.js"; 
+import Admin from "./src/routers/adminRouter.js"; 
 import Student from "./src/routers/StudentRouter.js";
 import AdmitCards from "./src/routers/admitRouter.js";
 import { registerSupportSockets } from "./src/realtime/supportSocket.js";
-
+import Manager from "./src/routers/managerRouter.js";
+dotenv.config();
 const app = express();
 
 // CORS configuration - allow both local dev and production
@@ -39,34 +38,13 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Test route
-app.get("/", (req, res) => res.send("Server running..."));
-
-// test-sql route (example)
-app.get("/test-sql", async (req, res) => {
-  try {
-    const pool = await connectDB();
-    const result = await pool.request().query("SELECT TOP 5 * FROM dbo.Users");
-    res.json({ ok: true, rows: result.recordset });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
 
 // Routes
 app.use("/admin", Admin);
 app.use("/student", Student);
+app.use("/manager", Manager);
 app.use("/admit-cards", AdmitCards);
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", port: PORT, timestamp: new Date().toISOString() });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ message: `Route ${req.method} ${req.path} not found` });
-});
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -78,6 +56,7 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === "development" ? err.stack : {} 
   });
 });
+
 
 (async () => {
   try {
